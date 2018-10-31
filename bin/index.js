@@ -27,14 +27,16 @@ program
     .action(function () {
 
         // start up application
-        Startup(program);
+        // Startup(program);
 
     })
 
 
-console.log('> dalao is loading...'.green);
+console.log('> dalao is working on it...'.green);
+Startup(program);
 
 process.on('uncaughtException', function (err) {
-    console.log('> Oh no, dalao is getting tired...'.red);
+    console.log('\n> Oh no, dalao is getting tired...'.red);
     console.error(err);
+    process.exit(1);
 })

@@ -1,7 +1,9 @@
 {
     "port": 9090,
-    "host": "test.dalao-proxy.com",
-    "enableCache": true,
+    "host": "www.test.com",
+    "target": "http://116.62.199.92",
+    "cache": true,
+    "watch": false,
     "changeOrign": true,
     "headers": {
         
@@ -9,6 +11,9 @@
     "proxyTable": {
         "/api": {
 
+        },
+        "**": {
+            "path": "/overwrite"
         }
     }
 }

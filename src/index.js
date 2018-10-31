@@ -1,12 +1,27 @@
-// libs
+const ConfigParser = require('./config-parser');
+const ProxyServer = require('./http-server');
 
-const baseConfig = require('../config');
-const configParser = require('./config-parser');
+module.exports = function Startup (program) {
+    const { info } = program;
 
-let runtimeConfig = _.assign({}, baseConfig);
-
-module.exports = function Startup(program) {
+    let proxyServer;
     
+    // registe listener
+    ConfigParser.parseEmitter.on('config:parsed', function (config) {
+        if (info) {
+            console.log('> parsed user configuration'.yellow)
+            console.log(config);
+        }
 
+        if (proxyServer) {
+            proxyServer.close();
+        }
+
+        // start a proxy server
+        proxyServer = ProxyServer.createProxyServer(config);
+    });
+
+    // start to parse
+    ConfigParser.parse(program);
 
 }
