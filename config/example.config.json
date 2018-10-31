@@ -1,24 +1,18 @@
 {
-    "port": 9090,
+    "port": 80,
     "host": "",
     "target": "http://116.62.199.92:8012",
+    "rewrite": true,
     "cache": true,
     "watch": false,
-    "rewrite": true,
     "info": true,
     "headers": {
         
     },
     "proxyTable": {
-        "/test": {
-            "path": "/deploy"
-        },
         "/": {
-            "path": "/deploy",
+            "path": "/api",
             "rewrite": false
-        },
-        "/api": {
-            "path": "/v2"
         },
         "/strange": {
         },

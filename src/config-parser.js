@@ -10,6 +10,11 @@ const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
 
 
+function custom_assign (objValue, srcValue) {
+    return !srcValue ? objValue : srcValue;
+}
+
+
 /**
  * file parser
  * @argument {String} filePath target file to parse
@@ -19,17 +24,24 @@ function fileParser(filePath) {
     try {
         const file = fs.readFileSync(path.resolve(pwd, filePath), 'utf-8');
         const fileConfig = JSON.parse(file);
+        const EXTRA_FIELDS = ['headers', 'proxyTable'];
         // extra fields need to be merged
-        const baseExtraConfig = _.pick(baseConfig, ['headers', 'proxyTable']);
+        const baseConfig_extra = _.pick(baseConfig, EXTRA_FIELDS);
+        const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS);
 
-        const plainMergedConfig = _.assign({}, baseConfig, fileConfig);
+        const fileConfig_extra = _.pick(fileConfig, EXTRA_FIELDS);
+        const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS);
+
+        const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
+        const mergedConfig_extra = _.merge({}, baseConfig_extra, fileConfig_extra);
 
         // other plain field need to be replaced
-        const mergedFileConfig = _.merge({}, baseExtraConfig, plainMergedConfig)
+        const mergedFileConfig = _.merge({}, mergedConfig_extra, mergedConfig_plain)
 
         return mergedFileConfig;
     } catch (error) {
-        throw (error);
+        console.warn('!> No specific config file provided.'.red);
+        return baseConfig;
     }
 };
 
@@ -49,7 +61,10 @@ exports.parse = function parse(program) {
         watch,
         port,
         host,
-        cache
+        target,
+        rewrite,
+        cache,
+        info
     } = program;
     
     // configs
@@ -57,12 +72,15 @@ exports.parse = function parse(program) {
         watch,
         port,
         host,
-        cache
+        target,
+        rewrite,
+        cache,
+        info
     };
     const fileConfig = fileParser(configFile);
-    const baseConfig = require('../config');
-    
-    runtimeConfig = _.assign({}, baseConfig, fileConfig, argsConfig);
+
+    // replace fileConfig by argsConfig
+    runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
     parseEmitter.emit('config:parsed', runtimeConfig);
 };
