@@ -1,0 +1,14 @@
+{
+    "port": 9090,
+    "host": "test.dalao-proxy.com",
+    "enableCache": true,
+    "changeOrign": true,
+    "headers": {
+        
+    },
+    "proxyTable": {
+        "/api": {
+
+        }
+    }
+}

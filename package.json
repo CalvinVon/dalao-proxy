@@ -1,0 +1,25 @@
+{
+  "name": "@calvin/dalao-proxy",
+  "version": "0.0.1",
+  "description": "A HTTP proxy for frontend developer with request cache, request mock and hosts modification.",
+  "main": "index.js",
+  "bin": {
+    "dalao-proxy": "bin/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "HTTP",
+    "Proxy"
+  ],
+  "author": "Calvin",
+  "license": "ISC",
+  "dependencies": {
+    "colors": "^1.3.2",
+    "commander": "^2.19.0",
+    "install": "^0.12.2",
+    "lodash": "^4.17.11",
+    "npm": "^6.4.1"
+  }
+}
