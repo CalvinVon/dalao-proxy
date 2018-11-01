@@ -77,7 +77,7 @@ exports.parse = function parse(program) {
     try {
         if (!configFile) {
             console.warn('!> No specific config file provided. Running in default config.'.grey);
-            filePath = baseConfig.configFilename;
+            filePath = path.resolve(baseConfig.configFilename);
         }
         else {
             filePath = path.resolve(pwd, configFile);
@@ -101,10 +101,8 @@ exports.parse = function parse(program) {
                 parseEmitter.emit('config:parsed', runtimeConfig);
             });
         }
-        else {
-            // emit event to reload proxy server
-            parseEmitter.emit('config:parsed', runtimeConfig);
-        }
+        // emit event to reload proxy server
+        parseEmitter.emit('config:parsed', runtimeConfig);
 
     } catch (error) {
         console.error(error);

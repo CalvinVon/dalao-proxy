@@ -1,0 +1,29 @@
+{
+    "watch": true,
+    "host": "localhost",
+    "port": "8763",
+    "target": "localhost:8082",
+    "rewrite": false,
+    "cache": false,
+    "info": false,
+    "headers": {
+        "Via": "HTTP/1.1 dalao-proxy"
+    },
+    "emptyRoutes": true,
+    "proxyTable": {
+        "/dd": {
+            "path": "/",
+            "rewrite": false
+        },
+        "/jd": {
+            "target": "https://www.jd.com",
+            "path": "/",
+            "rewrite": false
+        },
+        "/baidu": {
+            "target": "https://www.baidu.com",
+            "path": "/",
+            "rewrite": false
+        }
+    }
+}

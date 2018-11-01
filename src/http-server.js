@@ -84,7 +84,7 @@ function createProxyServer (config) {
     });
 
     const server = http.createServer(function proxyRequest(req, res) {
-        const { method, url } = req;
+        let { method, url } = req;
         const _request = request[method.toLowerCase()];
         let matched;
 
@@ -108,7 +108,11 @@ function createProxyServer (config) {
         // if the request not in the proxy table
         // default change request orign
         if (!matched) {
-            req.pipe(request[method.toLowerCase()](target + url)).pipe(res);
+            let unmatchedUrl = target + url;
+            if (!HTTP_PREFIX_REG.test(unmatchedUrl)) {
+                unmatchedUrl = 'http://' + unmatchedUrl;
+            }
+            req.pipe(_request(unmatchedUrl)).pipe(res);
         }
     });
 
