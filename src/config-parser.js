@@ -22,7 +22,7 @@ function custom_assign (objValue, srcValue) {
  */
 function fileParser(filePath) {
     try {
-        const file = fs.readFileSync(path.resolve(pwd, filePath), 'utf-8');
+        const file = fs.readFileSync(filePath, 'utf-8');
         const fileConfig = JSON.parse(file);
         const EXTRA_FIELDS = ['headers', 'proxyTable'];
         // extra fields need to be merged
@@ -77,10 +77,27 @@ exports.parse = function parse(program) {
         cache,
         info
     };
-    const fileConfig = fileParser(configFile);
-
+    const filePath = path.resolve(pwd, configFile);
+    const fileConfig = fileParser(filePath);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
+    if (watch) {
+        console.log('> 👀   🔞   dalao is watching at your config file'.green);
+        fs.watchFile(filePath, function () {
+            console.clear();
+            console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
+
+            // re-parse config file
+            const changedFileConfig = fileParser(filePath);
+            // replace fileConfig by argsConfig
+            runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
+            // emit event to reload proxy server
+            parseEmitter.emit('config:parsed', runtimeConfig);
+        });
+    }
+
+    
+    // emit event to reload proxy server
     parseEmitter.emit('config:parsed', runtimeConfig);
 };

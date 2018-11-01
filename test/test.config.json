@@ -3,9 +3,9 @@
     "host": "",
     "target": "http://116.62.199.92:8012",
     "cache": true,
-    "watch": false,
+    "watch": true,
     "rewrite": true,
-    "info": true,
+    "info": false,
     "headers": {
         
     },
@@ -14,7 +14,6 @@
             "path": "/deploy",
             "rewrite": false
         },
-        
         "/api": {
             "path": "/v2"
         },

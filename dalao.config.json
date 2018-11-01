@@ -1,0 +1,12 @@
+{
+    "watch": true,
+    "rewrite": false,
+    "headers": {
+        "Via": "HTTP/1.1 dalao-proxy"
+    },
+    "proxyTable": {
+        "/": {
+            "path": "/"
+        }
+    }
+}

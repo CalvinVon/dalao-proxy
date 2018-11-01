@@ -7,14 +7,23 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "启动程序",
+            "name": "dalao start",
             "program": "${workspaceFolder}\\bin\\index.js",
             "args": [
                 "start",
                 "-C",
-                "../test/test.config.json",
+                "./test/test.config.json",
                 "-p",
                 "1234"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "dalao init",
+            "program": "${workspaceFolder}\\bin\\index.js",
+            "args": [
+                "init"
             ]
         }
     ]

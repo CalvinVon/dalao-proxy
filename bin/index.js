@@ -22,9 +22,9 @@ program
     .option('-r, --rewrite', 'globle config for rewrite path', baseConfig.rewrite)
     .option('-c, --cache', 'enable request cache', baseConfig.cache)
     .option('-i, --info', 'enable log print', baseConfig.info)
-    .action(function (subProgram) {
+    .action(function () {
         console.log('> 😤  dalao is working on it...'.green);
-        Startup(subProgram);
+        Startup(this);
         input_command = true;
     })
 
@@ -32,8 +32,8 @@ program
     .command('init')
     .description('create an init config file in current dir')
     .option('-f, --force', 'Skip options and force generate default config file', false)
-    .action(function (subProgram) {
-        Init(subProgram);
+    .action(function () {
+        Init(this);
         input_command = true;
     })
 

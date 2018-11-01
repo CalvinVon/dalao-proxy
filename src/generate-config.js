@@ -7,8 +7,7 @@ const pwd = process.cwd();
 
 const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout,
-    prompt: 'dalao > '
+    output: process.stdout
 });
 
 // questions
