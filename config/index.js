@@ -1,5 +1,5 @@
 const config = {
-    version: '0.0.1',
+    version: '0.1.2',
     // custom config file path
     configFilename: 'dalao.config.json',
     watch: true,
@@ -16,9 +16,12 @@ const config = {
     headers: {
         'Via': 'HTTP/1.1 dalao-proxy',
     },
+    // proxy routes
+    emptyRoutes: false,    // enempty table
     proxyTable: {
         "/": {
-            path: "/"
+            path: "/",
+            rewrite: false
         }
     }
 };

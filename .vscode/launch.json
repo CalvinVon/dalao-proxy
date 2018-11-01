@@ -12,11 +12,7 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "start",
-                "-C",
-                "./test/test.config.json",
-                "-p",
-                "1234",
-                "-iw"
+                "-P"
             ]
         },
         {

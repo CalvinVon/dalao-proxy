@@ -16,13 +16,19 @@ exports.parseEmitter = parseEmitter;
  * @argument {String} filePath target file to parse
  * @return {Config} mergedFileConfig
  */
-function fileParser(filePath) {
+function fileParser(filePath, preventDefaultRoute) {
     try {
         const file = fs.readFileSync(filePath, 'utf-8');
         const fileConfig = JSON.parse(file);
         const EXTRA_FIELDS = ['headers', 'proxyTable'];
+
         // extra fields need to be merged
-        const baseConfig_extra = _.pick(baseConfig, EXTRA_FIELDS);
+        const baseConfig_extra = _.pick(baseConfig, EXTRA_FIELDS.filter(field => {
+            if (preventDefaultRoute) {
+                return field !== 'proxyTable';
+            }
+            return field;
+        }));
         const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS);
 
         const fileConfig_extra = _.pick(fileConfig, EXTRA_FIELDS);
@@ -51,56 +57,56 @@ exports.parse = function parse(program) {
 
     let runtimeConfig = {};
     
-    const {
-        config: configFile,
-        watch,
-        port,
-        host,
-        target,
-        rewrite,
-        cache,
-        info
-    } = program;
+    const { config: configFile, emptyRoutes } = program;
     
     // configs
-    const argsConfig = {
-        watch,
-        port,
-        host,
-        target,
-        rewrite,
-        cache,
-        info
-    };
+    const argsConfig = _.pick(program, [
+        'config',
+        "watch",
+        "port",
+        "host",
+        "target",
+        "rewrite",
+        "cache",
+        "info",
+        "emptyRoutes"
+    ]);
 
     let filePath;
 
     try {
-        filePath = path.resolve(pwd, configFile);
-    } catch (error) {
-        console.warn('!> No specific config file provided. Running in default config.'.grey);
-    }
+        if (!configFile) {
+            console.warn('!> No specific config file provided. Running in default config.'.grey);
+            filePath = baseConfig.configFilename;
+        }
+        else {
+            filePath = path.resolve(pwd, configFile);
+        }
+
+        const fileConfig = fileParser(filePath, emptyRoutes);
+        // replace fileConfig by argsConfig
+        runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
+
+        if (runtimeConfig.watch) {
+            fs.watchFile(filePath, function () {
+                console.clear();
+                console.log('> 👀   🔞   dalao is watching at your config file');
+                console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
     
-    const fileConfig = fileParser(filePath);
-    // replace fileConfig by argsConfig
-    runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
-
-    if (filePath && watch) {
-        console.log('> 👀   🔞   dalao is watching at your config file'.green);
-        fs.watchFile(filePath, function (curr, pre) {
-            console.clear();
-            console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
-
-            // re-parse config file
-            const changedFileConfig = fileParser(filePath);
-            // replace fileConfig by argsConfig
-            runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
+                // re-parse config file
+                const changedFileConfig = fileParser(filePath, emptyRoutes);
+                // replace fileConfig by argsConfig
+                runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
+                // emit event to reload proxy server
+                parseEmitter.emit('config:parsed', runtimeConfig);
+            });
+        }
+        else {
             // emit event to reload proxy server
             parseEmitter.emit('config:parsed', runtimeConfig);
-        });
-    }
+        }
 
-    
-    // emit event to reload proxy server
-    parseEmitter.emit('config:parsed', runtimeConfig);
+    } catch (error) {
+        console.error(error);
+    }
 };

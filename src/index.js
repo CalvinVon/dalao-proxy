@@ -49,7 +49,7 @@ Press ^C at any time to quit.
     ConfigGenerator(program);
 };
 
-exports.printWelcome = function printWelcome () {
+exports.printWelcome = function printWelcome (version) {
     let str = '';
     str += '________           .__                    __________                                 \n';
     str += '\\______ \\  _____   |  |  _____     ____   \\______   \\_______   ____  ___  ___ ___.__.\n';
@@ -57,5 +57,6 @@ exports.printWelcome = function printWelcome () {
     str += ' |    `   \\ / __ \\_|  |__ / __ \\_(  <_> )  |    |     |  | \\/(  <_> ) >    <  \\___  |\n';
     str += '/_______  /(____  /|____/(____  / \\____/   |____|     |__|    \\____/ /__/\\_ \\ / ____|\n';
     str += '        \\/      \\/            \\/                                           \\/ \\/     \n';
-    console.log(str.blue);
+    console.log(str.yellow);
+    console.log('\n Dalao Proxy '.yellow, ('v' + version).green);
 };

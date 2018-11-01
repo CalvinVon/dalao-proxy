@@ -114,8 +114,8 @@ function createProxyServer (config) {
 
     server.listen(port, function () {
         console.log(outputTable.toString().green);
-        console.log('\n> 😏  dalao has setup the Proxy for you'.blue);
-        console.log('> 😇  dalao in waiting 👉  ' + `http://${host}:${port}`.blue);
+        console.log('\n> dalao has setup the Proxy for you'.green);
+        console.log('> 😇  dalao in waiting 👉  ' + `http://${host}:${port}`.green);
     });
 
     return server;
