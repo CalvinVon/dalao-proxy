@@ -87,7 +87,8 @@ exports.parse = function parse(program) {
         // replace fileConfig by argsConfig
         runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
-        if (runtimeConfig.watch) {
+        if (filePath && runtimeConfig.watch) {
+            console.log('> 👀  🔞 dalao is watching at your config file');
             fs.watchFile(filePath, function () {
                 console.clear();
                 console.log('> 👀   🔞   dalao is watching at your config file');

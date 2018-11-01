@@ -1,27 +1,21 @@
 {
     "watch": true,
     "host": "localhost",
-    "port": "8763",
-    "target": "localhost:8082",
+    "port": "9088",
+    "target": "localhost:9088",
     "rewrite": false,
     "cache": false,
-    "info": true,
+    "info": false,
     "headers": {
         "Via": "HTTP/1.1 dalao-proxy"
     },
-    "emptyRoutes": true,
+    "emptyRoutes": false,
     "proxyTable": {
-        "/dd": {
-            "path": "/",
-            "rewrite": false
+        "/": {
+            "path": "/"
         },
         "/jd": {
             "target": "https://www.jd.com",
-            "path": "/",
-            "rewrite": true
-        },
-        "/baidu": {
-            "target": "https://www.baidu.com",
             "path": "/",
             "rewrite": true
         }

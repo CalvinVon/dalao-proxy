@@ -11,8 +11,7 @@
             "program": "${workspaceFolder}\\bin\\index",
             "cwd": "${workspaceFolder}",
             "args": [
-                "start",
-                "-P"
+                "start"
             ]
         },
         {

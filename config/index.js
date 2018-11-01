@@ -14,7 +14,8 @@ const config = {
     info: false,
     // extra
     headers: {
-        'Via': 'HTTP/1.1 dalao-proxy',
+        'Access-Control-Expose-Headers': 'X-My-Custom-Header, X-Another-Custom-Header',
+        'Access-Control-Max-Age': '3600',
     },
     // proxy routes
     emptyRoutes: false,    // enempty table
