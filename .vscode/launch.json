@@ -8,22 +8,38 @@
             "type": "node",
             "request": "launch",
             "name": "dalao start",
-            "program": "${workspaceFolder}\\bin\\index.js",
+            "program": "${workspaceFolder}\\bin\\index",
+            "cwd": "${workspaceFolder}",
             "args": [
                 "start",
                 "-C",
                 "./test/test.config.json",
                 "-p",
-                "1234"
+                "1234",
+                "-iw"
             ]
         },
         {
             "type": "node",
             "request": "launch",
             "name": "dalao init",
-            "program": "${workspaceFolder}\\bin\\index.js",
+            "program": "${workspaceFolder}\\bin\\index",
+            "cwd": "${workspaceFolder}",
             "args": [
-                "init"
+                "init",
+                "-f"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "dalao start plain",
+            "program": "${workspaceFolder}\\bin\\index",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "start",
+                "-p",
+                "1234"
             ]
         }
     ]

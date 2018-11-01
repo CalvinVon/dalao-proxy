@@ -4,6 +4,7 @@ const _ = require('lodash');
 const defalutConfig = require('../config');
 const path = require('path');
 const pwd = process.cwd();
+const custom_assign = require('./utils').custom_assign;
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -38,7 +39,7 @@ function createConfigFile() {
         generateConfig[questionObj.value] = answers[index];
     });
 
-    generateConfig = Object.assign({}, _.omit(defalutConfig, ['version', 'configFilename']), generateConfig);
+    generateConfig = _.assignWith({}, _.omit(defalutConfig, ['version', 'configFilename']), generateConfig, custom_assign);
 
     fs.writeFileSync(path.resolve(pwd, defalutConfig.configFilename), JSON.stringify(generateConfig, null, 4));
     console.log(`> 😉  dalao says: 🎉  Congratulations, \`${defalutConfig.configFilename}\` has generated for you.`.green);
@@ -52,12 +53,14 @@ function runQuestionLoop(forceSkip) {
     if (forceSkip) {
         createConfigFile();
         rl.close();
+        process.exit(0);
         return;
     }
 
     if (index === questionObjs.length) {
         createConfigFile();
         rl.close();
+        process.exit(0);
         return;
     }
 

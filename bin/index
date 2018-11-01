@@ -60,5 +60,4 @@ if (!input_command) {
 process.on('uncaughtException', function (err) {
     console.log('\n> 😫  Oh no, dalao is getting tired...'.red);
     console.error(err);
-    process.exit(1);
 })

@@ -5,14 +5,10 @@ const _ = require('lodash')
 
 const pwd = process.cwd();
 const baseConfig = require('../config');
+const custom_assign = require('./utils').custom_assign;
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
-
-
-function custom_assign (objValue, srcValue) {
-    return !srcValue ? objValue : srcValue;
-}
 
 
 /**
@@ -40,7 +36,6 @@ function fileParser(filePath) {
 
         return mergedFileConfig;
     } catch (error) {
-        console.warn('!> No specific config file provided. Running in default config.'.grey);
         return baseConfig;
     }
 };
@@ -77,14 +72,22 @@ exports.parse = function parse(program) {
         cache,
         info
     };
-    const filePath = path.resolve(pwd, configFile);
+
+    let filePath;
+
+    try {
+        filePath = path.resolve(pwd, configFile);
+    } catch (error) {
+        console.warn('!> No specific config file provided. Running in default config.'.grey);
+    }
+    
     const fileConfig = fileParser(filePath);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
-    if (watch) {
+    if (filePath && watch) {
         console.log('> 👀   🔞   dalao is watching at your config file'.green);
-        fs.watchFile(filePath, function () {
+        fs.watchFile(filePath, function (curr, pre) {
             console.clear();
             console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
 

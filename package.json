@@ -1,10 +1,10 @@
 {
   "name": "dalao-proxy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A HTTP proxy for frontend developer with request cache, request mock and hosts modification.",
   "main": "index.js",
   "bin": {
-    "dalao-proxy": "bin/index.js"
+    "dalao-proxy": "bin/index"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

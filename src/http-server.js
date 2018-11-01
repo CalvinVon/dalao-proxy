@@ -1,6 +1,7 @@
 const http = require('http');
 const request = require('request');
 const _ = require('lodash');
+const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
 
 /**
  * Proxy path transformer
@@ -10,17 +11,24 @@ const _ = require('lodash');
  * @param {Boolean} rewrite rewrite proxy matched path
  */
 function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
+    let transformedUrl;
+
+    url = url.replace(HTTP_PREFIX_REG, '');
+
     if (rewrite) {
         const rewritedPath = url.replace(proxyPath, overwritePath)
-        return joinUrl([overwriteHost, rewritedPath]);
+        transformedUrl = joinUrl([overwriteHost, rewritedPath]);
     }
     else {
-        return joinUrl([overwriteHost, overwritePath, url]);
+        transformedUrl = joinUrl([overwriteHost, overwritePath, url]);
     }
+
+    transformedUrl = 'http://' + transformedUrl;
+    return transformedUrl;
 }
 
 function joinUrl(urls) {
-    return urls.join('/').replace(/\/{2,}/g, '/');
+    return urls.map(url => url.replace(HTTP_PREFIX_REG, '')).join('/').replace(/\/{2,}/g, '/');
 }
 
 function createProxyServer (config) {

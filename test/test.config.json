@@ -20,7 +20,7 @@
         "/strange": {
         },
         "/otherDomain": {
-            "target": "http://other.domain.com"
+            "target": "other.domain.com"
         }
     }
 }
