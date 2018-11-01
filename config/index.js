@@ -1,5 +1,5 @@
 const config = {
-    version: '0.1.2',
+    version: '0.1.3',
     // custom config file path
     configFilename: 'dalao.config.json',
     watch: true,
