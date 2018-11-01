@@ -3,7 +3,9 @@ A HTTP proxy for frontend developer with request cache, request mock and hosts m
 
 ## Feature
 - HTTP proxy
-- request cache and mock
-- modify hosts file automatically
+- request cache and mock (undone)
+- modify hosts file automatically (undone)
+- auto generate config file
+- auto reload proxy when config changes (undone)
 
 ## Well, I am still working on it...

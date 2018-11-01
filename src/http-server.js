@@ -2,7 +2,28 @@ const http = require('http');
 const request = require('request');
 const _ = require('lodash');
 
-function createProxyServer(config) {
+/**
+ * Proxy path transformer
+ * @param {String} proxyPath proxy matched path
+ * @param {String} targetPath proxy target path
+ * @param {String} path origin path
+ * @param {Boolean} rewrite rewrite proxy matched path
+ */
+function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
+    if (rewrite) {
+        const rewritedPath = url.replace(proxyPath, overwritePath)
+        return joinUrl([overwriteHost, rewritedPath]);
+    }
+    else {
+        return joinUrl([overwriteHost, overwritePath, url]);
+    }
+}
+
+function joinUrl(urls) {
+    return urls.join('/').replace(/\/{2,}/g, '/');
+}
+
+function createProxyServer (config) {
 
     const {
         target,
@@ -49,7 +70,7 @@ function createProxyServer(config) {
             proxyPath,
             overwriteTarget + overwritePath,
             overwriteRewrite,
-            overwriteTarget + overwritePath + (overwriteRewrite ? '' : proxyPath)
+            transformPath(proxyPath, overwriteTarget, overwritePath, proxyPath, overwriteRewrite)
         ]);
         // console.log('\n> %s \t-->\t %s:%s'.green, overwritePath, proxyTarget, proxyPath);
     });
@@ -64,13 +85,12 @@ function createProxyServer(config) {
             const matchReg = new RegExp(`^(${proxyPath})\\b`);
             if (matched = matchReg.test(url)) {
                 const {
-                    target: overwriteTarget,
+                    target: overwriteHost,
                     path: overwritePath,
                     rewrite: overwriteRewrite
                 } = proxyTable[proxyPath];
 
-
-                const proxyUrl = overwriteTarget + url.replace(matchReg, overwritePath + (overwriteRewrite ? '' : proxyPath));
+                const proxyUrl = transformPath(proxyPath, overwriteHost, overwritePath, url, overwriteRewrite);
 
                 req.pipe(_request(proxyUrl)).pipe(res);
                 break;
@@ -86,11 +106,12 @@ function createProxyServer(config) {
 
     server.listen(port, function () {
         console.log(outputTable.toString().green);
-        console.log('\n> dalao has setup the Proxy for you'.blue);
-        console.log('\n> dalao in waiting you at ' + `http://${host}:${port}`.blue);
+        console.log('\n> 😏  dalao has setup the Proxy for you'.blue);
+        console.log('\n> 😇  dalao in waiting 👉  ' + `http://${host}:${port}`.blue);
     });
 
     return server;
 }
 
+exports.transformPath = transformPath;
 exports.createProxyServer = createProxyServer;

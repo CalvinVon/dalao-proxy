@@ -40,7 +40,7 @@ function fileParser(filePath) {
 
         return mergedFileConfig;
     } catch (error) {
-        console.warn('!> No specific config file provided.'.red);
+        console.warn('!> No specific config file provided. Running in default config.'.grey);
         return baseConfig;
     }
 };

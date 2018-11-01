@@ -1,7 +1,7 @@
 const config = {
     version: '0.0.1',
     // custom config file path
-    configFilename: 'dalao.json',
+    configFilename: 'dalao.config.json',
     watch: true,
     // proxy server
     host: 'localhost',

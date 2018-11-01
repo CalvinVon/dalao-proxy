@@ -11,12 +11,10 @@
     },
     "proxyTable": {
         "/test": {
-            "path": "/deploy"
-        },
-        "/": {
             "path": "/deploy",
             "rewrite": false
         },
+        
         "/api": {
             "path": "/v2"
         },

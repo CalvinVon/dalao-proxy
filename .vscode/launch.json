@@ -10,8 +10,9 @@
             "name": "启动程序",
             "program": "${workspaceFolder}\\bin\\index.js",
             "args": [
+                "start",
                 "-C",
-                "./test/test.config.json",
+                "../test/test.config.json",
                 "-p",
                 "1234"
             ]
