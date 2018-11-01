@@ -12,6 +12,7 @@ const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
  */
 function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
     let transformedUrl;
+    let matched = overwriteHost.match(HTTP_PREFIX_REG);
 
     url = url.replace(HTTP_PREFIX_REG, '');
 
@@ -23,7 +24,13 @@ function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
         transformedUrl = joinUrl([overwriteHost, overwritePath, url]);
     }
 
-    transformedUrl = 'http://' + transformedUrl;
+    if (matched) {
+        transformedUrl = matched[1] + transformedUrl;
+    }
+    else {
+        transformedUrl = 'http://' + transformedUrl;
+    }
+
     return transformedUrl;
 }
 
@@ -99,6 +106,10 @@ function createProxyServer (config) {
                 } = proxyTable[proxyPath];
 
                 const proxyUrl = transformPath(proxyPath, overwriteHost, overwritePath, url, overwriteRewrite);
+
+                process.stdout.write(`> 🎯   Target Hit! [${proxyPath}]`.green);
+                process.stdout.write(`   ${method.toUpperCase()}   ${url}  >>>>  ${proxyUrl}`.white);
+                process.stdout.write('\n');
 
                 req.pipe(_request(proxyUrl)).pipe(res);
                 break;

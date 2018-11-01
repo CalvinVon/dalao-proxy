@@ -57,7 +57,7 @@ exports.parse = function parse(program) {
 
     let runtimeConfig = {};
     
-    const { config: configFile, emptyRoutes } = program;
+    const { config: configFile } = program;
     
     // configs
     const argsConfig = _.pick(program, [
@@ -83,7 +83,7 @@ exports.parse = function parse(program) {
             filePath = path.resolve(pwd, configFile);
         }
 
-        const fileConfig = fileParser(filePath, emptyRoutes);
+        const fileConfig = fileParser(filePath);
         // replace fileConfig by argsConfig
         runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
@@ -94,7 +94,7 @@ exports.parse = function parse(program) {
                 console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
     
                 // re-parse config file
-                const changedFileConfig = fileParser(filePath, emptyRoutes);
+                const changedFileConfig = fileParser(filePath, runtimeConfig.emptyRoutes);
                 // replace fileConfig by argsConfig
                 runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
                 // emit event to reload proxy server

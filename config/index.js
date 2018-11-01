@@ -19,10 +19,6 @@ const config = {
     // proxy routes
     emptyRoutes: false,    // enempty table
     proxyTable: {
-        "/": {
-            path: "/",
-            rewrite: false
-        }
     }
 };
 

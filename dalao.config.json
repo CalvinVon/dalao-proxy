@@ -5,7 +5,7 @@
     "target": "localhost:8082",
     "rewrite": false,
     "cache": false,
-    "info": false,
+    "info": true,
     "headers": {
         "Via": "HTTP/1.1 dalao-proxy"
     },
@@ -18,12 +18,12 @@
         "/jd": {
             "target": "https://www.jd.com",
             "path": "/",
-            "rewrite": false
+            "rewrite": true
         },
         "/baidu": {
             "target": "https://www.baidu.com",
             "path": "/",
-            "rewrite": false
+            "rewrite": true
         }
     }
 }
