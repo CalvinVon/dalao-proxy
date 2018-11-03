@@ -137,7 +137,7 @@ function createProxyServer (config) {
                 }
 
                 process.stdout.write(`> 🎯   Target Hit! [${proxyPath}]`.green);
-                process.stdout.write(`   ${method.toUpperCase()}   ${url}  >>>>  ${proxyUrl}`.white);
+                process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
                 process.stdout.write('\n');
 
                 // res.setHeader('Content-Encoding', 'gzip');
