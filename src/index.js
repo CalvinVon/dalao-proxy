@@ -2,10 +2,14 @@ const ConfigParser = require('./config-parser');
 const ProxyServer = require('./http-server');
 const ConfigGenerator = require('./generate-config');
 
+let _program;
+
 /**
  * Config Parse & Start Proxy Server
  */
 exports.Startup = function Startup (program) {
+
+    _program = program;
 
     let proxyServer;
     
@@ -29,6 +33,15 @@ exports.Startup = function Startup (program) {
     // start to parse
     ConfigParser.parse(program);
 
+};
+
+/**
+ * Reparse configuration, and reload program
+ */
+exports.Reload = function Reload () {
+    console.clear();
+    console.log('\n> dalao is reloading...'.green);
+    ConfigParser.parse(_program);
 };
 
 /**

@@ -1,4 +1,4 @@
-const transformPath = require('../src/http-server').transformPath;
+const transformPath = require('../src/utils').transformPath;
 
 const rewritedUrl = transformPath(
     '/adsd',

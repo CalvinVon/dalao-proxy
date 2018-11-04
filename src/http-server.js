@@ -2,44 +2,7 @@ const http = require('http');
 const request = require('request');
 const _ = require('lodash');
 const createGzip = require('zlib').createGzip;
-const { pathCompareFactory } = require('./utils');
-
-const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
-
-/**
- * Proxy path transformer
- * @param {String} proxyPath proxy matched path
- * @param {String} targetPath proxy target path
- * @param {String} path origin path
- * @param {Boolean} rewrite rewrite proxy matched path
- */
-function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
-    let transformedUrl;
-    let matched = overwriteHost.match(HTTP_PREFIX_REG);
-
-    url = url.replace(HTTP_PREFIX_REG, '');
-
-    if (rewrite) {
-        const rewritedPath = url.replace(proxyPath, overwritePath)
-        transformedUrl = joinUrl([overwriteHost, rewritedPath]);
-    }
-    else {
-        transformedUrl = joinUrl([overwriteHost, overwritePath, url]);
-    }
-
-    if (matched) {
-        transformedUrl = matched[1] + transformedUrl;
-    }
-    else {
-        transformedUrl = 'http://' + transformedUrl;
-    }
-
-    return transformedUrl;
-}
-
-function joinUrl(urls) {
-    return urls.map(url => url.replace(HTTP_PREFIX_REG, '')).join('/').replace(/\/{2,}/g, '/');
-}
+const { HTTP_PREFIX_REG, pathCompareFactory, transformPath } = require('./utils');
 
 function createProxyServer (config) {
 
@@ -49,49 +12,7 @@ function createProxyServer (config) {
         port,
         headers,
         proxyTable,
-        rewrite,
-        cache,
     } = config;
-
-    const Table = require('cli-table');
-
-    // parse provided proxy table
-    const outputTable = new Table({
-        head: ['Proxy'.yellow, 'Target'.white, 'Rewrite Path'.white, 'Result'.yellow]
-    });
-    
-    const proxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(1));
-    proxyPaths.forEach(proxyPath => {
-        let {
-            path: overwritePath,
-            target: overwriteTarget,
-            rewrite: overwriteRewrite
-        } = proxyTable[proxyPath];
-
-        // no value provided, replace with global/default value
-        if (_.isUndefined(overwritePath)) {
-            proxyTable[proxyPath].path = proxyPath;
-            overwritePath = proxyPath;
-        }
-
-        if (_.isUndefined(overwriteTarget)) {
-            proxyTable[proxyPath].target = target;
-            overwriteTarget = target;
-        }
-
-        if (_.isUndefined(overwriteRewrite)) {
-            proxyTable[proxyPath].rewrite = rewrite;
-            overwriteRewrite = rewrite;
-        }
-
-        outputTable.push([
-            proxyPath,
-            overwriteTarget + overwritePath,
-            overwriteRewrite,
-            transformPath(proxyPath, overwriteTarget, overwritePath, proxyPath, overwriteRewrite)
-        ]);
-        // console.log('\n> %s \t-->\t %s:%s'.green, overwritePath, proxyTarget, proxyPath);
-    });
 
     const server = http.createServer(function proxyRequest(req, res) {
         const { method, url } = req;
@@ -179,13 +100,11 @@ function createProxyServer (config) {
     });
 
     server.listen(port, function () {
-        console.log(outputTable.toString().green);
         console.log('\n> dalao has setup the Proxy for you 🚀'.green);
-        console.log('> 😇  dalao in waiting 👉  ' + `http://${host}:${port}`.green);
+        console.log('> 😇  dalao is listening at 👉  ' + `http://${host}:${port}`.green);
     });
 
     return server;
 }
 
-exports.transformPath = transformPath;
 exports.createProxyServer = createProxyServer;

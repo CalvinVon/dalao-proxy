@@ -4,7 +4,7 @@ const program = require('commander');
 const colors = require('colors');
 const baseConfig = require('../config');
 
-const { Startup, Init, printWelcome } = require('../src');
+const { Startup, Reload, Init, printWelcome } = require('../src');
 
 let input_command;
 
@@ -56,8 +56,24 @@ if (!input_command) {
     process.exit(1);
 }
 
+let runtimeInput = [];
+// user runtime input listener
+process.stdin.on('data', chunk => {
+    process.stdin.setEncoding('utf8');
 
+    if (/\r/.test(chunk)) {
+        if (['restart', 'rs', 'reload'].some(cmd => cmd === runtimeInput.join(''))) {
+            Reload();
+        }
+        runtimeInput = [];
+    }
+    else {
+        runtimeInput.push(chunk);
+    }
+});
+
+// process error caughtor
 process.on('uncaughtException', function (err) {
     console.log('\n> 😫  Oh no, dalao is getting tired...'.red);
     console.error(err);
-})
+});

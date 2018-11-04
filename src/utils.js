@@ -1,4 +1,6 @@
-exports.custom_assign = function (objValue, srcValue) {
+const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
+
+function custom_assign (objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
 }
 
@@ -7,7 +9,7 @@ exports.custom_assign = function (objValue, srcValue) {
  * @param {Number} order
  * @return {Function} compare function
  */
-exports.pathCompareFactory = function (order) {
+function pathCompareFactory (order) {
     return function (prev, curr) {
         const prev_dep = prev.match(/(\/)/g).length;
         const curr_dep = curr.match(/(\/)/g).length;
@@ -19,4 +21,49 @@ exports.pathCompareFactory = function (order) {
             return (prev_dep - curr_dep) * order;
         }
     }
+}
+
+/**
+* Proxy path transformer
+* @param {String} proxyPath proxy matched path
+* @param {String} targetPath proxy target path
+* @param {String} path origin path
+* @param {Boolean} rewrite rewrite proxy matched path
+*/
+function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
+   let transformedUrl;
+   let matched = overwriteHost.match(HTTP_PREFIX_REG);
+
+   url = url.replace(HTTP_PREFIX_REG, '');
+
+   if (rewrite) {
+       const rewritedPath = url.replace(proxyPath, overwritePath)
+       transformedUrl = joinUrl([overwriteHost, rewritedPath]);
+   }
+   else {
+       transformedUrl = joinUrl([overwriteHost, overwritePath, url]);
+   }
+
+   if (matched) {
+       transformedUrl = matched[1] + transformedUrl;
+   }
+   else {
+       transformedUrl = 'http://' + transformedUrl;
+   }
+
+   return transformedUrl;
+}
+
+
+function joinUrl(urls) {
+    return urls.map(url => url.replace(HTTP_PREFIX_REG, '')).join('/').replace(/\/{2,}/g, '/');
+}
+
+
+module.exports = {
+    HTTP_PREFIX_REG,
+    custom_assign,
+    pathCompareFactory,
+    transformPath,
+    joinUrl
 }
