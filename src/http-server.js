@@ -2,12 +2,13 @@ const http = require('http');
 const request = require('request');
 const _ = require('lodash');
 const createGzip = require('zlib').createGzip;
-const { HTTP_PREFIX_REG, pathCompareFactory, transformPath } = require('./utils');
+const { HTTP_PREFIX_REG, NONE_STATIC_REG, pathCompareFactory, transformPath } = require('./utils');
 
 function createProxyServer (config) {
 
     const {
         target,
+        static: staticTarget,
         host,
         port,
         headers,
@@ -23,12 +24,31 @@ function createProxyServer (config) {
         // set response CORS
         res.setHeader('Via', 'HTTP/1.1 dalao-proxy');
         res.setHeader('Access-Control-Allow-Origin', requestHost);
-        res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, PATCH');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH');
         res.setHeader('Access-Control-Allow-Credentials', true);
         res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
         
         for (const header in headers) {
             res.setHeader(_.upperFirst(_.upperFirst(header)), headers[header]);
+        }
+
+        // test for static resource
+        if (!NONE_STATIC_REG.test(url)) {
+            // if has set static target, proxy it
+            if (staticTarget && requestHost === staticTarget) {
+                // replace host
+                // let staticUrl = staticTarget + url;
+                let staticUrl = url.replace(requestHost, staticTarget);
+                if (!HTTP_PREFIX_REG.test(staticUrl)) {
+                    staticUrl = 'http://' + staticUrl;
+                }
+
+                req.pipe(_request(staticUrl)).pipe(res);
+            }
+            else {
+                req.pipe(_request(url)).pipe(res);
+            }
+            return;
         }
 
         // test url
@@ -74,7 +94,7 @@ function createProxyServer (config) {
         // if the request not in the proxy table
         // default change request orign
         if (!matched) {
-            let unmatchedUrl = target + url;
+            let unmatchedUrl = (staticTarget || target) + url;
 
             if (new RegExp(`\\b${host}:${port}\\b`).test(unmatchedUrl)) {
                 res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -102,6 +122,7 @@ function createProxyServer (config) {
     server.listen(port, function () {
         console.log('\n> dalao has setup the Proxy for you 🚀'.green);
         console.log('> 😇  dalao is listening at 👉  ' + `http://${host}:${port}`.green);
+        console.log('You can enter `rs`,`restart`,`reload` to reload server anytime.'.gray);
     });
 
     return server;

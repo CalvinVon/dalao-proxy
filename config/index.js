@@ -8,6 +8,7 @@ const config = {
     port: 80,
     // target(proxy for)
     target: 'target.example.com',
+    static: "static.example.com",
     rewrite: false,
     // request
     cache: false,

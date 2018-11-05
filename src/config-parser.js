@@ -40,8 +40,6 @@ function fileParser(filePath, preventDefaultRoute) {
         // other plain field need to be replaced
         const mergedFileConfig = _.merge({}, mergedConfig_extra, mergedConfig_plain)
 
-        parseRouter(mergedFileConfig);
-
         return mergedFileConfig;
     } catch (error) {
         return baseConfig;
@@ -56,10 +54,15 @@ function parseRouter(config) {
 
     const {
         target,
+        static: staticTarget,
         proxyTable,
         rewrite,
         cache
     } = config;
+
+    if (staticTarget) {
+        console.log(`Static Resource Proxy to ${staticTarget}`.green);
+    }
 
     const Table = require('cli-table');
 
@@ -159,8 +162,9 @@ exports.parse = function parse(program) {
         const fileConfig = fileParser(filePath);
         // replace fileConfig by argsConfig
         runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
+        parseRouter(runtimeConfig);
 
-        if (filePath && runtimeConfig.watch) {
+        if (fs.existsSync(filePath) && runtimeConfig.watch) {
             console.log(`> 👀  dalao is ${'watching'.green} at your config file`);
             fs.watchFile(filePath, function () {
                 console.clear();
@@ -171,6 +175,7 @@ exports.parse = function parse(program) {
                 const changedFileConfig = fileParser(filePath, runtimeConfig.emptyRoutes);
                 // replace fileConfig by argsConfig
                 runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
+                parseRouter(runtimeConfig);
                 // emit event to reload proxy server
                 parseEmitter.emit('config:parsed', runtimeConfig);
             });

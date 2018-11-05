@@ -1,4 +1,5 @@
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
+const NONE_STATIC_REG = new RegExp(/\/[\w-]+$/);
 
 function custom_assign (objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
@@ -62,6 +63,7 @@ function joinUrl(urls) {
 
 module.exports = {
     HTTP_PREFIX_REG,
+    NONE_STATIC_REG,
     custom_assign,
     pathCompareFactory,
     transformPath,
