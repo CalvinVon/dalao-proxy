@@ -57,8 +57,19 @@ function parseRouter(config) {
         static: staticTarget,
         proxyTable,
         rewrite,
-        cache
+        cache,
+        cacheDirname
     } = config;
+
+    if (cache) {
+        try {
+            fs.mkdirSync(path.resolve(pwd, cacheDirname));
+        } catch (error) {
+            if (error.code !== 'EEXIST') {
+                console.warn(error.message);
+            }
+        }
+    }
 
     if (staticTarget) {
         console.log(`Static Resource Proxy to ${staticTarget}`.green);
