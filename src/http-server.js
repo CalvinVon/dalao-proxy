@@ -124,7 +124,10 @@ function createProxyServer(config) {
                     }
                 }
 
-                const orignStream = req.pipe(_request(proxyUrl));
+                const proxyStream = _request(proxyUrl);
+                const orignStream = req.pipe(proxyStream);
+
+                proxyStream.setEncoding('utf8');
 
                 // cache the response data
                 if (cache) {
