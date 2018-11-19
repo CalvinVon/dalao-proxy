@@ -39,7 +39,7 @@ function createProxyServer(config) {
         let reqRawBody = '';
         let reqParsedBody;
 
-        req.setEncoding('utf8');
+        // req.setEncoding('utf8');
 
         req.on('data', chunk => reqRawBody += chunk);
         req.on('end', () => {
@@ -127,7 +127,7 @@ function createProxyServer(config) {
                 const proxyStream = _request(proxyUrl);
                 const orignStream = req.pipe(proxyStream);
 
-                proxyStream.setEncoding('utf8');
+                // proxyStream.setEncoding('utf8');
 
                 // cache the response data
                 if (cache) {
