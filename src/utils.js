@@ -1,7 +1,28 @@
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
+const NONE_STATIC_REG = new RegExp(/\/[\w-]+$/);
 
 function custom_assign (objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
+}
+
+// make url complete with http/https
+function completeUrl(urlFragment) {
+    if (!HTTP_PREFIX_REG.test(urlFragment)) {
+        return 'http://' + urlFragment;
+    }
+    else {
+        return urlFragment;
+    }
+}
+
+// transfer url to (cache) filename
+function url2filename(method, url) {
+    return method.toUpperCase() + url.split('/').join('_');
+}
+
+// transfer url to (cache) filename
+function filename2url(url) {
+    return url.split('_').join('/').replace(/(GET|POST|PATCH|OPTIONS|PUT)/);
 }
 
 /**
@@ -62,7 +83,11 @@ function joinUrl(urls) {
 
 module.exports = {
     HTTP_PREFIX_REG,
+    NONE_STATIC_REG,
     custom_assign,
+    completeUrl,
+    url2filename,
+    filename2url,
     pathCompareFactory,
     transformPath,
     joinUrl
