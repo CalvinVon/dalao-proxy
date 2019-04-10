@@ -29,7 +29,7 @@
             "type": "node",
             "request": "launch",
             "name": "dalao start plain",
-            "program": "${workspaceFolder}\\bin\\index",
+            "program": "${workspaceFolder}/bin/index",
             "cwd": "${workspaceFolder}",
             "args": [
                 "start",

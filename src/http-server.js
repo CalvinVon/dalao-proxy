@@ -35,7 +35,11 @@ function createProxyServer (config) {
         const reversedProxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(-1));
         for (let index = 0; index < reversedProxyPaths.length; index++) {
             const proxyPath = reversedProxyPaths[index];
-            const matchReg = new RegExp(`^(${proxyPath})\\b`);
+            // when proxy path is `/`, not need match word boundary
+            const matchReg = proxyPath === '/'
+                ? new RegExp(`^(${proxyPath})`)
+                : new RegExp(`^(${proxyPath})\\b`);
+
             if (matched = matchReg.test(url)) {
                 const {
                     target: overwriteHost,

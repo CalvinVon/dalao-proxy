@@ -1,0 +1,27 @@
+{
+    "watch": true,
+    "host": "localhost",
+    "port": 80,
+    "rewrite": true,
+    "cache": false,
+    "info": false,
+    "headers": {
+        "Access-Control-Expose-Headers": "X-My-Custom-Header, X-Another-Custom-Header",
+        "Access-Control-Max-Age": "3600"
+    },
+    "emptyRoutes": false,
+    "proxyTable": {
+        "/": {
+            "path": "/",
+            "target": "www.baidu.com"
+        },
+        "/jd": {
+            "path": "/",
+            "target": "www.jd.com"
+        },
+        "/taobao": {
+            "path": "/",
+            "target": "www.taobao.com"
+        }
+    }
+}
