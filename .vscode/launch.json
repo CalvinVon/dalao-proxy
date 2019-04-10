@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "dalao start",
-            "program": "${workspaceFolder}\\bin\\index",
+            "program": "${workspaceFolder}/bin/index",
             "cwd": "${workspaceFolder}",
             "args": [
                 "start"
@@ -18,7 +18,7 @@
             "type": "node",
             "request": "launch",
             "name": "dalao init",
-            "program": "${workspaceFolder}\\bin\\index",
+            "program": "${workspaceFolder}/bin/index",
             "cwd": "${workspaceFolder}",
             "args": [
                 "init",

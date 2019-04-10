@@ -3,11 +3,11 @@ const path = require('path');
 const URL = require('url');
 const request = require('request');
 const _ = require('lodash');
-const createGzip = require('zlib').createGzip;
+const zlib = require('zlib');
 const fs = require('fs');
 const Stream = require('stream');
 const {
-    NONE_STATIC_REG,
+    isStaticResouce,
     completeUrl,
     url2filename,
     filename2url,
@@ -15,8 +15,7 @@ const {
     transformPath
 } = require('./utils');
 
-function createProxyServer(config) {
-
+function proxyRequestWrapper(config) {
     const {
         target,
         static: staticTarget,
@@ -29,7 +28,7 @@ function createProxyServer(config) {
         proxyTable,
     } = config;
 
-    const server = http.createServer(function proxyRequest(req, res) {
+    function proxyRequest(req, res) {
         const { method, url } = req;
         const { host: requestHost } = req.headers;
         const _request = request[method.toLowerCase()];
@@ -60,11 +59,11 @@ function createProxyServer(config) {
         res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
 
         for (const header in headers) {
-            res.setHeader(_.upperFirst(_.upperFirst(header)), headers[header]);
+            res.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
         }
 
         // test for static resource
-        if (!NONE_STATIC_REG.test(url)) {
+        if (isStaticResouce(url)) {
             const _path = URL.parse(url).path;
             // if has set static target, proxy it
             if (staticTarget && requestHost === URL.parse(completeUrl(staticTarget)).hostname) {
@@ -117,12 +116,19 @@ function createProxyServer(config) {
 
                 // NOTE: only api can be cached
                 // if cache option is on, try find current url cache
-                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`);
                 if (cache) {
+                    const cacheFileName = path.resolve(
+                        process.cwd(),
+                        `./${cacheDirname}/${url2filename(method, url)}`
+                            .replace(/\?.+/, '')
+                            .replace(/#.+/, '')
+                    );
                     if (fs.existsSync(cacheFileName)) {
-                        res.writeHead(200, {
-                            'Content-Type': 'application/json'
-                        });
+                        // res.writeHead(200, {
+                        //     'Content-Type': 'application/json'
+                        // });
+                        res.setHeader('X-Cache-Request', 'true');
+                        res.writeHead(200);
                         res.end(fs.readFileSync(cacheFileName, 'utf8'));
                         return;
                     }
@@ -135,25 +141,53 @@ function createProxyServer(config) {
 
                 // cache the response data
                 if (cache) {
-                    let responseData = '';
+                    let responseData = [];
                     orignStream.on('data', chunk => {
-                        responseData += chunk;
+                        responseData.push(chunk);
                     });
+
                     orignStream.on('end', () => {
                         try {
-                            const resJson = JSON.parse(responseData.toString());
-                            if (_.get(resJson, (responseFilter[0] || 'code')) === (responseFilter[1] || 0)) {
-                                resJson.CACHE_INFO = 'Cached from Dalao Proxy'
-                                resJson.CACHE_TIME = new Date().toLocaleString('en');
-                                resJson.CACHE_DEBUG = {
-                                    url,
-                                    method,
-                                    rawBody: reqRawBody,
-                                    body: reqParsedBody
-                                };
+                            const buffer = Buffer.concat(responseData);
+                            const response = orignStream.response;
+                            const cacheFileName = path
+                                .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`)
+                                .replace(/\?.+/, '')
+                                .replace(/#.+/, '');
+
+                            // gunzip first
+                            if (response.headers['content-encoding'].match(/gzip/)) {
+                                responseData = zlib.gunzipSync(buffer);
+                            }
+                            // Ajax request cache
+                            if (response.headers['content-type'].match(/json/)) {
+                                const resJson = JSON.parse(responseData.toString());
+                                if (_.get(resJson, (responseFilter[0] || 'code')) === (responseFilter[1] || 0)) {
+                                    resJson.CACHE_INFO = 'Cached from Dalao Proxy';
+                                    resJson.CACHE_TIME = new Date().toLocaleString('en');
+                                    resJson.CACHE_DEBUG = {
+                                        url,
+                                        method,
+                                        rawBody: reqRawBody,
+                                        body: reqParsedBody
+                                    };
+                                    fs.writeFileSync(
+                                        cacheFileName + '.json',
+                                        JSON.stringify(resJson, null, 4),
+                                        {
+                                            encoding: 'utf8',
+                                            flag: 'w'
+                                        }
+                                    );
+
+                                    console.log('   > cached into [' + cacheFileName.yellow + ']');
+                                }
+
+                            }
+                            else {
                                 fs.writeFileSync(
                                     cacheFileName,
-                                    JSON.stringify(resJson, null, 4),
+                                    responseData,
                                     {
                                         encoding: 'utf8',
                                         flag: 'w'
@@ -198,11 +232,18 @@ function createProxyServer(config) {
                 .pipe(_request(unmatchedUrl))
                 .pipe(res);
         }
-    });
+    }
 
-    server.listen(port, function () {
+    return proxyRequest;
+}
+
+function createProxyServer(config) {
+
+    const server = http.createServer(proxyRequestWrapper(config));
+
+    server.listen(config.port, function () {
         console.log('\n> dalao has setup the Proxy for you 🚀'.green);
-        console.log('> 😇  dalao is listening at 👉  ' + `http://${host}:${port}`.green);
+        console.log('> 😇  dalao is listening at 👉  ' + `http://${config.host}:${config.port}`.green);
         console.log('You can enter `rs`,`restart`,`reload` to reload server anytime.'.gray);
     });
 

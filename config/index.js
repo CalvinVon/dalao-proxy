@@ -7,7 +7,7 @@ const config = {
     // proxy server
     host: 'localhost',
     port: 80,
-    // target(proxy for)
+    // target(for proxy)
     target: 'target.example.com',
     static: "static.example.com",
     rewrite: false,

@@ -1,5 +1,5 @@
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
-const NONE_STATIC_REG = new RegExp(/\/[\w-]+$/);
+const STATIC_FILE_REG = new RegExp(/\.[^\.]+$/);
 
 function custom_assign (objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
@@ -80,15 +80,24 @@ function joinUrl(urls) {
     return urls.map(url => url.replace(HTTP_PREFIX_REG, '')).join('/').replace(/\/{2,}/g, '/');
 }
 
+// is static file uri value
+function isStaticResouce(uri = '') {
+    return STATIC_FILE_REG.test(
+            uri
+                .replace(/\?.+/, '')
+                .replace(/#.+/, '')
+        )
+        
+}
 
 module.exports = {
     HTTP_PREFIX_REG,
-    NONE_STATIC_REG,
     custom_assign,
     completeUrl,
     url2filename,
     filename2url,
     pathCompareFactory,
     transformPath,
-    joinUrl
+    joinUrl,
+    isStaticResouce
 }
