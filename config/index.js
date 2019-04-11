@@ -13,9 +13,12 @@ const config = {
     rewrite: false,
     // request
     cache: false,
-    // response code path, response code
-    // response data can be cached only while passing the filter test
-    responseFilter: ['code', 0],
+    // max cache time: [`time unit`, `digit`]
+    cacheMaxAge: ['minute', 2],
+    // response cache filter: [`path`, `value`]
+    // e.g. ['code', 200]
+    // empty array means do no filtering
+    responseFilter: [],
     info: false,
     // extra
     headers: {

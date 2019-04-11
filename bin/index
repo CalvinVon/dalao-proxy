@@ -8,8 +8,6 @@ const { Startup, Reload, Init, printWelcome } = require('../src');
 
 let input_command;
 
-printWelcome(baseConfig.version);
-
 program
     .version(baseConfig.version)
     .command('start')
@@ -24,6 +22,7 @@ program
     .option('-i, --info', 'enable log print')
     .option('-p, --empty-routes', 'enable empty default proxy routes')
     .action(function () {
+        printWelcome(baseConfig.version);
         Startup(this);
         input_command = true;
     })

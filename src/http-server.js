@@ -1,3 +1,4 @@
+const moment = require('moment');
 const http = require('http');
 const path = require('path');
 const URL = require('url');
@@ -5,7 +6,9 @@ const request = require('request');
 const _ = require('lodash');
 const zlib = require('zlib');
 const fs = require('fs');
-const Stream = require('stream');
+
+moment.locale('zh_cn');
+
 const {
     isStaticResouce,
     completeUrl,
@@ -22,6 +25,7 @@ function proxyRequestWrapper(config) {
         cache,
         cacheDirname,
         responseFilter,
+        cacheMaxAge,
         host,
         port,
         headers,
@@ -52,15 +56,7 @@ function proxyRequestWrapper(config) {
         });
 
         // set response CORS
-        res.setHeader('Via', 'HTTP/1.1 dalao-proxy');
-        res.setHeader('Access-Control-Allow-Origin', requestHost);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH');
-        res.setHeader('Access-Control-Allow-Credentials', true);
-        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
-
-        for (const header in headers) {
-            res.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
-        }
+        setHeaders();
 
         // test for static resource
         if (isStaticResouce(url)) {
@@ -114,57 +110,61 @@ function proxyRequestWrapper(config) {
 
                 // res.setHeader('Content-Encoding', 'gzip');
 
-                // NOTE: only api can be cached
                 // if cache option is on, try find current url cache
+                // NOTE: only ajax request can be cached
                 if (cache) {
                     const cacheFileName = path.resolve(
                         process.cwd(),
-                        `./${cacheDirname}/${url2filename(method, url)}`
-                            .replace(/\?.+/, '')
-                            .replace(/#.+/, '')
+                        `./${cacheDirname}/${url2filename(method, url)}.json`
                     );
-                    if (fs.existsSync(cacheFileName)) {
-                        // res.writeHead(200, {
-                        //     'Content-Type': 'application/json'
-                        // });
-                        res.setHeader('X-Cache-Request', 'true');
-                        res.writeHead(200);
-                        res.end(fs.readFileSync(cacheFileName, 'utf8'));
-                        return;
+                    try {
+                        if (fs.existsSync(cacheFileName)) {
+
+                            res.setHeader('X-Cache-Request', 'true');
+                            // calculate rest cache time
+                            res.setHeader('X-Cache-Rest-Time', 'true');
+
+                            res.writeHead(200, {
+                                'Content-Type': 'application/json'
+                            });
+                            res.end(fs.readFileSync(cacheFileName, 'utf8'));
+                            return;
+                        }
+                    } catch (e) {
+                        console.error(e);
                     }
                 }
 
-                const proxyStream = _request(proxyUrl);
-                const orignStream = req.pipe(proxyStream);
-
-                // proxyStream.setEncoding('utf8');
+                const responseStream = req.pipe(_request(proxyUrl));
 
                 // cache the response data
                 if (cache) {
                     let responseData = [];
-                    orignStream.on('data', chunk => {
+                    responseStream.on('data', chunk => {
                         responseData.push(chunk);
                     });
 
-                    orignStream.on('end', () => {
+                    responseStream.on('end', setResponseCache);
+
+                    function setResponseCache() {
                         try {
                             const buffer = Buffer.concat(responseData);
-                            const response = orignStream.response;
+                            const response = responseStream.response;
                             const cacheFileName = path
-                                .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`)
-                                .replace(/\?.+/, '')
-                                .replace(/#.+/, '');
+                                .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
 
                             // gunzip first
-                            if (response.headers['content-encoding'].match(/gzip/)) {
+                            if (/gzip/.test(response.headers['content-encoding'])) {
                                 responseData = zlib.gunzipSync(buffer);
                             }
-                            // Ajax request cache
-                            if (response.headers['content-type'].match(/json/)) {
+                            // Only cache ajax request response
+                            if (/json/.test(response.headers['content-type'])) {
                                 const resJson = JSON.parse(responseData.toString());
-                                if (_.get(resJson, (responseFilter[0] || 'code')) === (responseFilter[1] || 0)) {
+
+                                if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
                                     resJson.CACHE_INFO = 'Cached from Dalao Proxy';
-                                    resJson.CACHE_TIME = new Date().toLocaleString('en');
+                                    resJson.CACHE_TIME = Date.now();
+                                    resJson.CACHE_TIME_EN = moment().format('LLL');
                                     resJson.CACHE_DEBUG = {
                                         url,
                                         method,
@@ -172,7 +172,7 @@ function proxyRequestWrapper(config) {
                                         body: reqParsedBody
                                     };
                                     fs.writeFileSync(
-                                        cacheFileName + '.json',
+                                        cacheFileName,
                                         JSON.stringify(resJson, null, 4),
                                         {
                                             encoding: 'utf8',
@@ -184,26 +184,14 @@ function proxyRequestWrapper(config) {
                                 }
 
                             }
-                            else {
-                                fs.writeFileSync(
-                                    cacheFileName,
-                                    responseData,
-                                    {
-                                        encoding: 'utf8',
-                                        flag: 'w'
-                                    }
-                                );
-
-                                console.log('   > cached into [' + cacheFileName.yellow + ']');
-                            }
 
                         } catch (error) {
                             console.error(` > An error occurred (${error.message}) while caching response data.`.red);
                         }
-                    })
+                    }
                 }
 
-                orignStream.pipe(res);
+                responseStream.pipe(res);
                 return;
             }
         }
@@ -231,6 +219,18 @@ function proxyRequestWrapper(config) {
             req
                 .pipe(_request(unmatchedUrl))
                 .pipe(res);
+        }
+
+        function setHeaders() {
+            res.setHeader('Via', 'HTTP/1.1 dalao-proxy');
+            res.setHeader('Access-Control-Allow-Origin', requestHost);
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+            res.setHeader('Access-Control-Allow-Credentials', true);
+            res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
+
+            for (const header in headers) {
+                res.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
+            }
         }
     }
 

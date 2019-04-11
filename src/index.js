@@ -72,4 +72,5 @@ exports.printWelcome = function printWelcome (version) {
     str += '        \\/      \\/            \\/                                           \\/ \\/     \n';
     console.log(str.yellow);
     console.log('\n Dalao Proxy '.yellow, ('v' + version).green);
+    console.log('\n');
 };

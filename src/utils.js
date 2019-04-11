@@ -17,9 +17,14 @@ function completeUrl(urlFragment) {
 
 // transfer url to (cache) filename
 function url2filename(method, url) {
-    return method.toUpperCase() + url.split('/').join('_');
+    return method.toUpperCase()
+        + url.split('/')
+            .join('_')
+            .replace(/\?.+/, '')
+            .replace(/#.+/, '')
 }
 
+// deprecated
 // transfer url to (cache) filename
 function filename2url(url) {
     return url.split('_').join('/').replace(/(GET|POST|PATCH|OPTIONS|PUT)/);
