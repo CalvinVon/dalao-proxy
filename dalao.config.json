@@ -7,6 +7,7 @@
     "static": "http://localhost:8080",
     "rewrite": true,
     "cache": true,
+    "cacheMaxAge": ["s", 10],
     "responseFilter": [
         "code",
         200

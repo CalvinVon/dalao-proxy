@@ -20,6 +20,7 @@ function fileParser(filePath, preventDefaultRoute) {
     try {
         const file = fs.readFileSync(filePath, 'utf-8');
         const fileConfig = JSON.parse(file);
+        // * merge strategy fields
         const EXTRA_FIELDS = ['headers', 'proxyTable'];
 
         // extra fields need to be merged

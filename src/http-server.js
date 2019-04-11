@@ -7,8 +7,6 @@ const _ = require('lodash');
 const zlib = require('zlib');
 const fs = require('fs');
 
-moment.locale('zh_cn');
-
 const {
     isStaticResouce,
     completeUrl,
@@ -120,15 +118,29 @@ function proxyRequestWrapper(config) {
                     try {
                         if (fs.existsSync(cacheFileName)) {
 
+                            const fileContent = fs.readFileSync(cacheFileName, 'utf8');
+                            const jsonContent = JSON.parse(fileContent);
+
+                            const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                            const deadlineMoment = moment(cachedTimeStamp).add(cacheMaxAge[1], cacheMaxAge[0]);
+
                             res.setHeader('X-Cache-Request', 'true');
                             // calculate rest cache time
-                            res.setHeader('X-Cache-Rest-Time', 'true');
+                            res.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
+                            res.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
 
-                            res.writeHead(200, {
-                                'Content-Type': 'application/json'
-                            });
-                            res.end(fs.readFileSync(cacheFileName, 'utf8'));
-                            return;
+                            // valid cache file
+                            if (moment().isBefore(deadlineMoment)) {
+                                res.writeHead(200, {
+                                    'Content-Type': 'application/json'
+                                });
+                                res.end(fileContent);
+                                return;
+                            }
+                            else {
+                                fs.unlinkSync(cacheFileName);
+                            }
+
                         }
                     } catch (e) {
                         console.error(e);
@@ -164,7 +176,7 @@ function proxyRequestWrapper(config) {
                                 if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
                                     resJson.CACHE_INFO = 'Cached from Dalao Proxy';
                                     resJson.CACHE_TIME = Date.now();
-                                    resJson.CACHE_TIME_EN = moment().format('LLL');
+                                    resJson.CACHE_TIME_TXT = moment().format('llll');
                                     resJson.CACHE_DEBUG = {
                                         url,
                                         method,

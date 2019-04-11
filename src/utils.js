@@ -16,6 +16,7 @@ function completeUrl(urlFragment) {
 }
 
 // transfer url to (cache) filename
+// /`${GET/POST}_${URI}`/
 function url2filename(method, url) {
     return method.toUpperCase()
         + url.split('/')
