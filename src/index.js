@@ -2,6 +2,7 @@ const ConfigParser = require('./config-parser');
 const ProxyServer = require('./http-server');
 const ConfigGenerator = require('./generate-config');
 
+const EventEmitter = require('events');
 const rm = require('rimraf');
 const path = require('path');
 
@@ -13,12 +14,17 @@ let _program;
  */
 exports.Startup = function Startup (program) {
 
+    const startupEmitter = new EventEmitter();
+
     _program = program;
 
     let proxyServer;
     
     // registe listener
     ConfigParser.parseEmitter.on('config:parsed', function (config) {
+        // Startup Emitter Hook
+        startupEmitter.emit('startup:config', config);
+
         const { info } = config;
 
         if (info) {
@@ -32,13 +38,15 @@ exports.Startup = function Startup (program) {
 
         // start a proxy server
         proxyServer = ProxyServer.createProxyServer(config);
+
+        // Startup Emitter Hook
+        startupEmitter.emit('startup:server', proxyServer);
     });
 
     // start to parse
-    setImmediate(function() {
-        ConfigParser.parse(program);
-    });
-    return ConfigParser.parseEmitter;
+    ConfigParser.parse(program);
+    
+    return startupEmitter;
 };
 
 /**

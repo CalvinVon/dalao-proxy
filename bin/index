@@ -6,8 +6,9 @@ const baseConfig = require('../config');
 
 const { Startup, Reload, CleanCache, Init, printWelcome } = require('../src');
 
-let input_command;
-let runtimeConfig;
+let runtimeConfig,
+    proxySever,
+    input_command;
 
 program
     .version(baseConfig.version)
@@ -26,9 +27,12 @@ program
         printWelcome(baseConfig.version);
 
         Startup(this)
-            .on('config:parsed', function (config) {
+            .on('startup:config', function (config) {
                 runtimeConfig = config;
-            });
+            })
+            .on('startup:server', function (server) {
+                proxySever = server;
+            })
         input_command = true;
     })
 
@@ -68,6 +72,7 @@ process.stdin.on('data', chunk => {
     if (/\r/.test(chunk)) {
         const runtimeCmd = runtimeInput.join('');
         if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
+            proxySever.close();
             Reload();
         }
         else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {

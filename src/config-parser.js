@@ -139,7 +139,6 @@ function resolveRouteConfig (router, localKey, globalValue) {
  * user arguments setting > user file setting > base internal setting
  * @author Calvin
  * @param {commander.CommanderStatic} program
- * @return {EventEmitter} parseEmitter
  */
 exports.parse = function parse(program) {
 

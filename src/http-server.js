@@ -73,6 +73,7 @@ function proxyRequestWrapper(config) {
         // test url
         const reversedProxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(-1));
         for (let index = 0; index < reversedProxyPaths.length; index++) {
+
             const proxyPath = reversedProxyPaths[index];
             // when proxy path is `/`, not need match word boundary
             const matchReg = proxyPath === '/'
@@ -88,6 +89,13 @@ function proxyRequestWrapper(config) {
 
                 const proxyUrl = transformPath(proxyPath, overwriteHost, overwritePath, url, overwriteRewrite);
 
+                function logMatchedPath(cached) {
+                    process.stdout.write(`> 🎯   ${ cached ? 'Cached' : 'Hit' }! [${proxyPath}]`.green);
+                    process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
+                    process.stdout.write('\n');
+                }
+
+                // invalid request
                 if (new RegExp(`\\b${host}:${port}\\b`).test(overwriteHost)) {
                     res.writeHead(403, {
                         'Content-Type': 'text/html; charset=utf-8'
@@ -101,12 +109,6 @@ function proxyRequestWrapper(config) {
                     console.log(`> 🔴   Forbidden Hit! [${proxyPath}]`.red);
                     return;
                 }
-
-                process.stdout.write(`> 🎯   Hit! [${proxyPath}]`.green);
-                process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
-                process.stdout.write('\n');
-
-                // res.setHeader('Content-Encoding', 'gzip');
 
                 // if cache option is on, try find current url cache
                 // NOTE: only ajax request can be cached
@@ -138,6 +140,8 @@ function proxyRequestWrapper(config) {
                                         'Content-Type': 'application/json'
                                     });
                                     res.end(fileContent);
+
+                                    logMatchedPath(true);
                                     return;
                                 }
                                 else {
@@ -154,6 +158,8 @@ function proxyRequestWrapper(config) {
                                     'Content-Type': 'application/json'
                                 });
                                 res.end(fileContent);
+
+                                logMatchedPath(true);
                                 return;
                             }
 
@@ -220,6 +226,7 @@ function proxyRequestWrapper(config) {
                 }
 
                 responseStream.pipe(res);
+                logMatchedPath();
                 return;
             }
         }
