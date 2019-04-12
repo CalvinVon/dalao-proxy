@@ -3,8 +3,10 @@
 require('colors');
 const program = require('commander');
 const baseConfig = require('../config');
+const EventEmitter = require('events');
 
 const { Startup, Reload, CleanCache, Init, printWelcome } = require('../src');
+const startupEmitter = new EventEmitter();
 
 let runtimeConfig,
     proxySever,
@@ -26,13 +28,15 @@ program
     .action(function () {
         printWelcome(baseConfig.version);
 
-        Startup(this)
+        startupEmitter
             .on('startup:config', function (config) {
                 runtimeConfig = config;
             })
             .on('startup:server', function (server) {
                 proxySever = server;
             })
+
+        Startup(this, startupEmitter);
         input_command = true;
     })
 

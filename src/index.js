@@ -2,7 +2,6 @@ const ConfigParser = require('./config-parser');
 const ProxyServer = require('./http-server');
 const ConfigGenerator = require('./generate-config');
 
-const EventEmitter = require('events');
 const rm = require('rimraf');
 const path = require('path');
 
@@ -12,9 +11,9 @@ let _program;
  * Config Parse & Start Proxy Server
  * @return {EventEmitter} ConfigParser.parseEmitter
  */
-exports.Startup = function Startup (program) {
-
-    const startupEmitter = new EventEmitter();
+exports.Startup = function Startup (program, startupEmitter) {
+    // ### Startup Emitter Hook
+    startupEmitter.emit('startup:init');
 
     _program = program;
 
@@ -22,7 +21,7 @@ exports.Startup = function Startup (program) {
     
     // registe listener
     ConfigParser.parseEmitter.on('config:parsed', function (config) {
-        // Startup Emitter Hook
+        // ### Startup Emitter Hook
         startupEmitter.emit('startup:config', config);
 
         const { info } = config;
@@ -39,13 +38,13 @@ exports.Startup = function Startup (program) {
         // start a proxy server
         proxyServer = ProxyServer.createProxyServer(config);
 
-        // Startup Emitter Hook
+        // ### Startup Emitter Hook
         startupEmitter.emit('startup:server', proxyServer);
     });
 
     // start to parse
     ConfigParser.parse(program);
-    
+
     return startupEmitter;
 };
 
@@ -73,7 +72,7 @@ exports.CleanCache = function CleanCache(config) {
 /**
  * Generate Config File Based By User Input
  */
-exports.Init = function Init (program) {
+exports.Init = function InitConfigFile (program) {
     const preHint = `
 This utility will walk you through creating a config file.
 It only covers the most common items, and tries to guess sensible defaults.
@@ -100,6 +99,6 @@ exports.printWelcome = function printWelcome (version) {
     str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
     str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n';
     console.log(str.yellow);
-    console.log('「Dalao Proxy」 '.yellow, ('v' + version).green);
+    console.log(' 「Dalao Proxy」 '.yellow, ('v' + version).green);
     console.log('\n');
 };
