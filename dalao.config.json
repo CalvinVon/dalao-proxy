@@ -4,19 +4,15 @@
     "host": "localhost",
     "port": "1111",
     "target": "http://localhost:8080",
-    "static": "http://localhost:8080",
+    "static": "http://localhost:1111",
     "rewrite": true,
     "cache": true,
-    "cacheMaxAge": ["s", 10],
+    "cacheMaxAge": ["s", 0],
     "responseFilter": [
         "code",
         200
     ],
     "info": false,
-    "headers": {
-        "Access-Control-Expose-Headers": "X-My-Custom-Header, X-Another-Custom-Header",
-        "Access-Control-Max-Age": "3600"
-    },
     "emptyRoutes": false,
     "proxyTable": {
         "/customer": {

@@ -11,7 +11,6 @@ const {
     isStaticResouce,
     completeUrl,
     url2filename,
-    filename2url,
     pathCompareFactory,
     transformPath
 } = require('./utils');
@@ -57,18 +56,19 @@ function proxyRequestWrapper(config) {
         setHeaders();
 
         // test for static resource
-        if (isStaticResouce(url)) {
-            const _path = URL.parse(url).path;
-            // if has set static target, proxy it
-            if (staticTarget && requestHost === URL.parse(completeUrl(staticTarget)).hostname) {
-                // replace host
-                // let staticUrl = staticTarget + url;
-                let staticUrl = completeUrl(staticTarget + _path);
+        // if (isStaticResouce(url)) {
+        //     const _path = URL.parse(url).path;
+        //     // if has set static target, proxy it
+        //     if (staticTarget && requestHost === URL.parse(completeUrl(staticTarget)).hostname) {
+        //         // replace host
+        //         // let staticUrl = staticTarget + url;
+        //         const staticUrl = completeUrl(staticTarget + _path);
 
-                req.pipe(_request(staticUrl)).pipe(res);
-                return;
-            }
-        }
+        //         process.stdout.write(`> 🎯   Static Hit! [${staticUrl}]`.green);
+        //         req.pipe(_request(staticUrl)).pipe(res);
+        //         return;
+        //     }
+        // }
 
         // test url
         const reversedProxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(-1));
@@ -102,7 +102,7 @@ function proxyRequestWrapper(config) {
                     return;
                 }
 
-                process.stdout.write(`> 🎯   Target Hit! [${proxyPath}]`.green);
+                process.stdout.write(`> 🎯   Hit! [${proxyPath}]`.green);
                 process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
                 process.stdout.write('\n');
 
@@ -115,6 +115,7 @@ function proxyRequestWrapper(config) {
                         process.cwd(),
                         `./${cacheDirname}/${url2filename(method, url)}.json`
                     );
+                    const [ cacheUnit = 'second', cacheDigit = '10' ] = cacheMaxAge;
                     try {
                         if (fs.existsSync(cacheFileName)) {
 
@@ -122,23 +123,38 @@ function proxyRequestWrapper(config) {
                             const jsonContent = JSON.parse(fileContent);
 
                             const cachedTimeStamp = jsonContent['CACHE_TIME'];
-                            const deadlineMoment = moment(cachedTimeStamp).add(cacheMaxAge[1], cacheMaxAge[0]);
+                            const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
 
-                            res.setHeader('X-Cache-Request', 'true');
-                            // calculate rest cache time
-                            res.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
-                            res.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
+                            // need validate expire time
+                            if (Number(cacheDigit)) {
+                                // valid cache file
+                                if (moment().isBefore(deadlineMoment)) {
+                                    res.setHeader('X-Cache-Request', 'true');
+                                    // calculate rest cache time
+                                    res.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
+                                    res.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
 
-                            // valid cache file
-                            if (moment().isBefore(deadlineMoment)) {
+                                    res.writeHead(200, {
+                                        'Content-Type': 'application/json'
+                                    });
+                                    res.end(fileContent);
+                                    return;
+                                }
+                                else {
+                                    fs.unlinkSync(cacheFileName);
+                                }
+                            }
+                            // permanently valid
+                            else {
+                                res.setHeader('X-Cache-Request', 'true');
+                                res.setHeader('X-Cache-Expire-Time', 'permanently valid');
+                                res.setHeader('X-Cache-Rest-Time', 'forever');
+
                                 res.writeHead(200, {
                                     'Content-Type': 'application/json'
                                 });
                                 res.end(fileContent);
                                 return;
-                            }
-                            else {
-                                fs.unlinkSync(cacheFileName);
                             }
 
                         }
@@ -249,15 +265,39 @@ function proxyRequestWrapper(config) {
     return proxyRequest;
 }
 
+// attach server to port
+function attachServerListener(server, config) {
+    let { host, port } = config;
+
+    server.on('listening', function () {
+        console.log('\n> dalao has setup the Proxy for you 🚀'.green);
+        console.log('> 😇  dalao is listening at 👉  ' + `http://${host}:${port}`.green);
+        console.log('You can enter `rs`,`restart`,`reload` to reload server anytime.'.gray);
+        console.log('You can enter `clean`,`cacheclr`,`cacheclean` to clean cached ajax data.'.gray);
+    });
+
+    server.once('error', function (err) {
+        server.close();
+        if (/EADDRINUSE/i.test(err.message)) {
+            port++;
+            console.log(`> Port ${port} has been used, dalao is trying to change port to ${port}`.grey);
+            server.listen(port, host);
+        }
+        else {
+            console.error(err);
+        }
+    });
+
+    server.listen(port, host);
+}
+
 function createProxyServer(config) {
 
+    // create server
     const server = http.createServer(proxyRequestWrapper(config));
 
-    server.listen(config.port, function () {
-        console.log('\n> dalao has setup the Proxy for you 🚀'.green);
-        console.log('> 😇  dalao is listening at 👉  ' + `http://${config.host}:${config.port}`.green);
-        console.log('You can enter `rs`,`restart`,`reload` to reload server anytime.'.gray);
-    });
+    // attach server to port
+    attachServerListener(server, config);
 
     return server;
 }

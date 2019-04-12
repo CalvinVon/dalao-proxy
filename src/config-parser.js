@@ -72,9 +72,9 @@ function parseRouter(config) {
         }
     }
 
-    if (staticTarget) {
-        console.log(`Static Resource Proxy to ${staticTarget}`.green);
-    }
+    // if (staticTarget) {
+    //     console.log(` > Static Resource Proxy to ${staticTarget}`.green);
+    // }
 
     const Table = require('cli-table');
 
@@ -177,10 +177,10 @@ exports.parse = function parse(program) {
         parseRouter(runtimeConfig);
 
         if (fs.existsSync(filePath) && runtimeConfig.watch) {
-            console.log(`> 👀  dalao is ${'watching'.green} at your config file`);
+            console.log(`> 👀 dalao is ${'watching'.green} at your config file`);
             fs.watchFile(filePath, function () {
                 console.clear();
-                console.log('> 👀   🔞   dalao is watching at your config file');
+                console.log('> 👀   dalao is watching at your config file');
                 console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
     
                 // re-parse config file

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
+require('colors');
 const program = require('commander');
-const colors = require('colors');
 const baseConfig = require('../config');
 
-const { Startup, Reload, Init, printWelcome } = require('../src');
+const { Startup, Reload, CleanCache, Init, printWelcome } = require('../src');
 
 let input_command;
+let runtimeConfig;
 
 program
     .version(baseConfig.version)
@@ -23,7 +24,11 @@ program
     .option('-p, --empty-routes', 'enable empty default proxy routes')
     .action(function () {
         printWelcome(baseConfig.version);
-        Startup(this);
+
+        Startup(this)
+            .on('config:parsed', function (config) {
+                runtimeConfig = config;
+            });
         input_command = true;
     })
 
@@ -44,9 +49,9 @@ program
         console.log('')
         console.log('Examples:');
         console.log('  $ dalao-proxy init'.gray);
-        console.log('  $ dalao-proxy start -C ./my-config.json -p 1234'.gray);
-        console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -cw'.gray);
-        console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --cache=true'.gray);
+        console.log('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'.gray);
+        console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'.gray);
+        console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
     })
     .parse(process.argv)
     
@@ -61,8 +66,12 @@ process.stdin.on('data', chunk => {
     process.stdin.setEncoding('utf8');
 
     if (/\r/.test(chunk)) {
-        if (['restart', 'rs', 'reload'].some(cmd => cmd === runtimeInput.join(''))) {
+        const runtimeCmd = runtimeInput.join('');
+        if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
             Reload();
+        }
+        else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
+            CleanCache(runtimeConfig);
         }
         runtimeInput = [];
     }

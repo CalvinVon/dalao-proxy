@@ -2,10 +2,14 @@ const ConfigParser = require('./config-parser');
 const ProxyServer = require('./http-server');
 const ConfigGenerator = require('./generate-config');
 
+const rm = require('rimraf');
+const path = require('path');
+
 let _program;
 
 /**
  * Config Parse & Start Proxy Server
+ * @return {EventEmitter} ConfigParser.parseEmitter
  */
 exports.Startup = function Startup (program) {
 
@@ -31,8 +35,10 @@ exports.Startup = function Startup (program) {
     });
 
     // start to parse
-    ConfigParser.parse(program);
-
+    setImmediate(function() {
+        ConfigParser.parse(program);
+    });
+    return ConfigParser.parseEmitter;
 };
 
 /**
@@ -42,6 +48,18 @@ exports.Reload = function Reload () {
     console.clear();
     console.log('\n> dalao is reloading...'.green);
     ConfigParser.parse(_program);
+};
+
+exports.CleanCache = function CleanCache(config) {
+    const cacheDir = path.join(process.cwd(), config.cacheDirname, './*.json');
+    rm(cacheDir, err => {
+        if (err) {
+            console.log(' > [error] something wrong happened during clean cache'.red, err);
+        }
+        else {
+            console.log(' > [info] dalao cache has been cleaned!'.green);
+        }
+    })
 };
 
 /**
@@ -64,13 +82,16 @@ Press ^C at any time to quit.
 
 exports.printWelcome = function printWelcome (version) {
     let str = '';
-    str += '________           .__                    __________                                 \n';
-    str += '\\______ \\  _____   |  |  _____     ____   \\______   \\_______   ____  ___  ___ ___.__.\n';
-    str += ' |    |  \\ \\__  \\  |  |  \\__  \\   /  _ \\   |     ___/\\_  __ \\ /  _ \\ \\  \\/  /<   |  |\n';
-    str += ' |    `   \\ / __ \\_|  |__ / __ \\_(  <_> )  |    |     |  | \\/(  <_> ) >    <  \\___  |\n';
-    str += '/_______  /(____  /|____/(____  / \\____/   |____|     |__|    \\____/ /__/\\_ \\ / ____|\n';
-    str += '        \\/      \\/            \\/                                           \\/ \\/     \n';
+    // str += '________           .__                    __________                                 \n';
+    // str += '\\______ \\  _____   |  |  _____     ____   \\______   \\_______   ____  ___  ___ ___.__.\n';
+    // str += ' |    |  \\ \\__  \\  |  |  \\__  \\   /  _ \\   |     ___/\\_  __ \\ /  _ \\ \\  \\/  /<   |  |\n';
+    // str += ' |    `   \\ / __ \\_|  |__ / __ \\_(  <_> )  |    |     |  | \\/(  <_> ) >    <  \\___  |\n';
+    // str += '/_______  /(____  /|____/(____  / \\____/   |____|     |__|    \\____/ /__/\\_ \\ / ____|\n';
+    // str += '        \\/      \\/            \\/                                           \\/ \\/     \n';
+    str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
+    str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
+    str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n';
     console.log(str.yellow);
-    console.log('\n Dalao Proxy '.yellow, ('v' + version).green);
+    console.log('「Dalao Proxy」 '.yellow, ('v' + version).green);
     console.log('\n');
 };
