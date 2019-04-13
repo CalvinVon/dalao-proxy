@@ -11,7 +11,7 @@ const {
     joinUrl,
     addHttpProtocol,
     url2filename,
-    pathCompareFactory,
+    splitTargetAndPath,
     transformPath,
 } = require('./utils');
 
@@ -53,91 +53,87 @@ function proxyRequestWrapper(config) {
         // set response CORS
         setHeaders();
 
-        // test url
-        const reversedProxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(-1));
-        for (let index = 0; index < reversedProxyPaths.length; index++) {
-
-            const proxyPath = reversedProxyPaths[index];
-            // when proxy path is `/`, not need match word boundary
+        // Matching strategy
+        const proxyPaths = Object.keys(proxyTable);
+        let mostAccurateMatch;
+        let matchingLength = url.length;
+        for (let index = 0; index < proxyPaths.length; index++) {
+            const proxyPath = proxyPaths[index];
             const matchReg = new RegExp(`^${proxyPath}(.+)`);
-
-            if (matched = url.match(matchReg)) {
-                // router config
-                const {
-                    path: overwritePath,
-                    target: overwriteHost,
-                    pathRewrite: overwritePathRewrite,
-                    cache: overwriteCache,
-                } = proxyTable[proxyPath];
-
-                const proxyedPath = overwriteHost + joinUrl(overwritePath, matched[1]);
-
-                const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
-
-                function logMatchedPath(cached) {
-                    process.stdout.write(`> 🎯   ${ cached ? 'Cached' : 'Hit' }! [${proxyPath}]`.green);
-                    process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
-                    process.stdout.write('\n');
+            let matchingResult;
+            if (matchingResult = url.match(matchReg)) {
+                const currentLenth = matchingResult[1].length;
+                if (currentLenth < matchingLength) {
+                    matchingLength = currentLenth;
+                    mostAccurateMatch = proxyPaths[index];
+                    matched = matchingResult;
                 }
+            }
+        }
 
-                // invalid request
-                if (new RegExp(`\\b${host}:${port}\\b`).test(overwriteHost)) {
-                    res.writeHead(403, {
-                        'Content-Type': 'text/html; charset=utf-8'
-                    });
-                    res.end(`
-                        <h1>🔴  403 Forbidden</h1>
-                        <p>Path to ${overwriteHost} proxy cancelled</p>
-                        <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
-                    `);
+        // Matched Proxy
+        if (mostAccurateMatch) {
+            const proxyPath = mostAccurateMatch;
+            // router config
+            const {
+                path: overwritePath,
+                target: overwriteHost,
+                pathRewrite: overwritePathRewrite,
+                cache: overwriteCache,
+            } = proxyTable[proxyPath];
 
-                    console.log(`> 🔴   Forbidden Hit! [${proxyPath}]`.red);
-                    return;
-                }
+            const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
 
-                // if cache option is on, try find current url cache
-                // NOTE: only ajax request can be cached
-                if (overwriteCache) {
-                    const cacheFileName = path.resolve(
-                        process.cwd(),
-                        `./${cacheDirname}/${url2filename(method, url)}.json`
-                    );
-                    const [ cacheUnit = 'second', cacheDigit = '10' ] = cacheMaxAge;
-                    try {
-                        if (fs.existsSync(cacheFileName)) {
+            const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
 
-                            const fileContent = fs.readFileSync(cacheFileName, 'utf8');
-                            const jsonContent = JSON.parse(fileContent);
+            const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
 
-                            const cachedTimeStamp = jsonContent['CACHE_TIME'];
-                            const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
+            function logMatchedPath(cached) {
+                process.stdout.write(`> 🎯   ${cached ? 'Cached' : 'Hit'}! [${proxyPath}]`.green);
+                process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
+                process.stdout.write('\n');
+            }
 
-                            // need validate expire time
-                            if (Number(cacheDigit)) {
-                                // valid cache file
-                                if (moment().isBefore(deadlineMoment)) {
-                                    res.setHeader('X-Cache-Request', 'true');
-                                    // calculate rest cache time
-                                    res.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
-                                    res.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
+            // invalid request
+            if (new RegExp(`\\b${host}:${port}\\b`).test(overwriteHost)) {
+                res.writeHead(403, {
+                    'Content-Type': 'text/html; charset=utf-8'
+                });
+                res.end(`
+                    <h1>🔴  403 Forbidden</h1>
+                    <p>Path to ${overwriteHost} proxy cancelled</p>
+                    <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
+                `);
 
-                                    res.writeHead(200, {
-                                        'Content-Type': 'application/json'
-                                    });
-                                    res.end(fileContent);
+                console.log(`> 🔴   Forbidden Hit! [${proxyPath}]`.red);
+                return;
+            }
 
-                                    logMatchedPath(true);
-                                    return;
-                                }
-                                else {
-                                    fs.unlinkSync(cacheFileName);
-                                }
-                            }
-                            // permanently valid
-                            else {
+            // if cache option is on, try find current url cache
+            // NOTE: only ajax request can be cached
+            if (overwriteCache) {
+                const cacheFileName = path.resolve(
+                    process.cwd(),
+                    `./${cacheDirname}/${url2filename(method, url)}.json`
+                );
+                const [cacheUnit = 'second', cacheDigit = '10'] = cacheMaxAge;
+                try {
+                    if (fs.existsSync(cacheFileName)) {
+
+                        const fileContent = fs.readFileSync(cacheFileName, 'utf8');
+                        const jsonContent = JSON.parse(fileContent);
+
+                        const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                        const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
+
+                        // need validate expire time
+                        if (Number(cacheDigit)) {
+                            // valid cache file
+                            if (moment().isBefore(deadlineMoment)) {
                                 res.setHeader('X-Cache-Request', 'true');
-                                res.setHeader('X-Cache-Expire-Time', 'permanently valid');
-                                res.setHeader('X-Cache-Rest-Time', 'forever');
+                                // calculate rest cache time
+                                res.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
+                                res.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
 
                                 res.writeHead(200, {
                                     'Content-Type': 'application/json'
@@ -147,78 +143,95 @@ function proxyRequestWrapper(config) {
                                 logMatchedPath(true);
                                 return;
                             }
-
-                        }
-                    } catch (e) {
-                        console.error(e);
-                    }
-                }
-
-                const responseStream = req.pipe(_request(proxyUrl));
-
-                // cache the response data
-                if (overwriteCache) {
-                    let responseData = [];
-                    responseStream.on('data', chunk => {
-                        responseData.push(chunk);
-                    });
-
-                    responseStream.on('end', setResponseCache);
-
-                    function setResponseCache() {
-                        try {
-                            const buffer = Buffer.concat(responseData);
-                            const response = responseStream.response;
-                            const cacheFileName = path
-                                .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
-
-                            // gunzip first
-                            if (/gzip/.test(response.headers['content-encoding'])) {
-                                responseData = zlib.gunzipSync(buffer);
+                            else {
+                                fs.unlinkSync(cacheFileName);
                             }
-                            // Only cache ajax request response
-                            if (/json/.test(response.headers['content-type'])) {
-                                const resJson = JSON.parse(responseData.toString());
-
-                                if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
-                                    resJson.CACHE_INFO = 'Cached from Dalao Proxy';
-                                    resJson.CACHE_TIME = Date.now();
-                                    resJson.CACHE_TIME_TXT = moment().format('llll');
-                                    resJson.CACHE_DEBUG = {
-                                        url,
-                                        method,
-                                        rawBody: reqRawBody,
-                                        body: reqParsedBody
-                                    };
-                                    fs.writeFileSync(
-                                        cacheFileName,
-                                        JSON.stringify(resJson, null, 4),
-                                        {
-                                            encoding: 'utf8',
-                                            flag: 'w'
-                                        }
-                                    );
-
-                                    console.log('   > cached into [' + cacheFileName.yellow + ']');
-                                }
-
-                            }
-
-                        } catch (error) {
-                            console.error(` > An error occurred (${error.message}) while caching response data.`.red);
                         }
-                    }
-                }
+                        // permanently valid
+                        else {
+                            res.setHeader('X-Cache-Request', 'true');
+                            res.setHeader('X-Cache-Expire-Time', 'permanently valid');
+                            res.setHeader('X-Cache-Rest-Time', 'forever');
 
-                responseStream.pipe(res);
-                logMatchedPath();
-                return;
+                            res.writeHead(200, {
+                                'Content-Type': 'application/json'
+                            });
+                            res.end(fileContent);
+
+                            logMatchedPath(true);
+                            return;
+                        }
+
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
             }
+
+            const responseStream = req.pipe(_request(proxyUrl));
+
+            // cache the response data
+            if (overwriteCache) {
+                let responseData = [];
+                responseStream.on('data', chunk => {
+                    responseData.push(chunk);
+                });
+
+                responseStream.on('end', setResponseCache);
+
+                function setResponseCache() {
+                    try {
+                        const buffer = Buffer.concat(responseData);
+                        const response = responseStream.response;
+                        const cacheFileName = path
+                            .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
+
+                        // gunzip first
+                        if (/gzip/.test(response.headers['content-encoding'])) {
+                            responseData = zlib.gunzipSync(buffer);
+                        }
+                        // Only cache ajax request response
+                        if (/json/.test(response.headers['content-type'])) {
+                            const resJson = JSON.parse(responseData.toString());
+
+                            if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
+                                resJson.CACHE_INFO = 'Cached from Dalao Proxy';
+                                resJson.CACHE_TIME = Date.now();
+                                resJson.CACHE_TIME_TXT = moment().format('llll');
+                                resJson.CACHE_DEBUG = {
+                                    url,
+                                    method,
+                                    rawBody: reqRawBody,
+                                    body: reqParsedBody
+                                };
+                                fs.writeFileSync(
+                                    cacheFileName,
+                                    JSON.stringify(resJson, null, 4),
+                                    {
+                                        encoding: 'utf8',
+                                        flag: 'w'
+                                    }
+                                );
+
+                                console.log('   > cached into [' + cacheFileName.yellow + ']');
+                            }
+
+                        }
+
+                    } catch (error) {
+                        console.error(` > An error occurred (${error.message}) while caching response data.`.red);
+                    }
+                }
+            }
+
+            responseStream.pipe(res);
+            logMatchedPath();
+            return;
         }
 
         // if the request not in the proxy table
         // default change request orign
-        if (!matched) {
+        else {
             let unmatchedUrl = target + url;
 
             if (new RegExp(`\\b${host}:${port}\\b`).test(unmatchedUrl)) {

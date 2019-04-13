@@ -77,7 +77,7 @@ function transformPath(target, pathRewriteMap) {
                         .replace(rewriteReg, replaceStr)
             });
 
-            return targetTarget + result.replace(/\/\//, '/');
+            return targetTarget + result.replace(/\/\//g, '/');
         }
         else {
             return target;
@@ -88,7 +88,7 @@ function transformPath(target, pathRewriteMap) {
     }
 }
 
-
+// NOTE: do not pass something like http://...
 function joinUrl(...urls) {
     return path.join(...urls).replace(/\\/g, '/');
 }
