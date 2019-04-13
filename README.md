@@ -3,6 +3,10 @@ An HTTP proxy for frontend developer with request cache, request mock and develo
 
 > An one-line command started server! More light-weight and convenient than webpack-dev-server in daily development.
 
+[![version](https://img.shields.io/npm/v/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
+[![](https://img.shields.io/npm/dt/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
+![dependencies](https://img.shields.io/david/CalvinVon/dalao-proxy.svg)
+
 ## Feature
 - HTTP proxy
 - HTTP capture
