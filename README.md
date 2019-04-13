@@ -3,7 +3,7 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
 
 > An one-line command started server! More light-weight and convenient than webpack-dev-server in daily development.
 
-[![version](https://img.shields.io/npm/v/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
+[![version](https://img.shields.io/npm/v/dalao-proxy.svg)](https://www.npmjs.com/package/dalao-proxy)
 [![](https://img.shields.io/npm/dt/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
 ![dependencies](https://img.shields.io/david/CalvinVon/dalao-proxy.svg)
 
