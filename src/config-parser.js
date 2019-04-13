@@ -41,6 +41,13 @@ function fileParser(filePath) {
         const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS);
 
         const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
+
+        // Check config value
+        Object.keys(mergedConfig_plain).forEach(config => {
+            const checkFn = CheckFunctions[config];
+            checkFn && checkFn(mergedConfig_plain[config]);
+        });
+
         const mergedConfig_extra = _.merge({}, baseConfig_extra, fileConfig_extra);
 
         // other plain field need to be replaced

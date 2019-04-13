@@ -3,6 +3,7 @@
     "host": "localhost",
     "port": "1111",
     "target": "http://localhost:8080",
+    "cacheDirname": ".dalao-cache",
     "responseFilter": [
         "code",
         200
