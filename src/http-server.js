@@ -8,18 +8,16 @@ const zlib = require('zlib');
 const fs = require('fs');
 
 const {
-    isStaticResouce,
-    completeUrl,
+    joinUrl,
+    addHttpProtocol,
     url2filename,
     pathCompareFactory,
-    transformPath
+    transformPath,
 } = require('./utils');
 
 function proxyRequestWrapper(config) {
     const {
         target,
-        static: staticTarget,
-        cache,
         cacheDirname,
         responseFilter,
         cacheMaxAge,
@@ -55,39 +53,26 @@ function proxyRequestWrapper(config) {
         // set response CORS
         setHeaders();
 
-        // test for static resource
-        // if (isStaticResouce(url)) {
-        //     const _path = URL.parse(url).path;
-        //     // if has set static target, proxy it
-        //     if (staticTarget && requestHost === URL.parse(completeUrl(staticTarget)).hostname) {
-        //         // replace host
-        //         // let staticUrl = staticTarget + url;
-        //         const staticUrl = completeUrl(staticTarget + _path);
-
-        //         process.stdout.write(`> 🎯   Static Hit! [${staticUrl}]`.green);
-        //         req.pipe(_request(staticUrl)).pipe(res);
-        //         return;
-        //     }
-        // }
-
         // test url
         const reversedProxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(-1));
         for (let index = 0; index < reversedProxyPaths.length; index++) {
 
             const proxyPath = reversedProxyPaths[index];
             // when proxy path is `/`, not need match word boundary
-            const matchReg = proxyPath === '/'
-                ? new RegExp(`^(${proxyPath})`)
-                : new RegExp(`^(${proxyPath})\\b`);
+            const matchReg = new RegExp(`^${proxyPath}(.+)`);
 
-            if (matched = matchReg.test(url)) {
+            if (matched = url.match(matchReg)) {
+                // router config
                 const {
-                    target: overwriteHost,
                     path: overwritePath,
-                    rewrite: overwriteRewrite
+                    target: overwriteHost,
+                    pathRewrite: overwritePathRewrite,
+                    cache: overwriteCache,
                 } = proxyTable[proxyPath];
 
-                const proxyUrl = transformPath(proxyPath, overwriteHost, overwritePath, url, overwriteRewrite);
+                const proxyedPath = overwriteHost + joinUrl(overwritePath, matched[1]);
+
+                const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
 
                 function logMatchedPath(cached) {
                     process.stdout.write(`> 🎯   ${ cached ? 'Cached' : 'Hit' }! [${proxyPath}]`.green);
@@ -112,7 +97,7 @@ function proxyRequestWrapper(config) {
 
                 // if cache option is on, try find current url cache
                 // NOTE: only ajax request can be cached
-                if (cache) {
+                if (overwriteCache) {
                     const cacheFileName = path.resolve(
                         process.cwd(),
                         `./${cacheDirname}/${url2filename(method, url)}.json`
@@ -172,7 +157,7 @@ function proxyRequestWrapper(config) {
                 const responseStream = req.pipe(_request(proxyUrl));
 
                 // cache the response data
-                if (cache) {
+                if (overwriteCache) {
                     let responseData = [];
                     responseStream.on('data', chunk => {
                         responseData.push(chunk);
@@ -249,7 +234,7 @@ function proxyRequestWrapper(config) {
                 return;
             }
 
-            unmatchedUrl = completeUrl(unmatchedUrl);
+            unmatchedUrl = addHttpProtocol(unmatchedUrl);
 
             req
                 .pipe(_request(unmatchedUrl))

@@ -4,7 +4,6 @@
     "target": "http://116.62.199.92:8012",
     "cache": true,
     "watch": true,
-    "rewrite": true,
     "info": false,
     "headers": {
         

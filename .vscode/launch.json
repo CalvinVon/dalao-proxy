@@ -11,7 +11,9 @@
             "program": "${workspaceFolder}/bin/index",
             "cwd": "${workspaceFolder}",
             "args": [
-                "start"
+                "start",
+                "-C",
+                "./dalao.config.example.json"
             ]
         },
         {

@@ -4,8 +4,6 @@
     "host": "localhost",
     "port": "1111",
     "target": "http://localhost:8080",
-    "static": "http://localhost:1111",
-    "rewrite": true,
     "cache": true,
     "cacheMaxAge": [
         "s",
@@ -19,13 +17,21 @@
     "emptyRoutes": false,
     "proxyTable": {
         "/customer": {
-            "target": "http://139.196.213.165:9132/"
+            "path": "/onlypath"
         },
         "/image": {
-            "target": "http://139.196.213.165:9132/api"
+            "target": "http://139.196.213.165:9132/customtarget/",
+            "path": "/typoerror/path",
+            "pathRewrite": {
+                "typoerror": "noerror",
+                "^/customtarget": "/"
+            }
         },
         "/pic": {
-            "target": "http://139.196.213.165:9132/api"
+            "target": "http://139.196.213.165:9132/",
+            "pathRewrite": {
+                "^/pic": ""
+            }
         }
     }
 }

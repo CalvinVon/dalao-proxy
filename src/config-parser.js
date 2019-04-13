@@ -5,7 +5,15 @@ const _ = require('lodash')
 
 const pwd = process.cwd();
 const baseConfig = require('../config');
-const { custom_assign, pathCompareFactory, transformPath } = require('./utils');
+const CheckFunctions = require('./check');
+const {
+    custom_assign,
+    pathCompareFactory,
+    transformPath,
+    joinUrl,
+    addHttpProtocol,
+    splitTargetAndPath
+} = require('./utils');
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
@@ -55,11 +63,9 @@ function parseRouter(config) {
 
     const {
         target,
-        static: staticTarget,
         proxyTable,
-        rewrite,
         cache,
-        cacheDirname
+        cacheDirname,
     } = config;
 
     if (cache) {
@@ -72,47 +78,31 @@ function parseRouter(config) {
         }
     }
 
-    // if (staticTarget) {
-    //     console.log(` > Static Resource Proxy to ${staticTarget}`.green);
-    // }
-
     const Table = require('cli-table');
-
-    // parse provided proxy table
     const outputTable = new Table({
-        head: ['Proxy'.yellow, 'Target'.white, 'Rewrite Path'.white, 'Result'.yellow]
+        head: ['Proxy'.yellow, 'Target'.white, 'Path Rewrite'.white, 'Result'.yellow, 'Cache'.yellow]
     });
-    
-    const proxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(1));
-    proxyPaths.forEach(proxyPath => {
-        const router = proxyTable[proxyPath];        
 
+    const proxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(1));
+
+    proxyPaths.forEach(proxyPath => {
+        if (!CheckFunctions.proxyTable.proxyPath(proxyPath)) return;
+        const router = proxyTable[proxyPath];
         /**
          * assign localValue
          * if no value provided, replace with global/default value
-         * [ localKey, globalValue ]
+         * [ localKey, defaultValue, checkFunction ]
          */
         [
-            ['path', proxyPath],
-            ['target', target],
-            ['rewrite', rewrite],
-            ['cache', cache],
+            ['path',            '/',        CheckFunctions.proxyTable.path],
+            ['target',          target,     CheckFunctions.proxyTable.target],
+            ['pathRewrite',     {}],
+            ['cache',           cache,      CheckFunctions.proxyTable.cache],
         ].forEach(pair => {
-            pair[2] = resolveRouteConfig(router, pair[0], pair[1]);
+            checkRouteConfig(router, pair);
         });
 
-        const {
-            path: overwritePath,
-            target: overwriteTarget,
-            rewrite: overwriteRewrite,
-        } = router;
-
-        outputTable.push([
-            proxyPath,
-            overwriteTarget + overwritePath,
-            overwriteRewrite,
-            transformPath(proxyPath, overwriteTarget, overwritePath, proxyPath, overwriteRewrite)
-        ]);
+        outputTable.push(resolveRouteProxyMap(proxyPath, router));
     });
     console.log(outputTable.toString().green);
 }
@@ -121,19 +111,77 @@ function parseRouter(config) {
  * Resolve single router configuration
  * @param {RouterObject} router
  * @param {String} localPath
- * @param {any} globalValue
+ * @param {any} defaultValue
  * @return {any} resolvedValue
  */
-function resolveRouteConfig (router, localKey, globalValue) {
+function checkRouteConfig(router, [localKey, defaultValue, checkFn]) {
     if (_.isUndefined(router[localKey])) {
-        router[localKey] = globalValue;
-        return globalValue;
+        router[localKey] = defaultValue;
     }
-    else {
-        return router[localKey];
-    }
+
+    checkFn && checkFn(router[localKey]);
 }
 
+
+/**
+ * Resolve route proxy map
+ * @param {String} proxyPath original route path
+ * @param {Object} router router config
+ */
+function resolveRouteProxyMap(proxyPath, router) {
+    const {
+        path: overwritePath,
+        target: overwriteTarget,
+        pathRewrite: overwritePathRewrite,
+        cache: overwriteCache,
+    } = router;
+
+    function pathRewriteToString(pathRewriteMap) {
+        if (_.isEmpty(pathRewriteMap)) {
+            return '-';
+        }
+        else {
+            const Table = require('cli-table');
+            const rewriteMapTable = new Table({
+                chars: {
+                    'top': '', 'top-mid': '', 'top-left': '', 'top-right': ''
+                    , 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': ''
+                    , 'left': '', 'left-mid': '', 'mid': '', 'mid-mid': ''
+                    , 'right': '', 'right-mid': '', 'middle': ' '
+                },
+                style: { 'padding-left': 0 }
+            });
+
+
+            Object.keys(pathRewriteMap).forEach(path => {
+                rewriteMapTable.push([`'${path}'`, '->'.yellow, `'${pathRewriteMap[path]}'`]);
+            });
+
+            return rewriteMapTable.toString();
+        }
+    }
+
+
+    function resolveProxyRoute() {
+        const { target: overwriteTarget_target, path: overwriteTarget_path } = splitTargetAndPath(overwriteTarget);
+        let proxyedPath = joinUrl(overwriteTarget_path, overwritePath, proxyPath);
+        proxyedPath = transformPath(overwriteTarget_target + proxyedPath, overwritePathRewrite);
+        return addHttpProtocol(proxyedPath);
+    }
+
+    return [
+        // Proxy
+        proxyPath,
+        // Target 
+        joinUrl(splitTargetAndPath(overwriteTarget)['path'], overwritePath),
+        // Path Rewrite
+        pathRewriteToString(overwritePathRewrite),
+        // Result
+        resolveProxyRoute(),
+        // Cache
+        overwriteCache
+    ];
+}
 /**
  * Main Config Parser
  * user arguments setting > user file setting > base internal setting
@@ -143,9 +191,9 @@ function resolveRouteConfig (router, localKey, globalValue) {
 exports.parse = function parse(program) {
 
     let runtimeConfig = {};
-    
+
     const { config: configFile } = program;
-    
+
     // configs
     const argsConfig = _.pick(program, [
         'config',
@@ -161,40 +209,35 @@ exports.parse = function parse(program) {
 
     let filePath;
 
-    try {
-        if (!configFile) {
-            console.warn(' > No specific config file provided. Running in default config.'.grey);
-            filePath = path.resolve(baseConfig.configFilename);
-        }
-        else {
-            filePath = path.resolve(pwd, configFile);
-        }
-
-        const fileConfig = fileParser(filePath);
-        // replace fileConfig by argsConfig
-        runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
-        parseRouter(runtimeConfig);
-
-        if (fs.existsSync(filePath) && runtimeConfig.watch) {
-            console.log(`> 👀 dalao is ${'watching'.green} at your config file`);
-            fs.watchFile(filePath, function () {
-                console.clear();
-                console.log('> 👀   dalao is watching at your config file');
-                console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
-    
-                // re-parse config file
-                const changedFileConfig = fileParser(filePath, runtimeConfig.emptyRoutes);
-                // replace fileConfig by argsConfig
-                runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
-                parseRouter(runtimeConfig);
-                // emit event to reload proxy server
-                parseEmitter.emit('config:parsed', runtimeConfig);
-            });
-        }
-        // emit event to reload proxy server
-        parseEmitter.emit('config:parsed', runtimeConfig);
-
-    } catch (error) {
-        console.error(error);
+    if (!configFile) {
+        filePath = path.resolve(baseConfig.configFilename);
     }
+    else {
+        filePath = path.resolve(pwd, configFile);
+    }
+
+    const fileConfig = fileParser(filePath);
+    // replace fileConfig by argsConfig
+    runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
+    parseRouter(runtimeConfig);
+
+    if (fs.existsSync(filePath) && runtimeConfig.watch) {
+        console.log(`> 👀 dalao is ${'watching'.green} at your config file`);
+        fs.watchFile(filePath, function () {
+            console.clear();
+            console.log('> 👀   dalao is watching at your config file');
+            console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
+
+            // re-parse config file
+            const changedFileConfig = fileParser(filePath, runtimeConfig.emptyRoutes);
+            // replace fileConfig by argsConfig
+            runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
+            parseRouter(runtimeConfig);
+            // emit event to reload proxy server
+            parseEmitter.emit('config:parsed', runtimeConfig);
+        });
+    }
+    // emit event to reload proxy server
+    parseEmitter.emit('config:parsed', runtimeConfig);
+
 };

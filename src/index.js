@@ -61,10 +61,10 @@ exports.CleanCache = function CleanCache(config) {
     const cacheDir = path.join(process.cwd(), config.cacheDirname, './*.json');
     rm(cacheDir, err => {
         if (err) {
-            console.log(' > [error] something wrong happened during clean cache'.red, err);
+            console.log('  [error] something wrong happened during clean cache'.red, err);
         }
         else {
-            console.log(' > [info] dalao cache has been cleaned!'.green);
+            console.log('  [info] dalao cache has been cleaned!'.green);
         }
     })
 };
@@ -97,8 +97,11 @@ exports.printWelcome = function printWelcome (version) {
     // str += '        \\/      \\/            \\/                                           \\/ \\/     \n';
     str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
     str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
-    str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n';
-    console.log(str.yellow);
-    console.log(' 「Dalao Proxy」 '.yellow, ('v' + version).green);
+    str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n\n';
+    str += '                                        ';
+
+    console.log(str.yellow, 'Dalao Proxy'.yellow, ('v' + version).green);
+    console.log('                                            powered by CalvinVon');
+    console.log('                        https://github.com/CalvinVon/dalao-proxy'.grey);
     console.log('\n');
 };

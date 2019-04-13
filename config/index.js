@@ -1,5 +1,5 @@
 const config = {
-    version: '0.3.2',
+    version: '0.4.0-beta',
     // custom config file path
     configFilename: 'dalao.config.json',
     cacheDirname: '.dalao-cache',
@@ -9,8 +9,6 @@ const config = {
     port: 80,
     // target(for proxy)
     target: 'target.example.com',
-    static: "static.example.com",
-    rewrite: false,
     // request
     cache: false,
     // max cache time: [`time unit`, `digit`]

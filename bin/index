@@ -21,7 +21,6 @@ program
     .option('-P, --port [port]', 'custom proxy port')
     .option('-H, --host [hostname]', 'dynamic add host linked to your server address')
     .option('-t, --target [proxyTarget]', 'target server to proxy')
-    .option('-r, --rewrite', 'globle config for rewrite path')
     .option('-c, --cache', 'enable request cache')
     .option('-i, --info', 'enable log print')
     .option('-p, --empty-routes', 'enable empty default proxy routes')
@@ -91,6 +90,17 @@ process.stdin.on('data', chunk => {
 
 // process error caughtor
 process.on('uncaughtException', function (err) {
-    console.log('\n> 😫  Oh no, dalao is getting tired...'.red);
-    console.error(err);
+    console.log('\n> 😫  Oops, dalao can\'t handle this...'.red);
+    if (/ECONNREFUSED/i.test(err.message)) {
+        console.error(err.message);
+    }
+    else {
+        console.error(err);
+        console.log(`
+    Current version: ${baseConfig.version}
+    You may update to latest version to fix this by \`(sudo) npm i dalao-proxy@latest -g\`,
+    or create a bug issue on https://github.com/CalvinVon/dalao-proxy/issues.
+    dalao is sorry about this, again!`.yellow
+        );
+    }
 });

@@ -1,17 +1,28 @@
+const _ = require('lodash');
+const path = require('path');
+
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
 const STATIC_FILE_REG = new RegExp(/\.[^\.]+$/);
 
-function custom_assign (objValue, srcValue) {
+function custom_assign(objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
 }
 
 // make url complete with http/https
-function completeUrl(urlFragment) {
+function addHttpProtocol(urlFragment) {
     if (!HTTP_PREFIX_REG.test(urlFragment)) {
         return 'http://' + urlFragment;
     }
     else {
         return urlFragment;
+    }
+}
+
+function splitTargetAndPath(url) {
+    const [_, target = '', path = ''] = url.match(/^((?:https?:\/\/)?(?:(?:\w+\.)+\w+|localhost)(?::\d+)?)?(.+)?/i) || [];
+    return {
+        target,
+        path
     }
 }
 
@@ -25,24 +36,19 @@ function url2filename(method, url) {
             .replace(/#.+/, '')
 }
 
-// deprecated
-// transfer url to (cache) filename
-function filename2url(url) {
-    return url.split('_').join('/').replace(/(GET|POST|PATCH|OPTIONS|PUT)/);
-}
 
 /**
  * url path deep compare
  * @param {Number} order
  * @return {Function} compare function
  */
-function pathCompareFactory (order) {
+function pathCompareFactory(order) {
     return function (prev, curr) {
-        const prev_dep = prev.match(/(\/)/g).length;
-        const curr_dep = curr.match(/(\/)/g).length;
-    
+        const prev_dep = (prev.match(/(\/)/g) || []).length;
+        const curr_dep = (curr.match(/(\/)/g) || []).length;
+
         if (prev_dep === curr_dep) {
-            return (prev.length - curr.length) * order;
+            return (prev - curr) * order;
         }
         else {
             return (prev_dep - curr_dep) * order;
@@ -52,58 +58,49 @@ function pathCompareFactory (order) {
 
 /**
 * Proxy path transformer
-* @param {String} proxyPath proxy matched path
-* @param {String} targetPath proxy target path
-* @param {String} path origin path
-* @param {Boolean} rewrite rewrite proxy matched path
+* @param {String} url origin url
+* @param {String} target proxy target url
+* @param {Object} pathRewriteMap path rewrite rule map
 */
-function transformPath (proxyPath, overwriteHost, overwritePath, url, rewrite) {
-   let transformedUrl;
-   let matched = overwriteHost.match(HTTP_PREFIX_REG);
+function transformPath(target, pathRewriteMap) {
+    try {
+        const { target: targetTarget, path: targetPath } = splitTargetAndPath(target);
+        if (!_.isEmpty(pathRewriteMap)) {
+            let result = targetPath;
 
-   url = url.replace(HTTP_PREFIX_REG, '');
+            Object.keys(pathRewriteMap).forEach(path => {
+                const rewriteReg = new RegExp(path);
+                const replaceStr = pathRewriteMap[path];
+                // use string match replace first, then regexp match
+                result = result
+                        .replace(path, replaceStr)
+                        .replace(rewriteReg, replaceStr)
+            });
 
-   if (rewrite) {
-       const rewritedPath = url.replace(proxyPath, overwritePath)
-       transformedUrl = joinUrl([overwriteHost, rewritedPath]);
-   }
-   else {
-       transformedUrl = joinUrl([overwriteHost, overwritePath, url]);
-   }
+            return targetTarget + result.replace(/\/\//, '/');
+        }
+        else {
+            return target;
+        }
 
-   if (matched) {
-       transformedUrl = matched[1] + transformedUrl;
-   }
-   else {
-       transformedUrl = 'http://' + transformedUrl;
-   }
-
-   return transformedUrl;
+    } catch (error) {
+        throw new Error('Can\'t rewrite proxy path. ' + error.message);
+    }
 }
 
 
-function joinUrl(urls) {
-    return urls.map(url => url.replace(HTTP_PREFIX_REG, '')).join('/').replace(/\/{2,}/g, '/');
+function joinUrl(...urls) {
+    return path.join(...urls).replace(/\\/g, '/');
 }
 
-// is static file uri value
-function isStaticResouce(uri = '') {
-    return STATIC_FILE_REG.test(
-            uri
-                .replace(/\?.+/, '')
-                .replace(/#.+/, '')
-        )
-        
-}
 
 module.exports = {
     HTTP_PREFIX_REG,
     custom_assign,
-    completeUrl,
+    joinUrl,
+    addHttpProtocol,
+    splitTargetAndPath,
     url2filename,
-    filename2url,
     pathCompareFactory,
     transformPath,
-    joinUrl,
-    isStaticResouce
 }
