@@ -1,5 +1,5 @@
 # Dalao-proxy
-An HTTP proxy for frontend developer with request cache, request mock and development!
+A HTTP proxy for frontend developer with request cache, request mock and development!
 
 > An one-line command started server! More light-weight and convenient than webpack-dev-server in daily development.
 
