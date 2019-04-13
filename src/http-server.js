@@ -1,7 +1,6 @@
 const moment = require('moment');
 const http = require('http');
 const path = require('path');
-const URL = require('url');
 const request = require('request');
 const _ = require('lodash');
 const zlib = require('zlib');

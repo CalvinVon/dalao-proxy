@@ -23,7 +23,6 @@ program
     .option('-t, --target [proxyTarget]', 'target server to proxy')
     .option('-c, --cache', 'enable request cache')
     .option('-i, --info', 'enable log print')
-    .option('-p, --empty-routes', 'enable empty default proxy routes')
     .action(function () {
         printWelcome(baseConfig.version);
 

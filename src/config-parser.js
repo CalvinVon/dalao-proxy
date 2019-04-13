@@ -18,13 +18,15 @@ const {
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
 
+let isWatching;
+
 
 /**
  * Parse file defined config
  * @argument {String} filePath target file to parse
  * @return {Config} mergedFileConfig
  */
-function fileParser(filePath, preventDefaultRoute) {
+function fileParser(filePath) {
     try {
         const file = fs.readFileSync(filePath, 'utf-8');
         const fileConfig = JSON.parse(file);
@@ -32,12 +34,7 @@ function fileParser(filePath, preventDefaultRoute) {
         const EXTRA_FIELDS = ['headers', 'proxyTable'];
 
         // extra fields need to be merged
-        const baseConfig_extra = _.pick(baseConfig, EXTRA_FIELDS.filter(field => {
-            if (preventDefaultRoute) {
-                return field !== 'proxyTable';
-            }
-            return field;
-        }));
+        const baseConfig_extra = _.pick(baseConfig, EXTRA_FIELDS);
         const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS);
 
         const fileConfig_extra = _.pick(fileConfig, EXTRA_FIELDS);
@@ -204,7 +201,6 @@ exports.parse = function parse(program) {
         "rewrite",
         "cache",
         "info",
-        "emptyRoutes"
     ]);
 
     let filePath;
@@ -221,7 +217,7 @@ exports.parse = function parse(program) {
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
     parseRouter(runtimeConfig);
 
-    if (fs.existsSync(filePath) && runtimeConfig.watch) {
+    if (fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
         console.log(`> 👀 dalao is ${'watching'.green} at your config file`);
         fs.watchFile(filePath, function () {
             console.clear();
@@ -229,12 +225,13 @@ exports.parse = function parse(program) {
             console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
 
             // re-parse config file
-            const changedFileConfig = fileParser(filePath, runtimeConfig.emptyRoutes);
+            const changedFileConfig = fileParser(filePath);
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
             parseRouter(runtimeConfig);
             // emit event to reload proxy server
             parseEmitter.emit('config:parsed', runtimeConfig);
+            isWatching = true;
         });
     }
     // emit event to reload proxy server

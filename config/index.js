@@ -22,8 +22,6 @@ const config = {
     // extra
     headers: {
     },
-    // proxy routes
-    emptyRoutes: false,    // enempty table
     proxyTable: {
         "/": {
             path: "/"

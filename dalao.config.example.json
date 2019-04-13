@@ -1,37 +1,13 @@
 {
-    "cacheDirname": ".dalao-cache",
     "watch": true,
     "host": "localhost",
     "port": "1111",
     "target": "http://localhost:8080",
-    "cache": true,
-    "cacheMaxAge": [
-        "s",
-        0
-    ],
     "responseFilter": [
         "code",
         200
     ],
-    "info": false,
-    "emptyRoutes": false,
     "proxyTable": {
-        "/customer": {
-            "path": "/onlypath"
-        },
-        "/image": {
-            "target": "http://139.196.213.165:9132/customtarget/",
-            "path": "/typoerror/path",
-            "pathRewrite": {
-                "typoerror": "noerror",
-                "^/customtarget": "/"
-            }
-        },
-        "/pic": {
-            "target": "http://139.196.213.165:9132/",
-            "pathRewrite": {
-                "^/pic": ""
-            }
-        }
+
     }
 }
