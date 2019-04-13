@@ -1,8 +1,8 @@
 const _ = require('lodash');
 const path = require('path');
+const fs = require('fs');
 
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
-const STATIC_FILE_REG = new RegExp(/\.[^\.]+$/);
 
 function custom_assign(objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
@@ -93,6 +93,14 @@ function joinUrl(...urls) {
     return path.join(...urls).replace(/\\/g, '/');
 }
 
+function checkAndCreateCacheFolder (cacheDirname) {
+    const pwd = process.cwd();
+    const fullCacheDirname = path.resolve(pwd, cacheDirname);
+    if (!fs.existsSync(fullCacheDirname)) {
+        fs.mkdirSync(fullCacheDirname);
+    }
+}
+
 
 module.exports = {
     HTTP_PREFIX_REG,
@@ -103,4 +111,5 @@ module.exports = {
     url2filename,
     pathCompareFactory,
     transformPath,
+    checkAndCreateCacheFolder
 }

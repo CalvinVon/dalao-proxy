@@ -12,6 +12,7 @@ const {
     url2filename,
     splitTargetAndPath,
     transformPath,
+    checkAndCreateCacheFolder
 } = require('./utils');
 
 function proxyRequestWrapper(config) {
@@ -82,9 +83,7 @@ function proxyRequestWrapper(config) {
             } = proxyTable[proxyPath];
 
             const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
-
             const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
-
             const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
 
             function logMatchedPath(cached) {
@@ -111,6 +110,7 @@ function proxyRequestWrapper(config) {
             // if cache option is on, try find current url cache
             // NOTE: only ajax request can be cached
             if (overwriteCache) {
+                checkAndCreateCacheFolder(cacheDirname);
                 const cacheFileName = path.resolve(
                     process.cwd(),
                     `./${cacheDirname}/${url2filename(method, url)}.json`

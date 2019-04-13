@@ -12,7 +12,8 @@ const {
     transformPath,
     joinUrl,
     addHttpProtocol,
-    splitTargetAndPath
+    splitTargetAndPath,
+    checkAndCreateCacheFolder
 } = require('./utils');
 
 const parseEmitter = new EventEmitter();
@@ -73,13 +74,7 @@ function parseRouter(config) {
     } = config;
 
     if (cache) {
-        try {
-            fs.mkdirSync(path.resolve(pwd, cacheDirname));
-        } catch (error) {
-            if (error.code !== 'EEXIST') {
-                console.warn(error.message);
-            }
-        }
+        checkAndCreateCacheFolder(cacheDirname);
     }
 
     const Table = require('cli-table');
