@@ -1,8 +1,8 @@
 const readline = require('readline');
 const fs = require('fs');
+const path = require('path');
 const _ = require('lodash');
 const defalutConfig = require('../config');
-const path = require('path');
 const pwd = process.cwd();
 const custom_assign = require('./utils').custom_assign;
 
@@ -13,20 +13,22 @@ const rl = readline.createInterface({
 
 // questions
 let questionObjs = [
+    { label: 'Config file name', value: 'host', text: true, radio: false },
     { label: 'Proxy server host', value: 'host', text: true, radio: false },
     { label: 'Proxy server port', value: 'port', text: true, radio: false },
     { label: 'Proxy target server address', value: 'target', text: true, radio: false },
     { label: 'Should cache request', value: 'cache', text: false, radio: true },
-    { label: 'Should output log', value: 'info', text: false, radio: true },
+    { label: 'Cache folder name', value: 'info', text: true, radio: false },
 ];
 
 // default answers
 let defaultAnswers = [
+    defalutConfig.configFilename,
     defalutConfig.host,
     defalutConfig.port,
     defalutConfig.target,
     defalutConfig.cache,
-    defalutConfig.info,
+    defalutConfig.cacheDirname,
 ];
 
 // user answers
@@ -41,8 +43,10 @@ function createConfigFile() {
 
     generateConfig = _.assignWith({}, _.omit(defalutConfig, ['version', 'configFilename']), generateConfig, custom_assign);
 
-    fs.writeFileSync(path.resolve(pwd, defalutConfig.configFilename), JSON.stringify(generateConfig, null, 4));
+    const fullConfigFilePath = path.resolve(pwd, defalutConfig.configFilename);
+    fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
     console.log(`> 😉  dalao says: 🎉  Congratulations, \`${defalutConfig.configFilename}\` has generated for you.`.green);
+    console.log(`  Do more about proxy config or cache config, please edit ${fullConfigFilePath}`.grey);
 }
 
 /**

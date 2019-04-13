@@ -17,7 +17,7 @@ const config = {
     // response cache filter: [`path`, `value`]
     // e.g. ['code', 200]
     // empty array means do no filtering
-    responseFilter: [],
+    responseFilter: ['code', 200],
     info: false,
     // extra
     headers: {
