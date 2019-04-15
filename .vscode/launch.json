@@ -38,6 +38,13 @@
                 "-p",
                 "1234"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "dalao check version",
+            "program": "${workspaceFolder}/src/check-version",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

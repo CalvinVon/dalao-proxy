@@ -1,6 +1,7 @@
 const ConfigParser = require('./config-parser');
 const ProxyServer = require('./http-server');
 const ConfigGenerator = require('./generate-config');
+const { checkVersion } = require('./check-version');
 
 const rm = require('rimraf');
 const path = require('path');
@@ -12,6 +13,10 @@ let _program;
  * @return {EventEmitter} ConfigParser.parseEmitter
  */
 exports.Startup = function Startup (program, startupEmitter) {
+
+    // Check version
+    checkVersion();
+    
     // ### Startup Emitter Hook
     startupEmitter.emit('startup:init');
 
