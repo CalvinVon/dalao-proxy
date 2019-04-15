@@ -290,7 +290,11 @@ function attachServerListener(server, config) {
 
     server.on('error', function (err) {
         server.close();
-        if (/EADDRINUSE/i.test(err.message)) {
+        if (/listen EACCES/.test(err.message)) {
+            console.error(`  Try listening port ${port} failed with code ${err.code}, please change anther port`.red);
+            console.error(err);
+        }
+        else if (/EADDRINUSE/i.test(err.message)) {
             port++;
             console.log(`  Port ${port} has been used, dalao is trying to change port to ${port}`.grey);
             server.listen(port, host);
