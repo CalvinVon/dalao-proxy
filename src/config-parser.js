@@ -221,7 +221,7 @@ exports.parse = function parse(program) {
     parseRouter(runtimeConfig);
 
     if (fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
-        console.log(`> 👀 dalao is ${'watching'.green} at your config file`);
+        console.log(`> 👀  dalao is ${'watching'.green} at your config file`);
         fs.watchFile(filePath, function () {
             console.clear();
             console.log('> 👀   dalao is watching at your config file');
