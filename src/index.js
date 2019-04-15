@@ -73,17 +73,6 @@ exports.CleanCache = function CleanCache(config) {
  * Generate Config File Based By User Input
  */
 exports.Init = function InitConfigFile (program) {
-    const preHint = `
-This utility will walk you through creating a config file.
-It only covers the most common items, and tries to guess sensible defaults.
-
-See \`dalao --help\` for definitive documentation on these fields
-and exactly what they do.
-
-Press ^C at any time to quit.
-`;
-
-    console.log(preHint);
     ConfigGenerator(program);
 };
 

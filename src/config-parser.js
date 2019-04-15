@@ -71,6 +71,7 @@ function parseRouter(config) {
         proxyTable,
         cache,
         cacheDirname,
+        cacheContentType,
     } = config;
 
     if (cache) {
@@ -97,6 +98,7 @@ function parseRouter(config) {
             ['target',          target,     CheckFunctions.proxyTable.target],
             ['pathRewrite',     {}],
             ['cache',           cache,      CheckFunctions.proxyTable.cache],
+            ['cacheContentType',cacheContentType]
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
@@ -200,7 +202,6 @@ exports.parse = function parse(program) {
         "port",
         "host",
         "target",
-        "rewrite",
         "cache",
         "info",
     ]);

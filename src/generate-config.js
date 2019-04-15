@@ -18,7 +18,7 @@ let questionObjs = [
     { label: 'Proxy server port', value: 'port', text: true, radio: false },
     { label: 'Proxy target server address', value: 'target', text: true, radio: false },
     { label: 'Should cache request', value: 'cache', text: false, radio: true },
-    { label: 'Cache folder name', value: 'info', text: true, radio: false },
+    { label: 'Cache folder name', value: 'cacheDirname', text: true, radio: false },
 ];
 
 // default answers
@@ -45,8 +45,8 @@ function createConfigFile() {
 
     const fullConfigFilePath = path.resolve(pwd, defalutConfig.configFilename);
     fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
-    console.log(`> 😉  dalao says: 🎉  Congratulations, \`${defalutConfig.configFilename}\` has generated for you.`.green);
-    console.log(`  Do more about proxy config or cache config, please edit ${fullConfigFilePath}`.grey);
+    console.log(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`.green);
+    console.log('  More details about proxy config or cache config, please see '.grey +  'https://github.com/CalvinVon/dalao-proxy#docs\n'.yellow);
 }
 
 /**
@@ -54,14 +54,8 @@ function createConfigFile() {
  * @param {Boolean} forceSkip if true skip all the questions
  */
 function runQuestionLoop(forceSkip) {
-    if (forceSkip) {
-        createConfigFile();
-        rl.close();
-        process.exit(0);
-        return;
-    }
 
-    if (index === questionObjs.length) {
+    if (forceSkip || index === questionObjs.length) {
         createConfigFile();
         rl.close();
         process.exit(0);
@@ -90,8 +84,8 @@ function runQuestionLoop(forceSkip) {
                 index++;
             }
             else {
-                const yesMatched = ['true', 'y', 'yes'].some(item => item.toUpperCase() === answer.toUpperCase());
-                const noMatched = ['false', 'n', 'no'].some(item => item.toUpperCase() === answer.toUpperCase());
+                const yesMatched = /^(true|y|yes)$/i.test(answer);
+                const noMatched = /^(false|no?)$/i.test(answer);
                 if (yesMatched || noMatched) {
                     answers.push(yesMatched || defaultAnswer);
                     index++;
@@ -106,5 +100,18 @@ function runQuestionLoop(forceSkip) {
 }
 
 module.exports = function ConfigGenerator ({ force }) {
+    if (!force) {
+        const preHint = `
+This utility will walk you through creating a config file.
+It only covers the most common items, and tries to guess sensible defaults.
+
+See \`dalao --help\` for definitive documentation on these fields
+and exactly what they do.
+
+Press ^C at any time to quit.
+`;
+
+    console.log(preHint);
+    }
     return runQuestionLoop(force);
 }

@@ -80,6 +80,7 @@ function proxyRequestWrapper(config) {
                 target: overwriteHost,
                 pathRewrite: overwritePathRewrite,
                 cache: overwriteCache,
+                cacheContentType: overwriteCacheContentType,
             } = proxyTable[proxyPath];
 
             const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
@@ -107,8 +108,7 @@ function proxyRequestWrapper(config) {
                 return;
             }
 
-            // if cache option is on, try find current url cache
-            // NOTE: only ajax request can be cached
+            // Try to read cache
             if (overwriteCache) {
                 checkAndCreateCacheFolder(cacheDirname);
                 const cacheFileName = path.resolve(
@@ -190,7 +190,15 @@ function proxyRequestWrapper(config) {
                             responseData = zlib.gunzipSync(buffer);
                         }
                         // Only cache ajax request response
-                        if (/json/.test(response.headers['content-type'])) {
+                        let contentTypeReg = /application\/json/;
+                        if (overwriteCacheContentType.length) {
+                            contentTypeReg = new RegExp(`(${
+                                overwriteCacheContentType
+                                    .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
+                                    .join('|')
+                                })`);
+                        }
+                        if (contentTypeReg.test(response.headers['content-type'])) {
                             const resJson = JSON.parse(responseData.toString());
 
                             if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {

@@ -11,6 +11,9 @@ const config = {
     target: 'target.example.com',
     // request
     cache: false,
+    cacheContentType: [
+        "application/json"
+    ],
     // max cache time: [`time unit`, `digit`]
     // if `digit` set to 0, permanently valid
     cacheMaxAge: ['second', 10],
