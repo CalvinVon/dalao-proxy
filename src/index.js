@@ -1,6 +1,7 @@
 const ConfigParser = require('./config-parser');
 const ProxyServer = require('./http-server');
 const ConfigGenerator = require('./generate-config');
+const MockFileGenerator = require('./generate-mock');
 const { checkVersion } = require('./check-version');
 
 const rm = require('rimraf');
@@ -79,6 +80,13 @@ exports.CleanCache = function CleanCache(config) {
  */
 exports.Init = function InitConfigFile (program) {
     ConfigGenerator(program);
+};
+
+/**
+ * Generate Base Mock File
+ */
+exports.Mock = function GenerateMock (program, method) {
+    MockFileGenerator(program, method);
 };
 
 exports.printWelcome = function printWelcome (version) {
