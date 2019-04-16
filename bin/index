@@ -4,6 +4,11 @@ require('colors');
 const program = require('commander');
 const baseConfig = require('../config');
 const EventEmitter = require('events');
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 const { 
     Startup, 
@@ -89,24 +94,14 @@ if (!input_command) {
     process.exit(1);
 }
 
-let runtimeInput = [];
 // user runtime input listener
-process.stdin.on('data', chunk => {
-    process.stdin.setEncoding('utf8');
-
-    if (/\r/.test(chunk)) {
-        const runtimeCmd = runtimeInput.join('');
-        if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
-            proxySever.close();
-            Reload();
-        }
-        else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
-            CleanCache(runtimeConfig);
-        }
-        runtimeInput = [];
+rl.on('line', runtimeCmd => {
+    if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
+        proxySever.close();
+        Reload();
     }
-    else {
-        runtimeInput.push(chunk);
+    else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
+        CleanCache(runtimeConfig);
     }
 });
 
