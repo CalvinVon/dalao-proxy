@@ -20,15 +20,6 @@ let runtimeConfig,
     input_command;
 
 program
-    .command('init')
-    .description('create an init config file in current folder'.green)
-    .option('-f, --force', 'Skip options and force generate default config file', false)
-    .action(function () {
-        Init(this);
-        input_command = true;
-    })
-
-program
     .version(baseConfig.version)
     .command('start')
     .description('auto detect config & start proxy server'.green)
@@ -55,10 +46,19 @@ program
     })
 
 program
+    .command('init')
+    .description('create an init config file in current folder'.green)
+    .option('-f, --force', 'Skip options and force generate default config file', false)
+    .action(function () {
+        Init(this);
+        input_command = true;
+    })
+
+program
     .command('mock <method>')
     .description('create a mock file in json format')
-    .option('-C, --config <filepath>', 'use custom config file')
-    .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
+    // .option('-C, --config <filepath>', 'use custom config file')
+    // .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
     .action(function (method) {
         if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
             console.error(method.red + ' is NOT a valid HTTP method');
@@ -83,7 +83,7 @@ program
         console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
     })
     .parse(process.argv)
-    
+
 if (!input_command) {
     program.outputHelp();
     process.exit(1);

@@ -48,6 +48,7 @@
                 "mock",
                 "post"
             ],
+            "outputCapture": "std",
             "cwd": "${workspaceFolder}"
         }
     ]

@@ -12,7 +12,7 @@ const rl = readline.createInterface({
 });
 
 let resolvedConfig = baseConfig;
-let resolvedCacheFolder;
+let resolvedCacheFolder = baseConfig.cacheDirname;
 function questionUrl(program, method, { cacheDirname, configFilename }) {
     // used custom config file
     if (configFilename !== baseConfig.configFilename) {
@@ -28,7 +28,9 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
     }
     
     function question() {
-        rl.question('Request url path', function (url) {
+        rl.question('Request url path: ', function (url) {
+            rl.resume()
+            console.log('> get: ' + url);
             if (!/^(\/[\w-_]+)*/.test(url)) {
                 console.log('Please input a valid path');
                 question();
@@ -42,7 +44,8 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
                 CACHE_DEBUG: {
                     url,
                     method
-                }
+                },
+                data: {}
             };
             json[resolvedConfig.responseFilter[0] || 'code'] = resolvedConfig.responseFilter[1] || 200;
             checkAndCreateCacheFolder(resolvedCacheFolder);
