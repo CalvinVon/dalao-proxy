@@ -27,7 +27,7 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
             input: process.stdin,
             output: process.stdout
         });
-        rl.question('Request url path: ', function (url) {
+        rl.question('> Request url path: '.yellow, function (url) {
             if (!/^\/([\w-_]+\/?)*$/.test(url)) {
                 console.log('Please input a valid path');
                 rl.close();

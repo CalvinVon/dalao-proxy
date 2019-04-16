@@ -1,5 +1,5 @@
 const config = {
-    version: '0.6.1-beta',
+    version: '0.6.2-beta',
     // custom config file path
     configFilename: 'dalao.config.json',
     cacheDirname: '.dalao-cache',

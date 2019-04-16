@@ -55,6 +55,9 @@ program
     .description('create an init config file in current folder'.green)
     .option('-f, --force', 'Skip options and force generate default config file', false)
     .action(function () {
+        // only one stdin listener allowed to be attached at same time
+        rl.close();
+
         Init(this);
         input_command = true;
     })
@@ -65,6 +68,9 @@ program
     // .option('-C, --config <filepath>', 'use custom config file')
     // .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
     .action(function (method) {
+        // only one stdin listener allowed to be attached at same time
+        rl.close();
+
         if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
             console.error(method.red + ' is NOT a valid HTTP method');
             process.exit(-1);
@@ -82,7 +88,7 @@ program
         console.log('')
         console.log('Examples:');
         console.log('  $ dalao-proxy init'.gray);
-        console.log('  $ dalao-proxy mock get /api/list'.gray);
+        console.log('  $ dalao-proxy mock get'.gray);
         console.log('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'.gray);
         console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'.gray);
         console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
