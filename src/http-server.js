@@ -59,7 +59,7 @@ function proxyRequestWrapper(config) {
         let matchingLength = url.length;
         for (let index = 0; index < proxyPaths.length; index++) {
             const proxyPath = proxyPaths[index];
-            const matchReg = new RegExp(`^${proxyPath}(.+)`);
+            const matchReg = new RegExp(`^${proxyPath}(.*)`);
             let matchingResult;
             if (matchingResult = url.match(matchReg)) {
                 const currentLenth = matchingResult[1].length;

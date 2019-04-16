@@ -19,12 +19,13 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "dalao init",
+            "name": "dalao duidian",
             "program": "${workspaceFolder}/bin/index",
             "cwd": "${workspaceFolder}",
             "args": [
-                "init",
-                "-f"
+                "start",
+                "-C",
+                "../match-point/dalao.config.json"
             ]
         },
         {
