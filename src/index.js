@@ -85,8 +85,8 @@ exports.Init = function InitConfigFile (program) {
 /**
  * Generate Base Mock File
  */
-exports.Mock = function GenerateMock (program, method) {
-    MockFileGenerator(program, method);
+exports.Mock = function GenerateMock (program, method, runtimeConfig) {
+    MockFileGenerator(program, method, runtimeConfig);
 };
 
 exports.printWelcome = function printWelcome (version) {

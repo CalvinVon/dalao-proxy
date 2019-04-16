@@ -17,8 +17,8 @@ function _check (field, value, regexp, canIgnore = false) {
 }
 
 const proxyTable = {
-    proxyPath: value => _check('proxyTable.[proxy]', value, /^\/(\w+)?/),
-    path: value => _check('proxyTable.path', value, /^\/(\w+)?/),
+    proxyPath: value => _check('proxyTable.[proxy]', value, /^(\/[\w-_]+)*/),
+    path: value => _check('proxyTable.path', value, /^(\/[\w-_]+)*/),
     target: value => _check('proxyTable.target', value, REG_PROTOCOL_HOST_PORT, true),
     cache: value => _check('proxyTable.cache', value, /^(true|false)$/),
 }
