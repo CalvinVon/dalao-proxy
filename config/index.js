@@ -6,7 +6,7 @@ const config = {
     watch: true,
     // proxy server
     host: 'localhost',
-    port: 80,
+    port: 8000,
     // target(for proxy)
     target: 'target.example.com',
     // request

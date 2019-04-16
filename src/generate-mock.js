@@ -6,11 +6,6 @@ const baseConfig = require('../config');
 const { url2filename } = require('./utils');
 const moment = require('moment');
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
 let resolvedConfig = baseConfig;
 let resolvedCacheFolder = baseConfig.cacheDirname;
 function questionUrl(program, method, { cacheDirname, configFilename }) {
@@ -28,12 +23,15 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
     }
     
     function question() {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
         rl.question('Request url path: ', function (url) {
-            rl.resume()
-            console.log('> get: ' + url);
-            if (!/^(\/[\w-_]+)*/.test(url)) {
+            if (!/^\/([\w-_]+\/?)*$/.test(url)) {
                 console.log('Please input a valid path');
-                question();
+                rl.close();
+                return question();
             }
             const mockFileName = path
                 .resolve(process.cwd(), `./${resolvedCacheFolder}/${url2filename(method, url)}.json`)
@@ -57,6 +55,9 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
                     flag: 'w'
                 }
             );
+            console.log(`Mock file created in ${mockFileName}\n`.yellow);
+            rl.close();
+            process.exit(1);
         });
     }
 

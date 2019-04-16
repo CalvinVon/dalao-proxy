@@ -6,11 +6,6 @@ const defalutConfig = require('../config');
 const pwd = process.cwd();
 const custom_assign = require('./utils').custom_assign;
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
 // questions
 let questionObjs = [
     { label: 'Config file name', value: 'host', text: true, radio: false },
@@ -54,6 +49,10 @@ function createConfigFile() {
  * @param {Boolean} forceSkip if true skip all the questions
  */
 function runQuestionLoop(forceSkip) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
 
     if (forceSkip || index === questionObjs.length) {
         createConfigFile();
@@ -95,6 +94,7 @@ function runQuestionLoop(forceSkip) {
                 }
             }
         }
+        rl.close();
         runQuestionLoop();
     });
 }
