@@ -113,11 +113,12 @@ rl.on('line', runtimeCmd => {
 
 // process error caughtor
 process.on('uncaughtException', function (err) {
-    console.log('\n> 😫  Oops, dalao can\'t handle this...'.red);
-    if (/ECONNREFUSED/i.test(err.message)) {
+    if (/(ECONNREFUSED|ECONNRESET)/i.test(err.message)) {
+        console.log('\n> 😫  Oops, dalao can\'t proxy to target'.red);
         console.error(err.message);
     }
     else {
+        console.log('\n> 😫  Oops, dalao can\'t handle this...'.red);
         console.error(err);
         console.log(`
     Current version: ${baseConfig.version}

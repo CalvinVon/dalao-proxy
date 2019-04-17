@@ -101,6 +101,17 @@ function checkAndCreateCacheFolder (cacheDirname) {
     }
 }
 
+function fixJson(value) {
+    return value
+        .replace(/,\s*,/g, '')
+        .replace(/([{\[])\s*,/g, function (matched) {
+            return matched[1];
+        })
+        .replace(/,\s*([}\]])/g, function (matched) {
+            return matched[1];
+        })
+}
+
 
 module.exports = {
     HTTP_PREFIX_REG,
@@ -111,5 +122,6 @@ module.exports = {
     url2filename,
     pathCompareFactory,
     transformPath,
-    checkAndCreateCacheFolder
+    checkAndCreateCacheFolder,
+    fixJson
 }

@@ -15,8 +15,8 @@ const config = {
         "application/json"
     ],
     // max cache time: [`time unit`, `digit`]
-    // if `digit` set to 0, permanently valid
-    cacheMaxAge: ['second', 10],
+    // if `digit` set to `*`, permanently valid
+    cacheMaxAge: ['second', 0],
     // response cache filter: [`path`, `value`]
     // e.g. ['code', 200]
     // empty array means do no filtering

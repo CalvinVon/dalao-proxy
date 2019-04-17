@@ -12,7 +12,8 @@ const {
     url2filename,
     splitTargetAndPath,
     transformPath,
-    checkAndCreateCacheFolder
+    checkAndCreateCacheFolder,
+    fixJson
 } = require('./utils');
 
 function proxyRequestWrapper(config) {
@@ -121,18 +122,32 @@ function proxyRequestWrapper(config) {
                     process.cwd(),
                     `./${cacheDirname}/${url2filename(method, url)}.json`
                 );
-                const [cacheUnit = 'second', cacheDigit = '10'] = cacheMaxAge;
+                const [cacheUnit = 'second', cacheDigit = '*'] = cacheMaxAge;
                 try {
-                    if (fs.existsSync(cacheFileName)) {
+                    if (cacheDigit != 0 && fs.existsSync(cacheFileName)) {
 
                         const fileContent = fs.readFileSync(cacheFileName, 'utf8');
                         const jsonContent = JSON.parse(fileContent);
 
-                        const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                        const cachedTimeStamp = jsonContent['CACHE_TIME'] || Date.now();
                         const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
 
                         // need validate expire time
-                        if (Number(cacheDigit)) {
+                        if (cacheDigit === '*' || cacheDigit == 0) {
+                            res.setHeader('X-Cache-Request', 'true');
+                            res.setHeader('X-Cache-Expire-Time', 'permanently valid');
+                            res.setHeader('X-Cache-Rest-Time', 'forever');
+
+                            res.writeHead(200, {
+                                'Content-Type': 'application/json'
+                            });
+                            res.end(fileContent);
+
+                            logMatchedPath(true);
+                            return;
+                        }
+                        // permanently valid
+                        else {
                             // valid cache file
                             if (moment().isBefore(deadlineMoment)) {
                                 res.setHeader('X-Cache-Request', 'true');
@@ -149,22 +164,10 @@ function proxyRequestWrapper(config) {
                                 return;
                             }
                             else {
-                                fs.unlinkSync(cacheFileName);
+                                // Do not delete expired cache automatically
+                                // V0.6.4 2019.4.17
+                                // fs.unlinkSync(cacheFileName);
                             }
-                        }
-                        // permanently valid
-                        else {
-                            res.setHeader('X-Cache-Request', 'true');
-                            res.setHeader('X-Cache-Expire-Time', 'permanently valid');
-                            res.setHeader('X-Cache-Rest-Time', 'forever');
-
-                            res.writeHead(200, {
-                                'Content-Type': 'application/json'
-                            });
-                            res.end(fileContent);
-
-                            logMatchedPath(true);
-                            return;
                         }
 
                     }
@@ -173,6 +176,7 @@ function proxyRequestWrapper(config) {
                 }
             }
 
+            // real request proxy
             const responseStream = req.pipe(_request(proxyUrl));
 
             // cache the response data
@@ -205,7 +209,7 @@ function proxyRequestWrapper(config) {
                                 })`);
                         }
                         if (contentTypeReg.test(response.headers['content-type'])) {
-                            const resJson = JSON.parse(responseData.toString());
+                            const resJson = JSON.parse(fixJson(responseData.toString()));
 
                             if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
                                 resJson.CACHE_INFO = 'Cached from Dalao Proxy';
@@ -301,8 +305,7 @@ function attachServerListener(server, config) {
             console.error(err);
         }
         else if (/EADDRINUSE/i.test(err.message)) {
-            port++;
-            console.log(`  Port ${port} has been used, dalao is trying to change port to ${port}`.grey);
+            console.log(`  Port ${port} is in use, dalao is trying to change port to ${++port}`.grey);
             server.listen(port, host);
         }
         else {
