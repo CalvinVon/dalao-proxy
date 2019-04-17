@@ -13,7 +13,8 @@ const {
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
-    checkAndCreateCacheFolder
+    checkAndCreateCacheFolder,
+    fixJson
 } = require('./utils');
 
 const parseEmitter = new EventEmitter();
@@ -30,7 +31,7 @@ let isWatching;
 function fileParser(filePath) {
     try {
         const file = fs.readFileSync(filePath, 'utf-8');
-        const fileConfig = JSON.parse(file);
+        const fileConfig = JSON.parse(fixJson(file));
         // * merge strategy fields
         const EXTRA_FIELDS = ['headers', 'proxyTable'];
 
@@ -206,8 +207,10 @@ exports.parse = function parse(program) {
         "info",
     ]);
 
-    let filePath;
+    argsConfig.configFilename = configFile;
+    delete argsConfig.config;
 
+    let filePath;
     if (!configFile) {
         filePath = path.resolve(baseConfig.configFilename);
     }

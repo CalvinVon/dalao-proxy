@@ -65,8 +65,8 @@ program
 program
     .command('mock <method>')
     .description('create a mock file in json format')
-    // .option('-C, --config <filepath>', 'use custom config file')
-    // .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
+    .option('-C, --config <filepath>', 'use custom config file')
+    .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
     .action(function (method) {
         // only one stdin listener allowed to be attached at same time
         rl.close();

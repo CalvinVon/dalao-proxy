@@ -16,19 +16,25 @@ const {
     fixJson
 } = require('./utils');
 
-function proxyRequestWrapper(config) {
-    const {
-        target,
-        cacheDirname,
-        responseFilter,
-        cacheMaxAge,
-        host,
-        port,
-        headers,
-        proxyTable,
-    } = config;
+let shouldCleanUpAllConnections;
 
+function proxyRequestWrapper(config) {
+    // * Why collect connections?
+    // When switch cache option(or config options), HTTP/1.1 will use `Connection: Keep-Alive` by default,
+    // which will cause client former TCP socket conection still work, or in short, hot reload did not work immediately.
+    const connections = [];
     function proxyRequest(req, res) {
+        const {
+            target,
+            cacheDirname,
+            responseFilter,
+            cacheMaxAge,
+            host,
+            port,
+            headers,
+            proxyTable,
+        } = config;
+
         const { method, url } = req;
         const { host: requestHost } = req.headers;
         const _request = request[method.toLowerCase()];
@@ -116,12 +122,15 @@ function proxyRequestWrapper(config) {
             }
 
             // Try to read cache
+            // Cache Read Strategy:
+            //      - `cache` option is `true`
+            //      - `cacheDigit` field > 0
+            //      - `cacheDigit` field is `*`
+            //        `cacheDigit` field is considered to be `*` by default when it's empty
             if (overwriteCache) {
                 checkAndCreateCacheFolder(cacheDirname);
-                const cacheFileName = path.resolve(
-                    process.cwd(),
-                    `./${cacheDirname}/${url2filename(method, url)}.json`
-                );
+                const cacheFileName = path
+                    .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`);
                 const [cacheUnit = 'second', cacheDigit = '*'] = cacheMaxAge;
                 try {
                     if (cacheDigit != 0 && fs.existsSync(cacheFileName)) {
@@ -133,7 +142,7 @@ function proxyRequestWrapper(config) {
                         const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
 
                         // need validate expire time
-                        if (cacheDigit === '*' || cacheDigit == 0) {
+                        if (cacheDigit === '*') {
                             res.setHeader('X-Cache-Request', 'true');
                             res.setHeader('X-Cache-Expire-Time', 'permanently valid');
                             res.setHeader('X-Cache-Rest-Time', 'forever');
@@ -143,6 +152,7 @@ function proxyRequestWrapper(config) {
                             });
                             res.end(fileContent);
 
+                            cleanUpConnections();
                             logMatchedPath(true);
                             return;
                         }
@@ -160,6 +170,7 @@ function proxyRequestWrapper(config) {
                                 });
                                 res.end(fileContent);
 
+                                cleanUpConnections();
                                 logMatchedPath(true);
                                 return;
                             }
@@ -206,7 +217,7 @@ function proxyRequestWrapper(config) {
                                 overwriteCacheContentType
                                     .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
                                     .join('|')
-                                })`);
+                            })`);
                         }
                         if (contentTypeReg.test(response.headers['content-type'])) {
                             const resJson = JSON.parse(fixJson(responseData.toString()));
@@ -282,6 +293,13 @@ function proxyRequestWrapper(config) {
                 res.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
             }
         }
+
+        function cleanUpConnections() {
+            if (shouldCleanUpAllConnections) {
+                req.connection.destroy();
+                shouldCleanUpAllConnections = false;
+            }
+        }
     }
 
     return proxyRequest;
@@ -317,6 +335,8 @@ function attachServerListener(server, config) {
 }
 
 function createProxyServer(config) {
+
+    shouldCleanUpAllConnections = true;
 
     // create server
     const server = http.createServer(proxyRequestWrapper(config));
