@@ -1,6 +1,6 @@
 require('colors')
 const { spawn } = require('child_process');
-const { version } = require('../config')
+const { version } = require('../../config')
 let versions;
 
 const REG_VERSION = /^(\d+)\.(\d+)\.(\d+)/;

@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const _ = require('lodash')
 
 const pwd = process.cwd();
-const baseConfig = require('../config');
+const baseConfig = require('../../config');
 const CheckFunctions = require('./check');
 const {
     custom_assign,
@@ -14,7 +14,7 @@ const {
     addHttpProtocol,
     splitTargetAndPath,
     checkAndCreateCacheFolder
-} = require('./utils');
+} = require('../utils');
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
