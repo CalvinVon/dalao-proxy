@@ -33,7 +33,7 @@ function proxyRequestWrapper(config) {
         const _request = request[method.toLowerCase()];
         let matched;
 
-        const reqContentType = req.headers['Content-Type'] || req.headers['content-type'];
+        const reqContentType = req.headers['content-type'];
         let reqRawBody = '';
         let reqParsedBody;
 
@@ -41,12 +41,18 @@ function proxyRequestWrapper(config) {
 
         req.on('data', chunk => reqRawBody += chunk);
         req.on('end', () => {
-            if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
-                reqParsedBody = require('querystring').parse(reqRawBody);
-            } else if (/application\/json/.test(reqContentType)) {
-                reqParsedBody = JSON.parse(reqRawBody);
-            } else if (/multipart\/form-data/.test(reqContentType)) {
-                reqParsedBody = reqRawBody;
+            if (!reqRawBody) return;
+
+            try {
+                if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
+                    reqParsedBody = require('querystring').parse(reqRawBody);
+                } else if (/application\/json/.test(reqContentType)) {
+                    reqParsedBody = JSON.parse(reqRawBody);
+                } else if (/multipart\/form-data/.test(reqContentType)) {
+                    reqParsedBody = reqRawBody;
+                }
+            } catch (error) {
+                console.log(' > Error: can\'t parse requset body. ' + error.message);
             }
         });
 
