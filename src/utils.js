@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
+const STATIC_FILE_REG = new RegExp(/(^\/$|\.[^\.]+$)/);
 
 function custom_assign(objValue, srcValue) {
     return !srcValue ? objValue : srcValue;
@@ -18,6 +19,7 @@ function addHttpProtocol(urlFragment) {
     }
 }
 
+
 function splitTargetAndPath(url) {
     const [_, target = '', path = ''] = url.match(/^((?:https?:\/\/)?(?:(?:\w+\.)+\w+|localhost)(?::\d+)?)?(.+)?/i) || [];
     return {
@@ -25,6 +27,7 @@ function splitTargetAndPath(url) {
         path
     }
 }
+
 
 // transfer url to (cache) filename
 // /`${GET/POST}_${URI}`/
@@ -112,12 +115,23 @@ function fixJson(value) {
         })
 }
 
+// is static file uri value
+function isStaticResouce(uri = '') {
+    return STATIC_FILE_REG.test(
+            uri
+                .replace(/\?.+/, '')
+                .replace(/#.+/, '')
+        )
+        
+}
+
 
 module.exports = {
     HTTP_PREFIX_REG,
     custom_assign,
     joinUrl,
     addHttpProtocol,
+    isStaticResouce,
     splitTargetAndPath,
     url2filename,
     pathCompareFactory,

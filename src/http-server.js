@@ -9,6 +9,7 @@ const fs = require('fs');
 const {
     joinUrl,
     addHttpProtocol,
+    isStaticResouce,
     url2filename,
     splitTargetAndPath,
     transformPath,
@@ -17,12 +18,13 @@ const {
 } = require('./utils');
 
 let shouldCleanUpAllConnections;
+// * Why collect connections?
+// When switch cache option(or config options), HTTP/1.1 will use `Connection: Keep-Alive` by default,
+// which will cause client former TCP socket conection still work, or in short, it makes hot reload did
+// not work immediately.
+const connections = [];
 
 function proxyRequestWrapper(config) {
-    // * Why collect connections?
-    // When switch cache option(or config options), HTTP/1.1 will use `Connection: Keep-Alive` by default,
-    // which will cause client former TCP socket conection still work, or in short, hot reload did not work immediately.
-    const connections = [];
     function proxyRequest(req, res) {
         const {
             target,
@@ -35,10 +37,16 @@ function proxyRequestWrapper(config) {
             proxyTable,
         } = config;
 
+        
         const { method, url } = req;
         const { host: requestHost } = req.headers;
         const _request = request[method.toLowerCase()];
         let matched;
+        
+        if (!isStaticResouce(url)) {
+            cleanUpConnections();
+            collectConnections();
+        }
 
         const reqContentType = req.headers['content-type'];
         let reqRawBody = '';
@@ -152,7 +160,6 @@ function proxyRequestWrapper(config) {
                             });
                             res.end(fileContent);
 
-                            cleanUpConnections();
                             logMatchedPath(true);
                             return;
                         }
@@ -170,7 +177,6 @@ function proxyRequestWrapper(config) {
                                 });
                                 res.end(fileContent);
 
-                                cleanUpConnections();
                                 logMatchedPath(true);
                                 return;
                             }
@@ -294,9 +300,18 @@ function proxyRequestWrapper(config) {
             }
         }
 
+        // collect socket connection
+        function collectConnections() {
+            const connection = req.connection;
+            if (connections.indexOf(connection) === -1) {
+                connections.push(connection);
+            }
+        }
+
         function cleanUpConnections() {
             if (shouldCleanUpAllConnections) {
-                req.connection.destroy();
+                connections.forEach(connection => connection.destroy());
+                connections = [];
                 shouldCleanUpAllConnections = false;
             }
         }
