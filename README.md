@@ -15,6 +15,22 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
 - Auto generate config file
 - Auto reload server when config file changes
 
+# Content Table
+- [Getting Started](#Getting-Started)
+    - [Install](#Install)
+    - [Configure](#Configure)
+    - [Start proxy](#Start-proxy)
+    - [Enjoy It](#Enjoy-It)
+- [Docs](#Docs)
+    - [Configuration file](#configuration-file)
+        - [Option `watch`](#Option-watch)
+        - [Option `cache`](#Option-cache)
+        - [Option `cacheContentType`](#Option-cacheContentType)
+        - [Option `cacheMaxAge`](#Option-cacheMaxAge)
+        - [Option `responseFilter`](#Option-responseFilter)
+- [Start Cache Request Response](#Start-Cache-Request-Response)
+- [Start Request Mock](#Start-Request-Mock)
+- [Development scenario](#Development-scenario)
 # Getting Started
 ## Install
 ```bash
@@ -58,11 +74,11 @@ Options:
 Every single modification of the configuration file, the `dalao` will automatically restart and output prompts.
 
 # Docs
-## configuration file
+## Configuration file
 Dalao will look up config file in current working directory while starting up.
 
 Default config filename is `dalao.config.json`
-```json
+```js
 {
     // config file name
     "configFilename": "dalao.config.json",
@@ -92,17 +108,77 @@ Default config filename is `dalao.config.json`
         "code",
         200
     ],
-    // log out parsed config options
+    // enable log out parsed config options
     "info": false,
     // custom response headers
     "headers": {},
     // proxy rule table
     "proxyTable": {
+        // proxy match rule
         "/": {
             "path": "/"
         }
     }
 }
 ```
+### Option `watch`
+- type: **boolean**
+- default: `true`
 
-Well, you can type `dalao-proxy --help` for help temporarily.
+Enable proxy server auto reload when config file changes
+
+### Option `cache`
+- type: **boolean**
+- default: `true`
+
+Enable request auto cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
+> When request has been cached, extra field `X-Cache-Request` will be added into response headers.
+
+### Option `cacheContentType`
+- *precondition: when `cache` option is `true`*
+- type: **Array**
+- default: `application/json`
+
+Cache filtering by response content type with at lease one item matchs.
+
+
+### Option `cacheMaxAge`
+- *precondition: when `cache` option is `true`*
+- type: **Array**
+    - cacheMaxAge[0]: cache expire time unit
+    - cacheMaxAge[1]: cache expire time digit
+        - when digit comes to `0`, `dalao-proxy` will **never** try to look up cache file (but still cache request response) regardless of expire time. 
+        - when digit comes to special value `'*'`, which means cache file will **never expire**, `dalao-proxy` will read cache file first, then send a real request. 
+- default: `['second', 0]`
+
+Cache filtering by cache file expire time.
+> `X-Cache-Expire-Time` and `X-Cache-Rest-Time` fields will be included in response headers.
+
+### Option `responseFilter`
+- *precondition: when `cache` option is `true`*
+- type: **Array**
+    - responseFilter[0]: response body field for filtering
+    - responseFilter[1]: valid value for filtering
+- default: `['code', 200]`
+
+Cache filtering by response body data. *Not HTTP status code*
+
+
+# Start Cache Request Response
+- Set `cache` option to `true`
+- Set appropriate value for `cacheContentType`， `cacheMaxAge`，`responseFilter` fields
+
+# Start Request Mock
+Type `dalao-proxy mock <HTTP method>` and the HTTP method you want mock
+```bash
+# dalao-proxy mock [options] <method>
+dalao-proxy mock post
+> Request url: /api/list
+
+Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.json
+```
+Input some mock data into `GET_api_get.json` file, then you can access `/api/list` and get your mock data.
+# Development scenario
+> Use cache only when developing or prevent backend api from frequent crash
+
+Still working on it...
