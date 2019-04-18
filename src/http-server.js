@@ -22,7 +22,7 @@ let shouldCleanUpAllConnections;
 // When switch cache option(or config options), HTTP/1.1 will use `Connection: Keep-Alive` by default,
 // which will cause client former TCP socket conection still work, or in short, it makes hot reload did
 // not work immediately.
-const connections = [];
+let connections = [];
 
 function proxyRequestWrapper(config) {
     function proxyRequest(req, res) {
