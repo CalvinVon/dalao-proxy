@@ -10,7 +10,7 @@ const config = {
     // target(for proxy)
     target: 'target.example.com',
     // request
-    cache: false,
+    cache: true,
     cacheContentType: [
         "application/json"
     ],
