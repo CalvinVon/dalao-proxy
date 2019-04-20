@@ -15,7 +15,7 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
 - Auto generate config file
 - Auto reload server when config file changes
 
-# Content Table
+# Table of contents
 - [Getting Started](#Getting-Started)
     - [Install](#Install)
     - [Configure](#Configure)
@@ -29,8 +29,10 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
         - [Option `cacheMaxAge`](#Option-cacheMaxAge)
         - [Option `responseFilter`](#Option-responseFilter)
 - [Start Cache Request Response](#Start-Cache-Request-Response)
+    - [Example](#Example)
+    - [`Never Read Cache` Mode](#Never-Read-Cache-Mode)
+    - [`Read Cache` Mode](#Read-Cache-Mode)
 - [Start Request Mock](#Start-Request-Mock)
-- [Development scenario](#Development-scenario)
 # Getting Started
 ## Install
 ```bash
@@ -137,10 +139,10 @@ Enable request auto cache when response satisfies [certain conditions](https://g
 ### Option `cacheContentType`
 - *precondition: when `cache` option is `true`*
 - type: **Array**
-- default: `application/json`
+- default: `['application/json']`
 
 Cache filtering by response content type with at lease one item matchs.
-
+*Support `RegExp` expression*
 
 ### Option `cacheMaxAge`
 - *precondition: when `cache` option is `true`*
@@ -165,11 +167,76 @@ Cache filtering by response body data. *Not HTTP status code*
 
 
 # Start Cache Request Response
-- Set `cache` option to `true`
-- Set appropriate value for `cacheContentType`， `cacheMaxAge`，`responseFilter` fields
+1. Set option `cache` to `true`
+1. Set appropriate value for `cacheContentType`， `cacheMaxAge`，`responseFilter` options
+
+When those three fields satisfied certain conditions, request response would be cached in folder (`cacheDirname` you specified).
+
+## Example:
+Here is a sample of server response data
+```js
+// send request
+POST /api/list HTTP/1.1
+...
+
+// get response
+connection: keep-alive
+content-encoding: gzip
+content-type: application/json; charset=UTF-8
+date: Fri, 19 Apr 2019 08:35:42 GMT
+server: nginx/1.10.3 (Ubuntu)
+transfer-encoding: chunked
+vary: Accept-Encoding
+// response data
+{
+    "status": 1,
+    "data": {
+        "list": [
+            { "id": 1, "name": "dalao" },
+            { "id": 2, "name": "proxy" }
+        ],
+        "total": 2
+    }
+}
+```
+
+The config should be like this:
+```js
+"cache": true,
+"cacheContentType": ["application/json"],
+"responseFilter": ["status", 1],
+```
+
+## `Never Read Cache` Mode
+If you just want to cache response only and get real proxy response
+
+> **Recommanded** when you have completed frontend and backend API docking or requiring high accuracy of response data.
+
+> When the backend service crashes during development, you can switch to [**Read Cache** mode](#Read-Cache-Mode) to **create a fake backend service**.
+
+Set option `cacheMaxAge` to *Never Read Cache* mode
+```js
+"cacheMaxAge": ["s", 0]
+```
+
+## `Read Cache` Mode
+When you're ready to develop front-end pages or need [request mock](#Start-Request-Mock)
+
+> `dalao-proxy` would try to look up cache/mock file first, then return a real response after the failure
+
+Set option `cacheMaxAge` to *Read Cache* mode. [See option `cacheMaxAge`](#Option-cacheMaxAge)
+
+```js
+// set permanent request cache
+"cacheMaxAge": ["s", "*"]
+"cacheMaxAge": ["second", "*"]
+// set certain expire time request cache (5 min)
+"cacheMaxAge": ["m", 5]
+"cacheMaxAge": ["minute", 5]
+```
 
 # Start Request Mock
-Type `dalao-proxy mock <HTTP method>` and the HTTP method you want mock
+Type `dalao-proxy mock <HTTP method>` and the HTTP method you want to mock
 ```bash
 # dalao-proxy mock [options] <method>
 dalao-proxy mock post
@@ -178,7 +245,6 @@ dalao-proxy mock post
 Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.json
 ```
 Input some mock data into `GET_api_get.json` file, then you can access `/api/list` and get your mock data.
-# Development scenario
-> Use cache only when developing or prevent backend api from frequent crash
 
-Still working on it...
+# LICENSE
+[MIT LICENSE](https://github.com/CalvinVon/dalao-proxy/blob/master/LICENSE)
