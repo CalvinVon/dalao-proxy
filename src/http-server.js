@@ -29,8 +29,6 @@ function proxyRequestWrapper(config) {
         const {
             target,
             cacheDirname,
-            responseFilter,
-            cacheMaxAge,
             host,
             port,
             headers,
@@ -102,6 +100,8 @@ function proxyRequestWrapper(config) {
                 pathRewrite: overwritePathRewrite,
                 cache: overwriteCache,
                 cacheContentType: overwriteCacheContentType,
+                responseFilter,
+                cacheMaxAge,
             } = proxyTable[proxyPath];
 
             const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);

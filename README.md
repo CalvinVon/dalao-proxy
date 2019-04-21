@@ -28,6 +28,9 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
         - [Option `cacheContentType`](#Option-cacheContentType)
         - [Option `cacheMaxAge`](#Option-cacheMaxAge)
         - [Option `responseFilter`](#Option-responseFilter)
+        - [Option `proxyTable`](#Option-proxyTable)
+        - [Proxy `route` config](#Proxy-route-config)
+            - [Route option `pathRewrite`](#Route-option-pathRewrite)
 - [Start Cache Request Response](#Start-Cache-Request-Response)
     - [Example](#Example)
     - [`Never Read Cache` Mode](#Never-Read-Cache-Mode)
@@ -154,6 +157,8 @@ Cache filtering by response content type with at lease one item matchs.
 - default: `['second', 0]`
 
 Cache filtering by cache file expire time.
+> Support quick restart and take effect immediatly.
+
 > `X-Cache-Expire-Time` and `X-Cache-Rest-Time` fields will be included in response headers.
 
 ### Option `responseFilter`
@@ -165,6 +170,42 @@ Cache filtering by cache file expire time.
 
 Cache filtering by response body data. *Not HTTP status code*
 
+### Option `proxyTable`
+- type: **Object**
+- default: `{ "/": { "path": "/" } }`
+
+Proxy [route](#Proxy-route-config) map set.
+
+### Proxy `route` config
+```js
+{
+    // proxy target path
+    // default: `/`
+    path
+    // proxy target
+    // extend base config option `target`
+    target,
+    // proxy target path rewrite
+    pathRewrite,
+    // route custom config
+    // default: extend base config
+    cache,
+    cacheContentType，
+    cacheMaxAge,
+    responseFilter,
+}
+```
+#### Route option `pathRewrite`
+Use `RegExp` expression to match target path, and replace with rewrite value.
+
+Example:
+```js
+"pathRewrite": {
+    "^/api": ""
+}
+```
+
+`"/api/user/list"` will be replaced to be `"/user/list"`
 
 # Start Cache Request Response
 1. Set option `cache` to `true`

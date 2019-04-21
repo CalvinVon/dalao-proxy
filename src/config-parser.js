@@ -73,6 +73,8 @@ function parseRouter(config) {
         cache,
         cacheDirname,
         cacheContentType,
+        cacheMaxAge,
+        responseFilter
     } = config;
 
     if (cache) {
@@ -99,7 +101,9 @@ function parseRouter(config) {
             ['target',          target,     CheckFunctions.proxyTable.target],
             ['pathRewrite',     {}],
             ['cache',           cache,      CheckFunctions.proxyTable.cache],
-            ['cacheContentType',cacheContentType]
+            ['cacheContentType',cacheContentType],
+            ['cacheMaxAge',     cacheMaxAge],
+            ['responseFilter',  responseFilter]
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
