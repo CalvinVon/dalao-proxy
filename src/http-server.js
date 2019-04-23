@@ -9,31 +9,44 @@ const fs = require('fs');
 const {
     joinUrl,
     addHttpProtocol,
+    isStaticResouce,
     url2filename,
     splitTargetAndPath,
     transformPath,
-    checkAndCreateCacheFolder
+    checkAndCreateCacheFolder,
+    fixJson
 } = require('./utils');
 
-function proxyRequestWrapper(config) {
-    const {
-        target,
-        cacheDirname,
-        responseFilter,
-        cacheMaxAge,
-        host,
-        port,
-        headers,
-        proxyTable,
-    } = config;
+let shouldCleanUpAllConnections;
+// * Why collect connections?
+// When switch cache option(or config options), HTTP/1.1 will use `Connection: Keep-Alive` by default,
+// which will cause client former TCP socket conection still work, or in short, it makes hot reload did
+// not work immediately.
+let connections = [];
 
+function proxyRequestWrapper(config) {
     function proxyRequest(req, res) {
+        const {
+            target,
+            cacheDirname,
+            host,
+            port,
+            headers,
+            proxyTable,
+        } = config;
+
+        
         const { method, url } = req;
         const { host: requestHost } = req.headers;
         const _request = request[method.toLowerCase()];
         let matched;
+        
+        if (!isStaticResouce(url)) {
+            cleanUpConnections();
+            collectConnections();
+        }
 
-        const reqContentType = req.headers['Content-Type'] || req.headers['content-type'];
+        const reqContentType = req.headers['content-type'];
         let reqRawBody = '';
         let reqParsedBody;
 
@@ -41,12 +54,18 @@ function proxyRequestWrapper(config) {
 
         req.on('data', chunk => reqRawBody += chunk);
         req.on('end', () => {
-            if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
-                reqParsedBody = require('querystring').parse(reqRawBody);
-            } else if (/application\/json/.test(reqContentType)) {
-                reqParsedBody = JSON.parse(reqRawBody);
-            } else if (/multipart\/form-data/.test(reqContentType)) {
-                reqParsedBody = reqRawBody;
+            if (!reqRawBody) return;
+
+            try {
+                if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
+                    reqParsedBody = require('querystring').parse(reqRawBody);
+                } else if (/application\/json/.test(reqContentType)) {
+                    reqParsedBody = JSON.parse(reqRawBody);
+                } else if (/multipart\/form-data/.test(reqContentType)) {
+                    reqParsedBody = reqRawBody;
+                }
+            } catch (error) {
+                console.log(' > Error: can\'t parse requset body. ' + error.message);
             }
         });
 
@@ -81,6 +100,8 @@ function proxyRequestWrapper(config) {
                 pathRewrite: overwritePathRewrite,
                 cache: overwriteCache,
                 cacheContentType: overwriteCacheContentType,
+                responseFilter,
+                cacheMaxAge,
             } = proxyTable[proxyPath];
 
             const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
@@ -109,24 +130,41 @@ function proxyRequestWrapper(config) {
             }
 
             // Try to read cache
+            // Cache Read Strategy:
+            //      - `cache` option is `true`
+            //      - `cacheDigit` field > 0
+            //      - `cacheDigit` field is `*`
+            //        `cacheDigit` field is considered to be `*` by default when it's empty
             if (overwriteCache) {
                 checkAndCreateCacheFolder(cacheDirname);
-                const cacheFileName = path.resolve(
-                    process.cwd(),
-                    `./${cacheDirname}/${url2filename(method, url)}.json`
-                );
-                const [cacheUnit = 'second', cacheDigit = '10'] = cacheMaxAge;
+                const cacheFileName = path
+                    .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`);
+                const [cacheUnit = 'second', cacheDigit = '*'] = cacheMaxAge;
                 try {
-                    if (fs.existsSync(cacheFileName)) {
+                    if (cacheDigit != 0 && fs.existsSync(cacheFileName)) {
 
                         const fileContent = fs.readFileSync(cacheFileName, 'utf8');
                         const jsonContent = JSON.parse(fileContent);
 
-                        const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                        const cachedTimeStamp = jsonContent['CACHE_TIME'] || Date.now();
                         const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
 
                         // need validate expire time
-                        if (Number(cacheDigit)) {
+                        if (cacheDigit === '*') {
+                            res.setHeader('X-Cache-Request', 'true');
+                            res.setHeader('X-Cache-Expire-Time', 'permanently valid');
+                            res.setHeader('X-Cache-Rest-Time', 'forever');
+
+                            res.writeHead(200, {
+                                'Content-Type': 'application/json'
+                            });
+                            res.end(fileContent);
+
+                            logMatchedPath(true);
+                            return;
+                        }
+                        // permanently valid
+                        else {
                             // valid cache file
                             if (moment().isBefore(deadlineMoment)) {
                                 res.setHeader('X-Cache-Request', 'true');
@@ -143,22 +181,10 @@ function proxyRequestWrapper(config) {
                                 return;
                             }
                             else {
-                                fs.unlinkSync(cacheFileName);
+                                // Do not delete expired cache automatically
+                                // V0.6.4 2019.4.17
+                                // fs.unlinkSync(cacheFileName);
                             }
-                        }
-                        // permanently valid
-                        else {
-                            res.setHeader('X-Cache-Request', 'true');
-                            res.setHeader('X-Cache-Expire-Time', 'permanently valid');
-                            res.setHeader('X-Cache-Rest-Time', 'forever');
-
-                            res.writeHead(200, {
-                                'Content-Type': 'application/json'
-                            });
-                            res.end(fileContent);
-
-                            logMatchedPath(true);
-                            return;
                         }
 
                     }
@@ -167,6 +193,7 @@ function proxyRequestWrapper(config) {
                 }
             }
 
+            // real request proxy
             const responseStream = req.pipe(_request(proxyUrl));
 
             // cache the response data
@@ -196,10 +223,10 @@ function proxyRequestWrapper(config) {
                                 overwriteCacheContentType
                                     .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
                                     .join('|')
-                                })`);
+                            })`);
                         }
                         if (contentTypeReg.test(response.headers['content-type'])) {
-                            const resJson = JSON.parse(responseData.toString());
+                            const resJson = JSON.parse(fixJson(responseData.toString()));
 
                             if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
                                 resJson.CACHE_INFO = 'Cached from Dalao Proxy';
@@ -272,6 +299,22 @@ function proxyRequestWrapper(config) {
                 res.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
             }
         }
+
+        // collect socket connection
+        function collectConnections() {
+            const connection = req.connection;
+            if (connections.indexOf(connection) === -1) {
+                connections.push(connection);
+            }
+        }
+
+        function cleanUpConnections() {
+            if (shouldCleanUpAllConnections) {
+                connections.forEach(connection => connection.destroy());
+                connections = [];
+                shouldCleanUpAllConnections = false;
+            }
+        }
     }
 
     return proxyRequest;
@@ -295,8 +338,7 @@ function attachServerListener(server, config) {
             console.error(err);
         }
         else if (/EADDRINUSE/i.test(err.message)) {
-            port++;
-            console.log(`  Port ${port} has been used, dalao is trying to change port to ${port}`.grey);
+            console.log(`  Port ${port} is in use, dalao is trying to change port to ${++port}`.grey);
             server.listen(port, host);
         }
         else {
@@ -308,6 +350,8 @@ function attachServerListener(server, config) {
 }
 
 function createProxyServer(config) {
+
+    shouldCleanUpAllConnections = true;
 
     // create server
     const server = http.createServer(proxyRequestWrapper(config));

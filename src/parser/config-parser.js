@@ -13,8 +13,9 @@ const {
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
-    checkAndCreateCacheFolder
-} = require('../utils');
+    checkAndCreateCacheFolder,
+    fixJson
+} = require('./utils');
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
@@ -30,7 +31,7 @@ let isWatching;
 function fileParser(filePath) {
     try {
         const file = fs.readFileSync(filePath, 'utf-8');
-        const fileConfig = JSON.parse(file);
+        const fileConfig = JSON.parse(fixJson(file));
         // * merge strategy fields
         const EXTRA_FIELDS = ['headers', 'proxyTable'];
 
@@ -72,6 +73,8 @@ function parseRouter(config) {
         cache,
         cacheDirname,
         cacheContentType,
+        cacheMaxAge,
+        responseFilter
     } = config;
 
     if (cache) {
@@ -98,7 +101,9 @@ function parseRouter(config) {
             ['target',          target,     CheckFunctions.proxyTable.target],
             ['pathRewrite',     {}],
             ['cache',           cache,      CheckFunctions.proxyTable.cache],
-            ['cacheContentType',cacheContentType]
+            ['cacheContentType',cacheContentType],
+            ['cacheMaxAge',     cacheMaxAge],
+            ['responseFilter',  responseFilter]
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
@@ -206,8 +211,10 @@ exports.parse = function parse(program) {
         "info",
     ]);
 
-    let filePath;
+    argsConfig.configFilename = configFile;
+    delete argsConfig.config;
 
+    let filePath;
     if (!configFile) {
         filePath = path.resolve(baseConfig.configFilename);
     }

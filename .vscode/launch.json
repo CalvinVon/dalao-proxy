@@ -13,7 +13,7 @@
             "args": [
                 "start",
                 "-C",
-                "./dalao.config.example.json"
+                "./dalao.config.json"
             ]
         },
         {
@@ -31,13 +31,11 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "dalao start plain",
+            "name": "dalao neobio",
             "program": "${workspaceFolder}/bin/index",
             "cwd": "${workspaceFolder}",
             "args": [
-                "start",
-                "-p",
-                "1234"
+                "start"
             ]
         },
         {

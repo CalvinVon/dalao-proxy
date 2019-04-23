@@ -1,5 +1,5 @@
 const config = {
-    version: '0.6.2-beta',
+    version: '0.6.6-beta',
     // custom config file path
     configFilename: 'dalao.config.json',
     cacheDirname: '.dalao-cache',
@@ -10,13 +10,13 @@ const config = {
     // target(for proxy)
     target: 'target.example.com',
     // request
-    cache: false,
+    cache: true,
     cacheContentType: [
         "application/json"
     ],
     // max cache time: [`time unit`, `digit`]
-    // if `digit` set to 0, permanently valid
-    cacheMaxAge: ['second', 10],
+    // if `digit` set to `*`, permanently valid
+    cacheMaxAge: ['second', 0],
     // response cache filter: [`path`, `value`]
     // e.g. ['code', 200]
     // empty array means do no filtering
