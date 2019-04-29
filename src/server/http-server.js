@@ -15,7 +15,7 @@ const {
     transformPath,
     checkAndCreateCacheFolder,
     fixJson
-} = require('./utils');
+} = require('../utils');
 
 let shouldCleanUpAllConnections;
 // * Why collect connections?

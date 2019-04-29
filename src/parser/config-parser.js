@@ -15,7 +15,7 @@ const {
     splitTargetAndPath,
     checkAndCreateCacheFolder,
     fixJson
-} = require('./utils');
+} = require('../utils');
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;

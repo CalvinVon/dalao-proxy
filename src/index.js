@@ -1,5 +1,5 @@
 const ConfigParser = require('./parser/config-parser');
-const ProxyServer = require('./http-server');
+const ProxyServer = require('./server');
 const ConfigGenerator = require('./generators/generate-config');
 const MockFileGenerator = require('./generators/generate-mock');
 const { checkVersion } = require('./plugins/check-version');
