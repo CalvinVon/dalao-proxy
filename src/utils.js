@@ -21,7 +21,7 @@ function addHttpProtocol(urlFragment) {
 
 
 function splitTargetAndPath(url) {
-    const [_, target = '', path = ''] = url.match(/^((?:https?:\/\/)?(?:(?:\w+\.)+\w+|localhost)(?::\d+)?)?(.+)?/i) || [];
+    const [_, target = '', path = ''] = url.match(/^((?:https?:\/\/)?(?:(?:[\w-_]+\.)+[\w-_]+|localhost)(?::\d+)?)?(.+)?/i) || [];
     return {
         target,
         path
