@@ -29,17 +29,6 @@ function splitTargetAndPath(url) {
 }
 
 
-// transfer url to (cache) filename
-// /`${GET/POST}_${URI}`/
-function url2filename(method, url) {
-    return method.toUpperCase()
-        + url.split('/')
-            .join('_')
-            .replace(/\?.+/, '')
-            .replace(/#.+/, '')
-}
-
-
 /**
  * url path deep compare
  * @param {Number} order
@@ -96,14 +85,6 @@ function joinUrl(...urls) {
     return path.join(...urls).replace(/\\/g, '/');
 }
 
-function checkAndCreateCacheFolder (cacheDirname) {
-    const pwd = process.cwd();
-    const fullCacheDirname = path.resolve(pwd, cacheDirname);
-    if (!fs.existsSync(fullCacheDirname)) {
-        fs.mkdirSync(fullCacheDirname);
-    }
-}
-
 function fixJson(value) {
     return value
         .replace(/,\s*,/g, '')
@@ -133,9 +114,7 @@ module.exports = {
     addHttpProtocol,
     isStaticResouce,
     splitTargetAndPath,
-    url2filename,
     pathCompareFactory,
     transformPath,
-    checkAndCreateCacheFolder,
     fixJson
 }

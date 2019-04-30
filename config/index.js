@@ -1,5 +1,5 @@
 const config = {
-    version: '0.6.6-beta',
+    version: '0.7.0-beta',
     // custom config file path
     configFilename: 'dalao.config.json',
     cacheDirname: '.dalao-cache',
@@ -29,7 +29,10 @@ const config = {
         "/": {
             path: "/"
         }
-    }
+    },
+    plugins: [
+        "BuildIns:proxy-plugin-cache"
+    ]
 };
 
 module.exports = config;

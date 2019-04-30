@@ -1,5 +1,5 @@
-const core = require('./core');
-
+const http = require('http');
+const dalaoProxy = require('./core');
 
 // attach server to port
 function attachServerListener(server, config) {
@@ -32,8 +32,11 @@ function attachServerListener(server, config) {
 
 function createProxyServer(config) {
 
+    // use plugins
+    dalaoProxy.usePlugins(config.plugins);
+
     // create server
-    const server = http.createServer(proxyRequestWrapper(config));
+    const server = http.createServer(dalaoProxy.httpCallback(config));
 
     // attach server to port
     attachServerListener(server, config);
@@ -41,24 +44,6 @@ function createProxyServer(config) {
     return server;
 }
 
-exports.ProxyServer = class ProxyServer {
-    constructor(config) {
-        this.config = config;
-        this.middlewares = [];
-    }
-
-    callback() {
-        // create server
-        const server = this.server = http.createServer(proxyRequestWrapper(this.config));
-
-        // attach server to port
-        attachServerListener(server, config);
-
-        return server;
-    }
-
-    use(middleware) {
-        if (typeof middleware !== 'function') return;
-        this.middlewares.push(middleware);
-    }
+module.exports = {
+    createProxyServer
 };

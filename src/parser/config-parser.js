@@ -13,9 +13,10 @@ const {
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
-    checkAndCreateCacheFolder,
     fixJson
 } = require('../utils');
+
+const { checkAndCreateCacheFolder } = require('../plugins/proxy-cache/utils');
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
