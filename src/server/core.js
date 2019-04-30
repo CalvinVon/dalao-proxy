@@ -1,4 +1,5 @@
 const request = require('request');
+const zlib = require('zlib');
 const _ = require('lodash');
 
 const {
@@ -7,6 +8,7 @@ const {
     isStaticResouce,
     splitTargetAndPath,
     transformPath,
+    fixJson
 } = require('../utils');
 
 let shouldCleanUpAllConnections;
@@ -60,31 +62,24 @@ function proxyRequestWrapper(config) {
             collectConnections();
         }
 
-        const reqContentType = req.headers['content-type'];
-        let reqRawBody = '';
-        let reqParsedBody;
-
-        // collect raw request data
-        collectRequestData();
-
         // set response CORS
         setHeaders();
 
-        Promise.resolve()
-            .then(() => {
-                const ctx = {
+        // collect raw request data
+        collectRequestData()
+            .then(context => {
+                const ctx = Object.assign(context, {
                     config,
                     req,
-                    res,
-                    data: reqParsedBody
-                };
+                    res
+                });
                 return ctx;
             })
             // life cycle: on request data resolved
             .then(context => Middleware_onRequestData(context))
 
             // matching route
-            .then(() => {
+            .then(context => {
                 // Matching strategy
                 const proxyPaths = Object.keys(proxyTable);
                 let mostAccurateMatch;
@@ -111,18 +106,14 @@ function proxyRequestWrapper(config) {
                     proxyPath = mostAccurateMatch;
                     matchedRouter = proxyTable[proxyPath];
 
-                    const context = {
-                        config,
-                        req,
-                        res,
-                        data: reqParsedBody,
+                    const ctx = Object.assign(context, {
                         matchedPath: proxyPath,
                         matchedRouter: matchedRouter,
                         proxyTable,
-                    };
+                    });
                     return {
                         matched: true,
-                        context
+                        context: ctx
                     };
                 }
 
@@ -147,11 +138,8 @@ function proxyRequestWrapper(config) {
 
                     unmatchedUrl = addHttpProtocol(unmatchedUrl);
 
-                    const context = {
-                        req,
-                        res,
-                        unmatchedUrl,
-                    };
+                    context.unmatchedUrl = unmatchedUrl;
+
                     return {
                         matched: false,
                         context
@@ -207,27 +195,24 @@ function proxyRequestWrapper(config) {
                     return Promise.reject();
                 }
 
-                const ctx = Object.assign({}, context, {
-                    proxyUrl
-                });
-                return ctx;
+                context.proxyUrl = proxyUrl;
+                return context;
             })
 
             // life cycle: before proxy request
             .then(context => Middleware_beforeProxy(context))
 
             // Proxy request
-            .then((context) => {
-                const { proxyUrl, matchedPath, req, res } = context;
+            .then(context => {
+                const { proxyUrl, matchedPath, rawData, data } = context;
                 const responseStream = req.pipe(_request(proxyUrl));
                 responseStream.pipe(res);
+                req.pipe(responseStream);
+                // responseStream.setHeader('Content-Length', Buffer.byteLength(rawData));
                 console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
-                const ctx = Object.assign({}, context, {
-                    proxyResponse: responseStream
-                });
-
-                return ctx;
+                context.proxyResponse = responseStream;
+                return context;
             })
 
             // life cycle: after proxy request
@@ -243,21 +228,30 @@ function proxyRequestWrapper(config) {
         /********************************************************/
 
         function collectRequestData() {
-            req.on('data', chunk => reqRawBody += chunk);
-            req.on('end', () => {
-                if (!reqRawBody) return;
-
-                try {
-                    if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
-                        reqParsedBody = require('querystring').parse(reqRawBody);
-                    } else if (/application\/json/.test(reqContentType)) {
-                        reqParsedBody = JSON.parse(reqRawBody);
-                    } else if (/multipart\/form-data/.test(reqContentType)) {
-                        reqParsedBody = reqRawBody;
-                    }
-                } catch (error) {
-                    console.log(' > Error: can\'t parse requset body. ' + error.message);
+            return new Promise((resolve, reject) => {
+                const reqContentType = req.headers['content-type'];
+                const ctx = {
+                    rawData: [],
+                    data: ''
                 }
+                req.on('data', chunk => ctx.rawData += chunk);
+                req.on('end', () => {
+                    if (!ctx.rawData) return;
+
+                    try {
+                        if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
+                            ctx.data = require('querystring').parse(ctx.rawData);
+                        } else if (/application\/json/.test(reqContentType)) {
+                            ctx.data = JSON.parse(ctx.rawData);
+                        } else if (/multipart\/form-data/.test(reqContentType)) {
+                            ctx.data = ctx.rawData;
+                        }
+                        resolve(ctx);
+                    } catch (error) {
+                        reject(error);
+                        console.log(' > Error: can\'t parse requset body. ' + error.message);
+                    }
+                });
             });
         }
 
@@ -321,7 +315,6 @@ function proxyRequestWrapper(config) {
                 config,
                 req,
                 res,
-                data: reqParsedBody,
                 proxyTable,
             };
             _invokeAllPlugins('onRouteMisMatch', context, next);
