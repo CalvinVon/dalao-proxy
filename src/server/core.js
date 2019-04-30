@@ -218,12 +218,10 @@ function proxyRequestWrapper(config) {
 
             // Proxy request
             .then((context) => {
-                const { proxyUrl, matchedPath } = context;
+                const { proxyUrl, matchedPath, req, res } = context;
                 const responseStream = req.pipe(_request(proxyUrl));
                 responseStream.pipe(res);
-                process.stdout.write(`> 🎯   Hit! [${matchedPath}]`.green);
-                process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white);
-                process.stdout.write('\n');
+                console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
                 const ctx = Object.assign({}, context, {
                     proxyResponse: responseStream
