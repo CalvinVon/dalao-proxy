@@ -1,4 +1,4 @@
-const REG_PROTOCOL_HOST_PORT = /^(https?:\/\/)?((\w+\.)+\w+|localhost)(\:\d+)?/;
+const REG_PROTOCOL_HOST_PORT = /^(https?:\/\/)?(([\w-_]+\.)+[\w-_]+|localhost)(\:\d+)?/;
 
 /**
  * base check function
