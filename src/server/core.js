@@ -9,7 +9,6 @@ const {
     isStaticResouce,
     splitTargetAndPath,
     transformPath,
-    fixJson
 } = require('../utils');
 
 let shouldCleanUpAllConnections;
@@ -39,10 +38,16 @@ function noop() { }
 
 function nonCallback(next) { next && next(false); }
 
+function interrupter(reason) {
+    if (reason) {
+        reject(new PluginInterrupt(reason));
+    }
+    else resolve(context);
+}
+
 /**
  * proxyRequestWrapper
  * @summary proxy life cycle flow detail
- * - Collect request data received
  * - Middleware: Resolve request params data          [life-cycle:onRequest]
  * - Route matching
  * - Middleware: Route matching result                [life-cycle:onRouteMatch]
@@ -50,6 +55,7 @@ function nonCallback(next) { next && next(false); }
  * - Calculate proxy route
  * - Middleware: before proxy request                 [life-cycle:beforeProxy]
  * - Proxy request
+ * - Collect request data received                    [life-cycle:onRequestData]
  * - Middleware: after proxy request                  [life-cycle:afterProxy]
  */
 function proxyRequestWrapper(config) {
@@ -85,6 +91,14 @@ function proxyRequestWrapper(config) {
                 };
                 return context;
             })
+
+            /**
+             * Middleware: on request arrived
+             * @lifecycle onRequest
+             * @param {Object} context
+             * @returns {Object} context
+             */
+            .then(context => Middleware_onRequest(context))
 
             /**
              * Route matching
@@ -183,23 +197,6 @@ function proxyRequestWrapper(config) {
             })
 
             /**
-             * Collect request data received
-             * @desc collect raw request data
-             * @param {Object} context
-             * @resolve context.data
-             * @returns {Object} context
-             */
-            // .then(context => collectRequestData(context))
-
-            /**
-             * Middleware: resolve request params data
-             * @lifecycle onRequest
-             * @param {Object} context
-             * @returns {Object} context
-             */
-            .then(context => Middleware_onRequest(context))
-
-            /**
              * Middleware: before proxy request
              * @lifecycle beforeProxy
              * @param {Object} context
@@ -233,13 +230,26 @@ function proxyRequestWrapper(config) {
             })
 
             /**
+             * Collect request data received
+             * @desc collect raw request data
+             * @param {Object} context
+             * @resolve context.data
+             * @returns {Object} context
+             */
+            .then(context => collectRequestData(context))
+
+            /**
              * Middleware: after proxy request
              * @lifecycle afterProxy
              * @param {Object} context
              * @returns {Object} context
              */
             .then(context => Middleware_afterProxy(context))
-            .catch(console.error)
+            .catch(error => {
+                if (!error instanceof PluginInterrupt) {
+                    console.error(error);
+                }
+            })
 
 
         /********************************************************/
@@ -419,6 +429,12 @@ class Plugin {
 
     afterProxy(context) {
         this._methodWrapper('afterProxy', noop, context);
+    }
+}
+
+class PluginInterrupt extends Error {
+    constructor(message) {
+        super(message);
     }
 }
 
