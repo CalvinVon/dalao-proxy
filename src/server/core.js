@@ -1,5 +1,7 @@
 const request = require('request');
+const path = require('path');
 const zlib = require('zlib');
+const querystring = require('querystring');
 const _ = require('lodash');
 
 const {
@@ -38,19 +40,29 @@ function noop() { }
 
 function nonCallback(next) { next && next(false); }
 
-// mainly function
+/**
+ * proxyRequestWrapper
+ * @summary proxy life cycle flow detail
+ * - Collect request data received
+ * - Middleware: Resolve request params data          [life-cycle:onRequest]
+ * - Route matching
+ * - Middleware: Route matching result                [life-cycle:onRouteMatch]
+ * - Route proxy
+ * - Calculate proxy route
+ * - Middleware: before proxy request                 [life-cycle:beforeProxy]
+ * - Proxy request
+ * - Middleware: after proxy request                  [life-cycle:afterProxy]
+ */
 function proxyRequestWrapper(config) {
     shouldCleanUpAllConnections = true;
 
     function proxyRequest(req, res) {
         const {
-            target,
             host,
             port,
             headers,
             proxyTable,
         } = config;
-
 
         const { method, url } = req;
         const { host: requestHost } = req.headers;
@@ -65,20 +77,39 @@ function proxyRequestWrapper(config) {
         // set response CORS
         setHeaders();
 
-        // collect raw request data
-        collectRequestData()
-            .then(context => {
-                const ctx = Object.assign(context, {
+        Promise.resolve()
+            .then(() => {
+                const context = {
                     config,
-                    req,
-                    res
-                });
-                return ctx;
+                    request: req,
+                    response: res
+                };
+                return context;
             })
-            // life cycle: on request data resolved
-            .then(context => Middleware_onRequestData(context))
 
-            // matching route
+
+            /**
+             * Collect request data received
+             * @desc collect raw request data
+             * @param {Object} context
+             * @resolve context.data
+             * @returns {Object} context
+             */
+            .then(context => collectRequestData(context))
+
+            /**
+             * Middleware: resolve request params data
+             * @lifecycle onRequest
+             * @param {Object} context
+             * @returns {Object} context
+             */
+            .then(context => Middleware_onRequest(context))
+
+            /**
+             * Route matching
+             * @resolve context.matched
+             * @returns {Object} context
+             */
             .then(context => {
                 // Matching strategy
                 const proxyPaths = Object.keys(proxyTable);
@@ -99,81 +130,51 @@ function proxyRequestWrapper(config) {
                 }
 
                 let proxyPath;
-                let matchedRouter;
+                let matchedRoute;
 
                 // Matched Proxy
                 if (mostAccurateMatch) {
                     proxyPath = mostAccurateMatch;
-                    matchedRouter = proxyTable[proxyPath];
+                    matchedRoute = proxyTable[proxyPath];
 
-                    const ctx = Object.assign(context, {
-                        matchedPath: proxyPath,
-                        matchedRouter: matchedRouter,
-                        proxyTable,
-                    });
-                    return {
-                        matched: true,
-                        context: ctx
+                    context.matched = {
+                        path: proxyPath,
+                        route: matchedRoute,
                     };
+                    return context;
                 }
 
                 // if the request not in the proxy table
-                // default change request orign
                 else {
-                    let unmatchedUrl = target + url;
-
-                    if (new RegExp(`\\b${host}:${port}\\b`).test(unmatchedUrl)) {
-                        res.writeHead(403, {
-                            'Content-Type': 'text/html; charset=utf-8'
-                        });
-                        res.end(`
-                            <h1>🔴  403 Forbidden</h1>
-                            <p>Path to ${unmatchedUrl} proxy cancelled</p>
-                            <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
-                        `);
-                        console.log(`> 🔴   Forbidden Proxy! [${unmatchedUrl}]`.red);
-
-                        return Promise.reject();
-                    }
-
-                    unmatchedUrl = addHttpProtocol(unmatchedUrl);
-
-                    context.unmatchedUrl = unmatchedUrl;
-
-                    return {
-                        matched: false,
-                        context
-                    };
+                    Promise.reject('\n> 😫  Oops, dalao can\'t match any route'.red);
                 }
             })
 
-            // Route matching result
-            .then(({ matched, context }) => {
-                // life cycle: on proxy route matched
-                if (matched) {
-                    return Middleware_onRouteMatch(context);
-                }
-                // life cycle: before route dismatched
-                else {
-                    Middleware_onRouteMisMatch(context)
-                        .then(() => {
-                            req
-                                .pipe(_request(unmatchedUrl))
-                                .pipe(res);
+            /**
+             * Route matching result
+             * @param {Object} context
+             * @param {Object} context.matched
+             * @resolve context.matched
+             * @returns {Object} context
+             */
+            .then(context => Middleware_onRouteMatch(context))
 
-                            return Promise.reject();
-                        })
-                }
-            })
-
+            /**
+             * Calculate proxy route
+             * @desc transform url
+             * @param {Object} context
+             * @param {Object} context.matched
+             * @resolve context.proxy
+             * @returns {Object} context
+             */
             .then(context => {
-                const { matchedRouter, proxyPath } = context;
-                // router config
+                const { route: matchedRoute, path: matchedPath } = context.matched;
+                // route config
                 const {
                     path: overwritePath,
                     target: overwriteHost,
                     pathRewrite: overwritePathRewrite,
-                } = matchedRouter;
+                } = matchedRoute;
 
                 const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
                 const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
@@ -190,63 +191,80 @@ function proxyRequestWrapper(config) {
                         <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
                     `);
 
-                    console.log(`> 🔴   Forbidden Hit! [${proxyPath}]`.red);
-
-                    return Promise.reject();
+                    return Promise.reject(`> 🔴   Forbidden Hit! [${matchedPath}]`.red);
                 }
 
-                context.proxyUrl = proxyUrl;
+                context.proxy = {
+                    route: matchedRoute,
+                    uri: proxyUrl
+                };
                 return context;
             })
 
-            // life cycle: before proxy request
+            /**
+             * Middleware: before proxy request
+             * @lifecycle beforeProxy
+             * @param {Object} context
+             * @returns {Object} context
+             */
             .then(context => Middleware_beforeProxy(context))
 
-            // Proxy request
+            /**
+             * Proxy request
+             * @desc send request
+             * @param {Object} context
+             * @resolve context.proxy.response
+             * @returns {Object} context
+             */
             .then(context => {
-                const { proxyUrl, matchedPath, rawData, data } = context;
+                const { uri: proxyUrl, route: matchedPath } = context.proxy;
                 const responseStream = req.pipe(_request(proxyUrl));
                 responseStream.pipe(res);
                 req.pipe(responseStream);
-                // responseStream.setHeader('Content-Length', Buffer.byteLength(rawData));
                 console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
-                context.proxyResponse = responseStream;
+                context.proxy.response = responseStream;
                 return context;
             })
 
-            // life cycle: after proxy request
+            /**
+             * Middleware: after proxy request
+             * @lifecycle afterProxy
+             * @param {Object} context
+             * @returns {Object} context
+             */
             .then(context => Middleware_afterProxy(context))
-
-
-
-
+            .catch(console.error)
 
 
         /********************************************************/
         /* Functions in Content ------------------------------- */
         /********************************************************/
 
-        function collectRequestData() {
+        function collectRequestData(context) {
             return new Promise((resolve, reject) => {
                 const reqContentType = req.headers['content-type'];
-                const ctx = {
-                    rawData: [],
-                    data: ''
-                }
-                req.on('data', chunk => ctx.rawData += chunk);
+
+                const data = {
+                    rawBody: [],
+                    body: '',
+                    query: querystring.parse(url.split('?')[1] || ''),
+                    type: reqContentType
+                };
+                context.data = data;
+                req.on('data', chunk => data.rawBody += chunk);
                 req.on('end', () => {
-                    if (!ctx.rawData) return;
+                    if (!data.rawBody) return;
 
                     try {
                         if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
-                            ctx.data = require('querystring').parse(ctx.rawData);
+                            data.body = querystring.parse(data.rawBody);
                         } else if (/application\/json/.test(reqContentType)) {
-                            ctx.data = JSON.parse(ctx.rawData);
+                            data.body = JSON.parse(data.rawBody);
                         } else if (/multipart\/form-data/.test(reqContentType)) {
-                            ctx.data = ctx.rawData;
+                            data.body = data.rawBody;
                         }
-                        resolve(ctx);
+                        resolve(context);
                     } catch (error) {
                         reject(error);
                         console.log(' > Error: can\'t parse requset body. ' + error.message);
@@ -290,9 +308,9 @@ function proxyRequestWrapper(config) {
         /********************************************************/
 
         // after request data resolved
-        function Middleware_onRequestData(context) {
+        function Middleware_onRequest(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('onRequestData', context, err => {
+                _invokeAllPlugins('onRequest', context, err => {
                     if (err) return reject(err);
                     else resolve(context);
                 });
@@ -307,17 +325,6 @@ function proxyRequestWrapper(config) {
                     else resolve(context);
                 });
             });
-        }
-
-        // on route match
-        function Middleware_onRouteMisMatch(next) {
-            const context = {
-                config,
-                req,
-                res,
-                proxyTable,
-            };
-            _invokeAllPlugins('onRouteMisMatch', context, next);
         }
 
         function Middleware_beforeProxy(context) {
@@ -361,7 +368,14 @@ class Plugin {
         this.middleware = {};
         this.id = id || pluginName;
         try {
-            this.middleware = require(pluginName);
+            let match;
+            if (match = pluginName.match(/^BuildIn\:plugin\/(.+)$/i)) {
+                const buildInPluginPath = path.resolve('src', 'plugins', match[1]);
+                this.middleware = require(buildInPluginPath);
+            }
+            else {
+                this.middleware = require(pluginName);
+            }
         } catch (error) {
             let buildIns;
             if (buildIns = error.message.match(/^Cannot\sfind\smodule\s'(.+)'$/)) {
@@ -386,16 +400,12 @@ class Plugin {
         this._methodWrapper('beforeCreate', noop, context);
     }
 
-    onRequestData(context, next) {
-        this._methodWrapper('onRequestData', nonCallback, context, next);
+    onRequest(context, next) {
+        this._methodWrapper('onRequest', nonCallback, context, next);
     }
 
     onRouteMatch(context, next) {
         this._methodWrapper('onRouteMatch', nonCallback, context, next);
-    }
-
-    onRouteMisMatch(context, next) {
-        this._methodWrapper('onRouteMisMatch', nonCallback, context, next);
     }
 
     beforeProxy(context, next) {

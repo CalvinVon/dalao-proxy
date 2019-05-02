@@ -31,7 +31,7 @@ const config = {
         }
     },
     plugins: [
-        "BuildIns:proxy-plugin-cache"
+        "BuildIn:plugin/proxy-cache"
     ]
 };
 
