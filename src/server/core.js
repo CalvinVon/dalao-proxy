@@ -1,6 +1,5 @@
 const request = require('request');
 const path = require('path');
-const zlib = require('zlib');
 const querystring = require('querystring');
 const _ = require('lodash');
 
@@ -86,24 +85,6 @@ function proxyRequestWrapper(config) {
                 };
                 return context;
             })
-
-
-            /**
-             * Collect request data received
-             * @desc collect raw request data
-             * @param {Object} context
-             * @resolve context.data
-             * @returns {Object} context
-             */
-            .then(context => collectRequestData(context))
-
-            /**
-             * Middleware: resolve request params data
-             * @lifecycle onRequest
-             * @param {Object} context
-             * @returns {Object} context
-             */
-            .then(context => Middleware_onRequest(context))
 
             /**
              * Route matching
@@ -202,6 +183,23 @@ function proxyRequestWrapper(config) {
             })
 
             /**
+             * Collect request data received
+             * @desc collect raw request data
+             * @param {Object} context
+             * @resolve context.data
+             * @returns {Object} context
+             */
+            // .then(context => collectRequestData(context))
+
+            /**
+             * Middleware: resolve request params data
+             * @lifecycle onRequest
+             * @param {Object} context
+             * @returns {Object} context
+             */
+            .then(context => Middleware_onRequest(context))
+
+            /**
              * Middleware: before proxy request
              * @lifecycle beforeProxy
              * @param {Object} context
@@ -213,14 +211,21 @@ function proxyRequestWrapper(config) {
              * Proxy request
              * @desc send request
              * @param {Object} context
+             * @param {Object} context.matched
+             * @param {Object} context.proxy
              * @resolve context.proxy.response
              * @returns {Object} context
              */
             .then(context => {
-                const { uri: proxyUrl, route: matchedPath } = context.proxy;
-                const responseStream = req.pipe(_request(proxyUrl));
+                const { uri: proxyUrl } = context.proxy;
+                const { path: matchedPath } = context.matched;
+                
+                const proxyReq = _request(proxyUrl);
+                const responseStream = req.pipe(proxyReq);
                 responseStream.pipe(res);
                 req.pipe(responseStream);
+                // proxyReq.setHeader('Content-Length', Buffer.byteLength(context.data.rawBody));
+                // responseStream.end(context.data.rawBody);
                 console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
                 context.proxy.response = responseStream;
@@ -246,7 +251,7 @@ function proxyRequestWrapper(config) {
                 const reqContentType = req.headers['content-type'];
 
                 const data = {
-                    rawBody: [],
+                    rawBody: '',
                     body: '',
                     query: querystring.parse(url.split('?')[1] || ''),
                     type: reqContentType
