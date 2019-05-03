@@ -1,5 +1,6 @@
+const { Plugin, PluginInterrupt } = require('../plugins');
 const request = require('request');
-const path = require('path');
+const zlib = require('zlib');
 const querystring = require('querystring');
 const _ = require('lodash');
 
@@ -9,6 +10,7 @@ const {
     isStaticResouce,
     splitTargetAndPath,
     transformPath,
+    fixJson
 } = require('../utils');
 
 let shouldCleanUpAllConnections;
@@ -19,31 +21,30 @@ let shouldCleanUpAllConnections;
 let connections = [];
 let plugins = [];
 
+
+// Calling Plugin instance method (not middleware defined method)
 function _invokeMethod(target, method, context, next) {
     if (!target) return;
     const targetMethod = target[method];
     if (typeof targetMethod === 'function') {
-        targetMethod.call(target, context, (...args) => {
-            next.call(null, ...args, target.id);
-        });
+        targetMethod.call(target, context, next);
     }
 }
 
 // base function for invoke all middlewares
 function _invokeAllPlugins(functionName, context, next) {
     plugins.forEach(plugin => {
-        _invokeMethod(plugin, functionName, context, next);
+        _invokeMethod(plugin, functionName, context, (...args) => {
+            next.call(null, ...args, plugin, functionName);
+        });
     });
 }
 
-function noop() { }
-
-function nonCallback(next) { next && next(false); }
-
+// plugin interrupter handler
 function interrupter(context, resolve, reject) {
-    return function (reason, pluginId) {
+    return function (reason, plugin, functionName) {
         if (reason) {
-            reject(new PluginInterrupt(pluginId, reason));
+            reject(new PluginInterrupt(plugin, functionName, reason));
         }
         else resolve(context);
     }
@@ -59,7 +60,7 @@ function interrupter(context, resolve, reject) {
  * - Calculate proxy route
  * - Middleware: before proxy request                 [life-cycle:beforeProxy]
  * - Proxy request
- * - Collect request data received                    [life-cycle:onRequestData]
+ * - Collect request/proxy-response data
  * - Middleware: after proxy request                  [life-cycle:afterProxy]
  */
 function proxyRequestWrapper(config) {
@@ -67,6 +68,7 @@ function proxyRequestWrapper(config) {
 
     function proxyRequest(req, res) {
         const {
+            info,
             host,
             port,
             headers,
@@ -211,6 +213,7 @@ function proxyRequestWrapper(config) {
             /**
              * Proxy request
              * @desc send request
+             * @proxy
              * @param {Object} context
              * @param {Object} context.matched
              * @param {Object} context.proxy
@@ -227,20 +230,21 @@ function proxyRequestWrapper(config) {
                 req.pipe(responseStream);
                 // proxyReq.setHeader('Content-Length', Buffer.byteLength(context.data.rawBody));
                 // responseStream.end(context.data.rawBody);
-                console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
+                info && console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
                 context.proxy.response = responseStream;
                 return context;
             })
 
             /**
-             * Collect request data received
-             * @desc collect raw request data
+             * Collect request/proxy-response data received
+             * @desc collect raw data
              * @param {Object} context
              * @resolve context.data
              * @returns {Object} context
              */
             .then(context => collectRequestData(context))
+            .then(context => collectProxyResponseData(context))
 
             /**
              * Middleware: after proxy request
@@ -250,9 +254,9 @@ function proxyRequestWrapper(config) {
              */
             .then(context => Middleware_afterProxy(context))
             .catch(error => {
-                // if (!error instanceof PluginInterrupt) {
+                if (!error instanceof PluginInterrupt || config.info) {
                     console.error(error);
-                // }
+                }
             })
 
 
@@ -260,6 +264,7 @@ function proxyRequestWrapper(config) {
         /* Functions in Content ------------------------------- */
         /********************************************************/
 
+        // Collect request data
         function collectRequestData(context) {
             return new Promise((resolve, reject) => {
                 const reqContentType = req.headers['content-type'];
@@ -270,9 +275,14 @@ function proxyRequestWrapper(config) {
                     query: querystring.parse(url.split('?')[1] || ''),
                     type: reqContentType
                 };
-                context.data = data;
+                context.data = {
+                    request: data,
+                    response: null
+                };
                 req.on('data', chunk => data.rawBody += chunk);
-                req.on('end', () => {
+                req.on('end', onRequestData);
+
+                function onRequestData() {
                     if (!data.rawBody) return;
 
                     try {
@@ -286,9 +296,51 @@ function proxyRequestWrapper(config) {
                         resolve(context);
                     } catch (error) {
                         reject(error);
-                        console.log(' > Error: can\'t parse requset body. ' + error.message);
+                        info && console.log(' > Error: can\'t parse requset body. ' + error.message);
                     }
+                }
+            });
+        }
+
+        // Collect response data
+        function collectProxyResponseData(context) {
+            const { response: proxyResponse } = context.proxy;
+
+            return new Promise((resolve) => {
+                let responseData = [];
+                const data = {
+                    rawData: '',
+                    data: '',
+                    type: null,
+                    encode: null
+                };
+                context.data.response = data;
+                proxyResponse.on('data', chunk => {
+                    responseData.push(chunk);
                 });
+
+                proxyResponse.on('end', onResponseData);
+
+                function onResponseData() {
+                    const buffer = Buffer.concat(responseData);
+                    const response = proxyResponse.response;
+
+                    // gunzip first
+                    if (/gzip/.test(data.encode = response.headers['content-encoding'])) {
+                        responseData = zlib.gunzipSync(buffer);
+                    }
+                    
+                    try {
+                        data.rawData = responseData.toString();
+                        if (/(^text|json$)/.test(data.type = response.headers['content-type'])) {
+                            data.data = JSON.parse(fixJson(data.rawData));
+                        }
+                        resolve(context);
+                    } catch (error) {
+                        console.error(` > An error occurred (${error.message}) while parsing response data.`.red);
+                        resolve(context);
+                    }
+                }
             });
         }
 
@@ -357,7 +409,6 @@ function proxyRequestWrapper(config) {
     return proxyRequest;
 }
 
-
 /**
  * Install plugins as proxy middleware
  * @param {Array} plugins plugin name array to install
@@ -367,75 +418,6 @@ function usePlugins(pluginNames) {
     pluginNames.forEach(pluginName => {
         plugins.push(new Plugin(pluginName));
     });
-}
-
-class Plugin {
-    /**
-     * @param {String} id id of plugin
-     * @param {String} pluginName
-     */
-    constructor(pluginName, id) {
-        this.middleware = {};
-        this.id = id || pluginName;
-        try {
-            let match;
-            if (match = pluginName.match(/^BuildIn\:plugin\/(.+)$/i)) {
-                const buildInPluginPath = path.resolve('src', 'plugins', match[1]);
-                this.middleware = require(buildInPluginPath);
-            }
-            else {
-                this.middleware = require(pluginName);
-            }
-        } catch (error) {
-            let buildIns;
-            if (buildIns = error.message.match(/^Cannot\sfind\smodule\s'(.+)'$/)) {
-                console.log(`${error.message}. Please check if module '${buildIns[1]}' is installed`.red);
-            }
-            else {
-                console.error(error);
-            }
-        }
-    }
-
-    _methodWrapper(method, replacement, ...args) {
-        if (this.middleware[method]) {
-            _invokeMethod(this.middleware, method, ...args);
-        }
-        else {
-            replacement(args[1]);
-        }
-    }
-
-    beforeCreate(context) {
-        this._methodWrapper('beforeCreate', noop, context);
-    }
-
-    onRequest(context, next) {
-        this._methodWrapper('onRequest', nonCallback, context, next);
-    }
-
-    onRouteMatch(context, next) {
-        this._methodWrapper('onRouteMatch', nonCallback, context, next);
-    }
-
-    beforeProxy(context, next) {
-        this._methodWrapper('beforeProxy', nonCallback, context, next);
-    }
-
-    afterProxy(context) {
-        this._methodWrapper('afterProxy', noop, context);
-    }
-}
-
-class PluginInterrupt extends Error {
-    constructor(pluginId, message) {
-        super(message);
-        this.pluginId = pluginId;
-    }
-
-    toString() {
-        console.log(`[Plugin ${this.pluginId}] ${super.message}`);
-    }
 }
 
 module.exports = {

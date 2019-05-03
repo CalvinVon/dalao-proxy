@@ -30,9 +30,7 @@ exports.Startup = function Startup (program, startupEmitter) {
         // ### Startup Emitter Hook
         startupEmitter.emit('startup:config', config);
 
-        const { info } = config;
-
-        if (info) {
+        if (config.debug) {
             console.log('> parsed user configuration'.yellow)
             console.log(config);
         }

@@ -1,6 +1,7 @@
 const path = require('path');
 const moment = require('moment');
 const fs = require('fs');
+const _ = require('lodash');
 const {
     checkAndCreateCacheFolder,
     url2filename
@@ -47,7 +48,7 @@ module.exports = {
                         logMatchedPath(true);
 
                         // 中断代理请求
-                        next(true);
+                        next('Hit cache');
                     }
                     // permanently valid
                     else {
@@ -66,7 +67,7 @@ module.exports = {
                             logMatchedPath(true);
 
                             // 中断代理请求
-                            next(true);
+                            next('Hit cache');
                         }
                         else {
                             // Do not delete expired cache automatically
@@ -74,7 +75,7 @@ module.exports = {
                             // fs.unlinkSync(cacheFileName);
 
                             // 继续代理请求
-                            next(false);
+                            next();
                         }
                     }
 
@@ -86,7 +87,7 @@ module.exports = {
             }
         } catch (error) {
             console.error(error);
-            next(false);
+            next();
         }
 
         function logMatchedPath(cached) {
@@ -95,77 +96,65 @@ module.exports = {
             process.stdout.write('\n');
         }
     },
-    // afterProxy({ config, matchedRouter, proxyResponse }) {
-    //     const {
-    //         cacheDirname,
-    //     } = config;
+    afterProxy(context) {
+        const { cacheDirname } = context.config;
+        const { method, url } = context.request;
+        const { response: proxyResponse } = context.proxy;
+        const { route: matchedRouter } = context.matched;
 
-    //     const {
-    //         cache,
-    //         cacheContentType,
-    //         responseFilter
-    //     } = matchedRouter;
+        const {
+            cache,
+            cacheContentType,
+            responseFilter
+        } = matchedRouter;
 
-    //     // cache the response data
-    //     if (cache) {
-    //         let responseData = [];
-    //         proxyResponse.on('data', chunk => {
-    //             responseData.push(chunk);
-    //         });
+        // cache the response data
+        if (cache) {
+            try {
+                const response = proxyResponse.response;
+                const cacheFileName = path
+                    .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
 
-    //         proxyResponse.on('end', setResponseCache);
+                // Only cache ajax request response
+                let contentTypeReg = /application\/json/;
 
-    //         function setResponseCache() {
-    //             try {
-    //                 const buffer = Buffer.concat(responseData);
-    //                 const response = proxyResponse.response;
-    //                 const cacheFileName = path
-    //                     .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
+                // TODO: multiple type caching support
+                if (cacheContentType.length) {
+                    contentTypeReg = new RegExp(`(${
+                        cacheContentType
+                            .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
+                            .join('|')
+                        })`);
+                }
+                if (contentTypeReg.test(response.headers['content-type'])) {
+                    const resJson = context.data.response.data;
 
-    //                 // gunzip first
-    //                 if (/gzip/.test(response.headers['content-encoding'])) {
-    //                     responseData = zlib.gunzipSync(buffer);
-    //                 }
-    //                 // Only cache ajax request response
-    //                 let contentTypeReg = /application\/json/;
-    //                 if (cacheContentType.length) {
-    //                     contentTypeReg = new RegExp(`(${
-    //                         cacheContentType
-    //                             .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
-    //                             .join('|')
-    //                         })`);
-    //                 }
-    //                 if (contentTypeReg.test(response.headers['content-type'])) {
-    //                     const resJson = JSON.parse(fixJson(responseData.toString()));
+                    if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
+                        resJson.CACHE_INFO = 'Cached from Dalao Proxy';
+                        resJson.CACHE_TIME = Date.now();
+                        resJson.CACHE_TIME_TXT = moment().format('YYYY-MM-DD HH:mm:ss');
+                        resJson.CACHE_REQUEST_DATA = {
+                            url,
+                            method,
+                            ...context.data.request
+                        };
+                        fs.writeFileSync(
+                            cacheFileName,
+                            JSON.stringify(resJson, null, 4),
+                            {
+                                encoding: 'utf8',
+                                flag: 'w'
+                            }
+                        );
 
-    //                     if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
-    //                         resJson.CACHE_INFO = 'Cached from Dalao Proxy';
-    //                         resJson.CACHE_TIME = Date.now();
-    //                         resJson.CACHE_TIME_TXT = moment().format('YYYY-MM-DD HH:mm:ss');
-    //                         resJson.CACHE_DEBUG = {
-    //                             url,
-    //                             method,
-    //                             rawBody: reqRawBody,
-    //                             body: reqParsedBody
-    //                         };
-    //                         fs.writeFileSync(
-    //                             cacheFileName,
-    //                             JSON.stringify(resJson, null, 4),
-    //                             {
-    //                                 encoding: 'utf8',
-    //                                 flag: 'w'
-    //                             }
-    //                         );
+                        console.log('   > cached into [' + cacheFileName.yellow + ']');
+                    }
 
-    //                         console.log('   > cached into [' + cacheFileName.yellow + ']');
-    //                     }
+                }
 
-    //                 }
-
-    //             } catch (error) {
-    //                 console.error(` > An error occurred (${error.message}) while caching response data.`.red);
-    //             }
-    //         }
-    //     }
-    // }
+            } catch (error) {
+                console.error(` > An error occurred (${error.message}) while caching response data.`.red);
+            }
+        }
+    }
 }

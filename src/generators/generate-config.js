@@ -2,13 +2,13 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const defalutConfig = require('../../config');
+const defaultConfig = require('../../config');
 const pwd = process.cwd();
 const custom_assign = require('../utils').custom_assign;
 
 // questions
 let questionObjs = [
-    { label: 'Config file name', value: 'host', text: true, radio: false },
+    { label: 'Config file name', value: 'configFilename', text: true, radio: false },
     { label: 'Proxy server host', value: 'host', text: true, radio: false },
     { label: 'Proxy server port', value: 'port', text: true, radio: false },
     { label: 'Proxy target server address', value: 'target', text: true, radio: false },
@@ -18,12 +18,13 @@ let questionObjs = [
 
 // default answers
 let defaultAnswers = [
-    defalutConfig.configFilename,
-    defalutConfig.host,
-    defalutConfig.port,
-    defalutConfig.target,
-    defalutConfig.cache,
-    defalutConfig.cacheDirname,
+    defaultConfig.configFilename,
+    defaultConfig.host,
+    defaultConfig.port,
+    defaultConfig.target,
+    // defaultConfig.cache,
+    true,
+    defaultConfig.cacheDirname,
 ];
 
 // user answers
@@ -36,9 +37,9 @@ function createConfigFile() {
         generateConfig[questionObj.value] = answers[index];
     });
 
-    generateConfig = _.assignWith({}, _.omit(defalutConfig, ['version', 'configFilename']), generateConfig, custom_assign);
+    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version']), generateConfig, custom_assign);
 
-    const fullConfigFilePath = path.resolve(pwd, defalutConfig.configFilename);
+    const fullConfigFilePath = path.resolve(pwd, generateConfig.configFilename);
     fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
     console.log(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`.green);
     console.log('  More details about proxy config or cache config, please see '.grey +  'https://github.com/CalvinVon/dalao-proxy#docs\n'.yellow);

@@ -10,7 +10,7 @@ const config = {
     // target(for proxy)
     target: 'target.example.com',
     // request
-    cache: true,
+    cache: false,
     cacheContentType: [
         "application/json"
     ],
@@ -21,7 +21,7 @@ const config = {
     // e.g. ['code', 200]
     // empty array means do no filtering
     responseFilter: ['code', 200],
-    info: false,
+    info: true,
     // extra
     headers: {
     },
