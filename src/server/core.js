@@ -19,18 +19,20 @@ let shouldCleanUpAllConnections;
 let connections = [];
 let plugins = [];
 
-function _invokeMethod(target, method, ...args) {
+function _invokeMethod(target, method, context, next) {
     if (!target) return;
     const targetMethod = target[method];
     if (typeof targetMethod === 'function') {
-        targetMethod.call(target, ...args)
+        targetMethod.call(target, context, (...args) => {
+            next.call(null, ...args, target.id);
+        });
     }
 }
 
 // base function for invoke all middlewares
-function _invokeAllPlugins(functionName, ...args) {
+function _invokeAllPlugins(functionName, context, next) {
     plugins.forEach(plugin => {
-        _invokeMethod(plugin, functionName, ...args);
+        _invokeMethod(plugin, functionName, context, next);
     });
 }
 
@@ -38,11 +40,13 @@ function noop() { }
 
 function nonCallback(next) { next && next(false); }
 
-function interrupter(reason) {
-    if (reason) {
-        reject(new PluginInterrupt(reason));
+function interrupter(context, resolve, reject) {
+    return function (reason, pluginId) {
+        if (reason) {
+            reject(new PluginInterrupt(pluginId, reason));
+        }
+        else resolve(context);
     }
-    else resolve(context);
 }
 
 /**
@@ -246,9 +250,9 @@ function proxyRequestWrapper(config) {
              */
             .then(context => Middleware_afterProxy(context))
             .catch(error => {
-                if (!error instanceof PluginInterrupt) {
+                // if (!error instanceof PluginInterrupt) {
                     console.error(error);
-                }
+                // }
             })
 
 
@@ -325,29 +329,20 @@ function proxyRequestWrapper(config) {
         // after request data resolved
         function Middleware_onRequest(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('onRequest', context, err => {
-                    if (err) return reject(err);
-                    else resolve(context);
-                });
+                _invokeAllPlugins('onRequest', context, interrupter(context, resolve, reject));
             });
         }
 
         // on route match
         function Middleware_onRouteMatch(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('onRouteMatch', context, err => {
-                    if (err) return reject(err);
-                    else resolve(context);
-                });
+                _invokeAllPlugins('onRouteMatch', context, interrupter(context, resolve, reject));
             });
         }
 
         function Middleware_beforeProxy(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('beforeProxy', context, err => {
-                    if (err) return reject(err);
-                    else resolve(context);
-                });
+                _invokeAllPlugins('beforeProxy', context, interrupter(context, resolve, reject));
             });
         }
 
@@ -433,8 +428,13 @@ class Plugin {
 }
 
 class PluginInterrupt extends Error {
-    constructor(message) {
+    constructor(pluginId, message) {
         super(message);
+        this.pluginId = pluginId;
+    }
+
+    toString() {
+        console.log(`[Plugin ${this.pluginId}] ${super.message}`);
     }
 }
 
