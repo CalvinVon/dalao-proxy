@@ -6,7 +6,7 @@ const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
 const STATIC_FILE_REG = new RegExp(/(^\/$|\.[^\.]+$)/);
 
 function custom_assign(objValue, srcValue) {
-    return !srcValue ? objValue : srcValue;
+    return srcValue === undefined ? objValue : srcValue;
 }
 
 // make url complete with http/https

@@ -1,8 +1,7 @@
 const ConfigParser = require('./parser/config-parser');
 const ProxyServer = require('./server');
-const ConfigGenerator = require('./generators/generate-config');
-const MockFileGenerator = require('./generators/generate-mock');
-const { checkVersion } = require('./plugins/check-version');
+const ConfigGenerator = require('./generator/generate-config');
+const MockFileGenerator = require('./generator/generate-mock');
 
 const rm = require('rimraf');
 const path = require('path');
@@ -15,9 +14,6 @@ let _program;
  */
 exports.Startup = function Startup (program, startupEmitter) {
 
-    // Check version
-    checkVersion();
-    
     // ### Startup Emitter Hook
     startupEmitter.emit('startup:init');
 

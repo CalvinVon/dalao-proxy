@@ -1,7 +1,7 @@
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-const { checkAndCreateCacheFolder, url2filename } = require('../plugins/proxy-cache/utils');
+const { checkAndCreateCacheFolder, url2filename } = require('../plugin/proxy-cache/utils');
 const baseConfig = require('../../config');
 const moment = require('moment');
 
@@ -38,7 +38,7 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
                 CACHE_INFO: 'Mocked by Dalao Proxy',
                 CACHE_TIME: Date.now(),
                 CACHE_TIME_TXT: moment().format('llll'),
-                CACHE_DEBUG: {
+                CACHE_REQUEST_DATA: {
                     url,
                     method
                 },

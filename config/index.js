@@ -22,6 +22,7 @@ const config = {
     // empty array means do no filtering
     responseFilter: ['code', 200],
     info: true,
+    debug: false,
     // extra
     headers: {
     },
@@ -31,7 +32,8 @@ const config = {
         }
     },
     plugins: [
-        "BuildIn:plugin/proxy-cache"
+        "BuildIn:plugin/proxy-cache",
+        "BuildIn:plugin/check-version",
     ]
 };
 

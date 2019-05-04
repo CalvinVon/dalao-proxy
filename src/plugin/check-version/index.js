@@ -1,6 +1,6 @@
 require('colors')
 const { spawn } = require('child_process');
-const { version } = require('../../config')
+const { version } = require('../../../config')
 let versions;
 
 const REG_VERSION = /^(\d+)\.(\d+)\.(\d+)/;
@@ -39,8 +39,8 @@ function checkVersion() {
             else if (latest_FixVer > cur_FixVer) {
                 whatUpdate = 'bug-fixing';
             }
-            console.log(`\n\n> 🎉  A new ${whatUpdate} version (${latestVersion}) of dalao-proxy has published! Type \`npm i dalao-proxy@${latestVersion}\` to update.`.yellow)
-            console.log(`   See https://github.com/CalvinVon/dalao-proxy to get latest infomation of version ${latestVersion} \n\n`.grey);
+            console.log(`\n\n> 🎉  A new ${whatUpdate} version (${latestVersion}) of dalao-proxy has published! Type \`npm i -g dalao-proxy@${latestVersion}\` to update.`.yellow)
+            console.log(`  See https://github.com/CalvinVon/dalao-proxy to get latest infomation of version ${latestVersion} \n\n`.grey);
         }
         versionCmd.kill();
     });
@@ -55,5 +55,7 @@ function checkVersion() {
 }
 
 module.exports = {
-    checkVersion,
+    beforeCreate() {
+        checkVersion();
+    }
 }

@@ -15,7 +15,7 @@ class Plugin {
         try {
             let match;
             if (match = pluginName.match(/^BuildIn\:plugin\/(.+)$/i)) {
-                const buildInPluginPath = path.resolve('src', 'plugins', match[1]);
+                const buildInPluginPath = path.resolve('src', 'plugin', match[1]);
                 this.middleware = require(buildInPluginPath);
             }
             else {
@@ -63,15 +63,15 @@ class Plugin {
     }
 }
 
-class PluginInterrupt extends Error {
+class PluginInterrupt {
     constructor(plugin, lifehook, message) {
-        super(message);
         this.plugin = plugin;
         this.lifehook = lifehook;
+        this.message = message;
     }
 
     toString() {
-        console.log(`[Plugin ${this.plugin.id}:${this.lifehook}] ${super.message}`);
+        return `[Plugin ${this.plugin.id}:${this.lifehook}] ${this.message}`;
     }
 }
 

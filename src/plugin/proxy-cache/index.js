@@ -10,7 +10,7 @@ const {
 module.exports = {
     beforeProxy(context, next) {
         const { config, response, request } = context;
-        const { cacheDirname } = config;
+        const { cacheDirname, info } = config;
         const { cache, cacheMaxAge } = context.matched.route;
         const { method, url } = request;
 
@@ -45,7 +45,7 @@ module.exports = {
                         });
                         response.end(fileContent);
 
-                        logMatchedPath(true);
+                        info && logMatchedPath();
 
                         // 中断代理请求
                         next('Hit cache');
@@ -64,7 +64,7 @@ module.exports = {
                             });
                             response.end(fileContent);
 
-                            logMatchedPath(true);
+                            info && logMatchedPath();
 
                             // 中断代理请求
                             next('Hit cache');
@@ -90,8 +90,8 @@ module.exports = {
             next();
         }
 
-        function logMatchedPath(cached) {
-            process.stdout.write(`> 🎯   ${cached ? 'Cached' : 'Hit'}! [${context.matched.path}]`.green);
+        function logMatchedPath() {
+            process.stdout.write(`> 🎯   Cached! [${context.matched.path}]`.green);
             process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${context.proxy.uri}`.white);
             process.stdout.write('\n');
         }

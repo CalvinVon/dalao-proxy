@@ -16,7 +16,7 @@ const {
     fixJson
 } = require('../utils');
 
-const { checkAndCreateCacheFolder } = require('../plugins/proxy-cache/utils');
+const { checkAndCreateCacheFolder } = require('../plugin/proxy-cache/utils');
 
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
@@ -34,14 +34,20 @@ function fileParser(filePath) {
         const file = fs.readFileSync(filePath, 'utf-8');
         const fileConfig = JSON.parse(fixJson(file));
         // * merge strategy fields
-        const EXTRA_FIELDS = ['headers', 'proxyTable'];
+        const EXTRA_FIELDS = {
+            obj: ['headers', 'proxyTable'],
+            arr: ['plugins']
+        };
+        const EXTRA_FIELDS_ALL = [...EXTRA_FIELDS.obj, ...EXTRA_FIELDS.arr];
 
         // extra fields need to be merged
-        const baseConfig_extra = _.pick(baseConfig, EXTRA_FIELDS);
-        const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS);
+        const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
+        const baseConfig_extra_arr = _.pick(baseConfig, EXTRA_FIELDS.arr);
+        const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS_ALL);
 
-        const fileConfig_extra = _.pick(fileConfig, EXTRA_FIELDS);
-        const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS);
+        const fileConfig_extra_obj = _.pick(fileConfig, EXTRA_FIELDS.obj);
+        const fileConfig_extra_arr = _.pick(fileConfig, EXTRA_FIELDS.arr);
+        const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS_ALL);
 
         const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
 
@@ -51,10 +57,17 @@ function fileParser(filePath) {
             checkFn && checkFn(mergedConfig_plain[config]);
         });
 
-        const mergedConfig_extra = _.merge({}, baseConfig_extra, fileConfig_extra);
+        const mergedConfig_extra_obj = _.merge({}, baseConfig_extra_obj, fileConfig_extra_obj);
+        
+        const mergedConfig_extra_arr = {};
+        EXTRA_FIELDS.arr.forEach(field => {
+            const baseConfigField = baseConfig_extra_arr[field];
+            const fileConfigField = fileConfig_extra_arr[field];
+            mergedConfig_extra_arr[field] = [...new Set([...baseConfigField, ...fileConfigField])];
+        });
 
         // other plain field need to be replaced
-        const mergedFileConfig = _.merge({}, mergedConfig_extra, mergedConfig_plain)
+        const mergedFileConfig = _.merge({}, mergedConfig_extra_obj, mergedConfig_extra_arr, mergedConfig_plain)
 
         return mergedFileConfig;
     } catch (error) {

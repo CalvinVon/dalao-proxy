@@ -1,4 +1,4 @@
-const { Plugin, PluginInterrupt } = require('../plugins');
+const { Plugin, PluginInterrupt } = require('../plugin');
 const request = require('request');
 const zlib = require('zlib');
 const querystring = require('querystring');
@@ -34,8 +34,8 @@ function _invokeMethod(target, method, context, next) {
 // base function for invoke all middlewares
 function _invokeAllPlugins(functionName, context, next) {
     plugins.forEach(plugin => {
-        _invokeMethod(plugin, functionName, context, (...args) => {
-            next.call(null, ...args, plugin, functionName);
+        _invokeMethod(plugin, functionName, context, err => {
+            next.call(null, err, plugin, functionName);
         });
     });
 }
@@ -254,8 +254,9 @@ function proxyRequestWrapper(config) {
              */
             .then(context => Middleware_afterProxy(context))
             .catch(error => {
-                if (!error instanceof PluginInterrupt || config.info) {
+                if (!error instanceof PluginInterrupt || config.debug) {
                     console.error(error);
+                    console.log();
                 }
             })
 

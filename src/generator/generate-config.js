@@ -37,7 +37,9 @@ function createConfigFile() {
         generateConfig[questionObj.value] = answers[index];
     });
 
-    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version']), generateConfig, custom_assign);
+    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version', 'debug']), generateConfig, custom_assign);
+    // prevent build-in plugins exposing
+    generateConfig.plugins = [];
 
     const fullConfigFilePath = path.resolve(pwd, generateConfig.configFilename);
     fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
