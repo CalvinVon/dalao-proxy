@@ -44,7 +44,12 @@ function _invokeAllPlugins(functionName, context, next) {
 function interrupter(context, resolve, reject) {
     return function (reason, plugin, functionName) {
         if (reason) {
-            reject(new PluginInterrupt(plugin, functionName, reason));
+            if (reason instanceof Error) {
+                reject(reason);
+            }
+            else {
+                reject(new PluginInterrupt(plugin, functionName, reason));
+            }
         }
         else resolve(context);
     }

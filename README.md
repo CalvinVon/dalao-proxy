@@ -1,7 +1,7 @@
 # Dalao-proxy
-A HTTP proxy for frontend developer with request cache, request mock and development!
+An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!
 
-> An one-line command server! More light-weight and convenient than proxy of `webpack-dev-server` in daily development.
+> An one-line command server! More light-weight and convenient than the proxy of `webpack-dev-server` in daily development.
 
 [![version](https://img.shields.io/npm/v/dalao-proxy.svg)](https://www.npmjs.com/package/dalao-proxy)
 [![](https://img.shields.io/npm/dt/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
@@ -12,8 +12,9 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
 - HTTP capture
 - Request mock file
 - Request auto cache with flexible configuration
-- Auto generate config file
+- Auto-generate config file
 - Auto reload server when config file changes
+- Expandable and plugin-based system
 
 # Table of contents
 - [Getting Started](#Getting-Started)
@@ -36,6 +37,14 @@ A HTTP proxy for frontend developer with request cache, request mock and develop
     - [`Never Read Cache` Mode](#Never-Read-Cache-Mode)
     - [`Read Cache` Mode](#Read-Cache-Mode)
 - [Start Request Mock](#Start-Request-Mock)
+- [Plugin System](#Plugin-System)
+    - [Lifecycle Hook](#Lifecycle-Hook)
+        - [beforeCreate](#beforeCreate)
+        - [onRequest](#onRequest)
+        - [onRouteMatch](#onRouteMatch)
+        - [beforeProxy](#beforeProxy)
+        - [afterProxy](#afterProxy)
+
 # Getting Started
 ## Install
 ```bash
@@ -78,9 +87,11 @@ Options:
 ## Enjoy it!
 Every single modification of the configuration file, the `dalao` will automatically restart and output prompts.
 
+[back to menu](#Table-of-contents)
+
 # Docs
 ## Configuration file
-Dalao will look up config file in current working directory while starting up.
+Dalao will look up the config file in the current working directory while starting up.
 
 Default config filename is `dalao.config.json`
 ```js
@@ -113,8 +124,10 @@ Default config filename is `dalao.config.json`
         "code",
         200
     ],
-    // enable log out parsed config options
+    // enable logger
     "info": false,
+    // show debug message
+    "debug": false,
     // custom response headers
     "headers": {},
     // proxy rule table
@@ -123,7 +136,9 @@ Default config filename is `dalao.config.json`
         "/": {
             "path": "/"
         }
-    }
+    },
+    // extra plugins
+    "plugins": []
 }
 ```
 ### Option `watch`
@@ -136,30 +151,30 @@ Enable proxy server auto reload when config file changes
 - type: **boolean**
 - default: `true`
 
-Enable request auto cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
-> When request has been cached, extra field `X-Cache-Request` will be added into response headers.
+    Enable request auto cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
+    > When a request has been cached, extra field `X-Cache-Request` will be added into response headers.
 
 ### Option `cacheContentType`
 - *precondition: when `cache` option is `true`*
 - type: **Array**
 - default: `['application/json']`
 
-Cache filtering by response content type with at lease one item matchs.
-*Support `RegExp` expression*
+    Cache filtering by response content type with at least one item matches.
+    *Support `RegExp` expression*
 
 ### Option `cacheMaxAge`
 - *precondition: when `cache` option is `true`*
 - type: **Array**
     - cacheMaxAge[0]: cache expire time unit
     - cacheMaxAge[1]: cache expire time digit
-        - when digit comes to `0`, `dalao-proxy` will **never** try to look up cache file (but still cache request response) regardless of expire time. 
+        - when digit comes to `0`, `dalao-proxy` will **never** try to look up cache file (but still cache request-response) regardless of expire time. 
         - when digit comes to special value `'*'`, which means cache file will **never expire**, `dalao-proxy` will read cache file first, then send a real request. 
 - default: `['second', 0]`
 
-Cache filtering by cache file expire time.
-> Support quick restart and take effect immediatly.
+    Cache filtering by cache file expires time.
+    > Support quick restart and take effect immediately.
 
-> `X-Cache-Expire-Time` and `X-Cache-Rest-Time` fields will be included in response headers.
+    > `X-Cache-Expire-Time` and `X-Cache-Rest-Time` fields will be included in response headers.
 
 ### Option `responseFilter`
 - *precondition: when `cache` option is `true`*
@@ -170,11 +185,18 @@ Cache filtering by cache file expire time.
 
 Cache filtering by response body data. *Not HTTP status code*
 
+### Option `plugins`
+- type: **Array**
+
+    Given a list of plugin npm *package name*.
+
+    You will need to add plugins to expand the expandability of `dalao-proxy`. See [Plugins](#Plugins).
+
 ### Option `proxyTable`
 - type: **Object**
 - default: `{ "/": { "path": "/" } }`
 
-Proxy [route](#Proxy-route-config) map set.
+    Proxy [route](#Proxy-route-config) map set.
 
 ### Proxy `route` config
 ```js
@@ -207,11 +229,13 @@ Example:
 
 `"/api/user/list"` will be replaced to be `"/user/list"`
 
+[back to menu](#Table-of-contents)
+
 # Start Cache Request Response
 1. Set option `cache` to `true`
 1. Set appropriate value for `cacheContentType`， `cacheMaxAge`，`responseFilter` options
 
-When those three fields satisfied certain conditions, request response would be cached in folder (`cacheDirname` you specified).
+    When those three fields satisfied certain conditions, request response would be cached in folder (`cacheDirname` you specified).
 
 ## Example:
 Here is a sample of server response data
@@ -249,9 +273,9 @@ The config should be like this:
 ```
 
 ## `Never Read Cache` Mode
-If you just want to cache response only and get real proxy response
+If you just want to cache response only and get a real proxy response
 
-> **Recommanded** when you have completed frontend and backend API docking or requiring high accuracy of response data.
+> **Recommended** when you have completed frontend and backend API docking or requiring high accuracy of response data.
 
 > When the backend service crashes during development, you can switch to [**Read Cache** mode](#Read-Cache-Mode) to **create a fake backend service**.
 
@@ -276,6 +300,8 @@ Set option `cacheMaxAge` to *Read Cache* mode. [See option `cacheMaxAge`](#Optio
 "cacheMaxAge": ["minute", 5]
 ```
 
+[back to menu](#Table-of-contents)
+
 # Start Request Mock
 Type `dalao-proxy mock <HTTP method>` and the HTTP method you want to mock
 ```bash
@@ -286,6 +312,123 @@ dalao-proxy mock post
 Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.json
 ```
 Input some mock data into `GET_api_get.json` file, then you can access `/api/list` and get your mock data.
+
+[back to menu](#Table-of-contents)
+# Plugin System
+`Dalao-proxy` support custom plugins now by using option [`plugins`](#Option-plugins).
+
+You can develop your plugins to expand the ability of `dalao-proxy`.
+> see [Build-in plugin example](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin)
+
+## Lifecycle Hook
+`Dalao-proxy` provides bellowing lifecycle hooks among different proxy periods.
+> Note: All `context` parameters given are not read-only, you can modify and override the values at will.
+
+### `beforeCreate`
+- type: `Function`
+- detail:
+
+    Invoked before proxy server created.
+
+### `onRequest`
+- type: `Function`
+- params
+    - `context`
+        - `context.config`: parsed config object
+        - `context.request`: request received by the proxy server
+        - `context.response`: response that proxy sever need to return
+    - `next`
+        - type: `Function`
+        - params: `error`/`interruptMessage`
+            - If an `error` param passed in, the request would be interrupted because of throwing an error.
+            - If a `string` param passed in, it would be seen as a `PluginInterrupt` without throwing an error.
+
+        A `next` function must be called to enter the next period. 
+- detail:
+
+    Invoked when a request received.
+
+### `onRouteMatch`
+- type: `Function`
+- params
+    - `context`
+        - `context.config`: parsed config object
+        - `context.request`: request received by the proxy server
+        - `context.response`: response that proxy sever need to return
+        - `context.matched`
+            - `path`: matched path according to request URL.
+            - `route`: matched route object.
+    - `next`
+        - type: `Function`
+        - params: `error`/`interruptMessage`
+            - If an `error` param passed in, the request would be interrupted because of throwing an error.
+            - If a `string` param passed in, it would be seen as a `PluginInterrupt` without throwing an error.
+
+        A `next` function must be called to enter the next period.
+- detail:
+
+    Invoked when a request URL matches given `proxyTable` rules.
+
+### `beforeProxy`
+- type: `Function`
+- params
+    - `context`
+        - `context.config`: parsed config object
+        - `context.request`: request received by the proxy server
+        - `context.response`: response that proxy sever need to return
+        - `context.matched`
+            - `path`: matched path according to request URL.
+            - `route`: matched route object.
+        - `context.proxy`
+            - `uri`: the converted URI address.
+            - `route`: matched route object.
+    - `next`
+        - type: `Function`
+        - params: `error`/`interruptMessage`
+            - If an `error` param passed in, the request would be interrupted because of throwing an error.
+            - If a `string` param passed in, it would be seen as a `PluginInterrupt` without throwing an error.
+
+        A `next` function must be called to enter the next period.
+- detail:
+
+    Invoked before `dalao-proxy` start to send a proxy request.
+
+### `afterProxy`
+- type: `Function`
+- params
+    - `context`
+        - `context.config`: parsed config object
+        - `context.request`: request received by the proxy server
+        - `context.response`: response that proxy sever need to return
+        - `context.matched`
+            - `path`: matched path according to request URL.
+            - `route`: matched route object.
+        - `context.proxy`
+            - `uri`: the converted URI address.
+            - `route`: matched route object.
+        - `context.data`
+            - `request`
+                - `rawBody`: raw data of request body
+                - `body`: parsed data of request body
+                - `query`: parsed data of request query
+                - `type`: content type of request
+            - `response`
+                - `rawBody`: raw data of response body of proxy
+                - `body`: parsed data of response body of proxy
+                - `type`: content type of response of proxy
+                - `encode`: content type of response of proxy
+    - `next`
+        - type: `Function`
+        - params: `error`/`interruptMessage`
+            - If an `error` param passed in, the request would be interrupted because of throwing an error.
+            - If a `string` param passed in, it would be seen as a `PluginInterrupt` without throwing an error.
+
+        A `next` function must be called to enter the next period.
+- detail:
+
+    Invoked after `dalao-proxy` has sent a proxy request and has resolved all request and response data.
+
+[back to menu](#Table-of-contents)
 
 # LICENSE
 [MIT LICENSE](https://github.com/CalvinVon/dalao-proxy/blob/master/LICENSE)
