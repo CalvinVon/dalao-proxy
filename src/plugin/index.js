@@ -15,7 +15,7 @@ class Plugin {
         try {
             let match;
             if (match = pluginName.match(/^BuildIn\:plugin\/(.+)$/i)) {
-                const buildInPluginPath = path.resolve('src', 'plugin', match[1]);
+                const buildInPluginPath = path.resolve(__dirname, match[1]);
                 this.middleware = require(buildInPluginPath);
             }
             else {
