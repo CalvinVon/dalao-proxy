@@ -235,7 +235,7 @@ function proxyRequestWrapper(config) {
                 req.pipe(responseStream);
                 // proxyReq.setHeader('Content-Length', Buffer.byteLength(context.data.rawBody));
                 // responseStream.end(context.data.rawBody);
-                info && console.log(`> 🎯   Hit! [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
+                info && console.log(`> 🎯   Proxy [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
                 context.proxy.response = responseStream;
                 return context;
@@ -338,7 +338,7 @@ function proxyRequestWrapper(config) {
                     
                     try {
                         data.rawData = responseData.toString();
-                        if (/(^text|json$)/.test(data.type = response.headers['content-type'])) {
+                        if (/(^text|json)/.test(data.type = response.headers['content-type'])) {
                             data.data = JSON.parse(fixJson(data.rawData));
                         }
                         resolve(context);

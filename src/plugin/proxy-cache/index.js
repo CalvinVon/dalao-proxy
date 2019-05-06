@@ -91,7 +91,7 @@ module.exports = {
         }
 
         function logMatchedPath() {
-            process.stdout.write(`> 🎯   Cached! [${context.matched.path}]`.green);
+            process.stdout.write(`> ⚡   Hit! [${context.matched.path}]`.green);
             process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${context.proxy.uri}`.white);
             process.stdout.write('\n');
         }
@@ -147,7 +147,7 @@ module.exports = {
                             }
                         );
 
-                        console.log('   > cached into [' + cacheFileName.yellow + ']');
+                        console.log('> 📥   Cached into ['.grey + cacheFileName.grey + ']'.grey);
                     }
 
                 }

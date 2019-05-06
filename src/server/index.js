@@ -7,7 +7,7 @@ function attachServerListener(server, config) {
 
     server.on('listening', function () {
         console.log('\n> dalao has setup the Proxy for you 🚀'.green);
-        console.log('> 😇  dalao is listening at 👉  ' + `http://${host}:${port}`.green);
+        console.log('> 👳  dalao is listening at ' + `http://${host}:${port}`.green);
         console.log('  You can enter `rs`,`restart`,`reload` to reload server anytime.'.gray);
         console.log('  You can enter `clean`,`cacheclr`,`cacheclean` to clean cached ajax data.'.gray);
     });
