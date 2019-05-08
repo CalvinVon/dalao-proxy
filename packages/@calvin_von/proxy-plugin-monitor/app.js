@@ -5,20 +5,13 @@ const WebSocket = require('ws');
 const path = require('path');
 const app = new Koa();
 
-let port = 40001;
+const monitorHandler = require('./monitor');
+
+const port = 40001;
 
 app.use(static(path.join(__dirname, '/web/')));
 
-const server = http.createServer(app.callback());
-
-attachServer(port, ws => {
-    ws.on('connection', (socket, req) => {
-        socket.on('message', data => {
-            console.log(data);
-            socket.send('okok')
-        });
-    });
-});
+const server = app.server = http.createServer(app.callback());
 
 function attachServer(port, callback) {
 
@@ -45,3 +38,15 @@ function attachServer(port, callback) {
 
     server.listen(port);
 }
+
+exports.launchMonitor = function () {
+    attachServer(port, ws => {
+        ws.on('connection', (socket, req) => {
+            socket.on('message', data => {
+    
+            });
+        });
+    });
+
+    return app;
+};
