@@ -1,0 +1,22 @@
+{
+  "name": "@calvin_von/proxy-plugin-monitor",
+  "version": "1.0.0",
+  "description": "A dalao-proxy plugin for request monitoring",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CalvinVon/dalao-proxy/tree/master/packages/@calvin_von/proxy-plugin-monitor"
+  },
+  "keywords": [
+    "dalao-proxy",
+    "plugin",
+    "request-monitor"
+  ],
+  "author": "Calvin",
+  "license": "MIT",
+  "dependencies": {
+    "koa": "^2.7.0",
+    "koa-static": "^5.0.0",
+    "ws": "^7.0.0"
+  }
+}
