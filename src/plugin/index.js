@@ -1,8 +1,10 @@
 
 const path = require('path');
+const { isDebugMode } = require('../utils');
 
 function noop() { }
 function nonCallback(next) { next && next(false); }
+
 
 class Plugin {
     /**
@@ -19,7 +21,12 @@ class Plugin {
                 this.middleware = require(buildInPluginPath);
             }
             else {
-                this.middleware = require(pluginName);
+                if (isDebugMode()) {
+                    this.middleware = require(path.resolve(__dirname, '../../packages/', pluginName));
+                }
+                else {
+                    this.middleware = require(pluginName);
+                }
             }
         } catch (error) {
             let buildIns;

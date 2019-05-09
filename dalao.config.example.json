@@ -1,14 +1,31 @@
 {
+    "cacheDirname": ".dalao-cache",
     "watch": true,
     "host": "localhost",
-    "port": "1111",
-    "target": "http://localhost:8080",
-    "cacheDirname": ".dalao-cache",
+    "port": 8000,
+    "target": "192.168.10.215:9132",
+    "cache": true,
+    "cacheContentType": [
+        "application/json"
+    ],
+    "cacheMaxAge": [
+        "second",
+        0
+    ],
     "responseFilter": [
         "code",
         200
     ],
+    "info": true,
+    "headers": {},
     "proxyTable": {
-
+        "/": {
+            "target": "localhost:8080"
+        },
+        "/api": {
+            "pathRewrite": {
+                "/api": ""
+            }
+        }
     }
 }

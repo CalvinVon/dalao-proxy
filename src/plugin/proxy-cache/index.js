@@ -44,6 +44,7 @@ module.exports = {
                             'Content-Type': 'application/json'
                         });
                         response.end(fileContent);
+                        context.cache = jsonContent;
 
                         info && logMatchedPath();
 
@@ -127,7 +128,7 @@ module.exports = {
                         })`);
                 }
                 if (contentTypeReg.test(response.headers['content-type'])) {
-                    const resJson = context.data.response.data;
+                    const resJson = Object.assign({}, context.data.response.data);
 
                     if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
                         resJson.CACHE_INFO = 'Cached from Dalao Proxy';

@@ -100,6 +100,7 @@ function proxyRequestWrapper(config) {
                     request: req,
                     response: res
                 };
+                req.URL = require('url').parse(req.url);
                 return context;
             })
 
@@ -202,7 +203,8 @@ function proxyRequestWrapper(config) {
 
                 context.proxy = {
                     route: matchedRoute,
-                    uri: proxyUrl
+                    uri: proxyUrl,
+                    URL: require('url').parse(proxyUrl)
                 };
                 return context;
             })
@@ -278,7 +280,7 @@ function proxyRequestWrapper(config) {
                 const data = {
                     rawBody: '',
                     body: '',
-                    query: querystring.parse(url.split('?')[1] || ''),
+                    query: querystring.parse(context.request.URL.query),
                     type: reqContentType
                 };
                 context.data = {

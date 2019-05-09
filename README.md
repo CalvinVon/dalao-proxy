@@ -334,9 +334,9 @@ You can develop your plugins to expand the ability of `dalao-proxy`.
 - type: `Function`
 - params
     - `context`
-        - `context.config`: parsed config object
-        - `context.request`: request received by the proxy server
-        - `context.response`: response that proxy sever need to return
+        - `context.config`: parsed config object.
+        - `context.request`: request received by the proxy server. Instance of `http.IncomingMessage`
+        - `context.response`: response that proxy sever need to return. Instance of `http.ServerResponse`
     - `next`
         - type: `Function`
         - params: `error`/`interruptMessage`

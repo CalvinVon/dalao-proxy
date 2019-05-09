@@ -1,9 +1,12 @@
 const _ = require('lodash');
 const path = require('path');
-const fs = require('fs');
 
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
 const STATIC_FILE_REG = new RegExp(/(^\/$|\.[^\.]+$)/);
+
+function isDebugMode() {
+    return process.env.DALAO_ENV === 'DEBUG';
+}
 
 function custom_assign(objValue, srcValue) {
     return srcValue === undefined ? objValue : srcValue;
@@ -108,6 +111,7 @@ function isStaticResouce(uri = '') {
 
 
 module.exports = {
+    isDebugMode,
     HTTP_PREFIX_REG,
     custom_assign,
     joinUrl,
