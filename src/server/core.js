@@ -23,21 +23,57 @@ let plugins = [];
 
 
 // Calling Plugin instance method (not middleware defined method)
-function _invokeMethod(target, method, context, next) {
-    if (!target) return;
-    const targetMethod = target[method];
-    if (typeof targetMethod === 'function') {
-        targetMethod.call(target, context, next);
-    }
+// function _invokeMethod(target, method, context, next) {
+//     if (!target) return;
+//     const targetMethod = target[method];
+//     if (typeof targetMethod === 'function') {
+//         targetMethod.call(target, context, next);
+//     }
+// }
+
+// // base function for invoke all middlewares
+// function _invokeAllPlugins(functionName, context, next) {
+//     plugins.forEach(plugin => {
+//         _invokeMethod(plugin, functionName, context, err => {
+//             next.call(null, err, plugin, functionName);
+//         });
+//     });
+// }
+
+// Calling Plugin instance method (not middleware defined method)
+function _invokeMethod(target, method, context) {
+    return new Promise((resolve, reject) => {
+        if (!target) return resolve();
+        const targetMethod = target[method];
+        if (typeof targetMethod === 'function') {
+            targetMethod.call(target, context, err => {
+                if (err) {
+                    reject({
+                        error: err,
+                        plugin: target,
+                        method
+                    });
+                }
+                else {
+                    resolve();
+                }
+            });
+        }
+    });
 }
 
 // base function for invoke all middlewares
 function _invokeAllPlugins(functionName, context, next) {
-    plugins.forEach(plugin => {
-        _invokeMethod(plugin, functionName, context, err => {
-            next.call(null, err, plugin, functionName);
-        });
+    const allPluginPromises = plugins.map(plugin => {
+        return _invokeMethod(plugin, functionName, context);
     });
+    Promise.all(allPluginPromises)
+    .then(() => {
+        next.call(null);
+    })
+    .catch(ctx => {
+        next.call(null, ctx.error, ctx.plugin, functionName);
+    })
 }
 
 // plugin interrupter handler
