@@ -64,6 +64,7 @@ module.exports = {
                                 'Content-Type': 'application/json'
                             });
                             response.end(fileContent);
+                            context.cache = jsonContent;
 
                             info && logMatchedPath();
 

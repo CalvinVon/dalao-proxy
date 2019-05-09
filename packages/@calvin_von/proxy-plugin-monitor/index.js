@@ -8,13 +8,16 @@ module.exports = {
             // open(`http://localhost:${port}`);
         });
     },
-    beforeProxy(context, next) {
-        app.emit('proxy:beforeProxy', context);
+    onRequest(context, next) {
         context.monitor = {
             times: {
                 start: Date.now()
             }
         };
+        next();
+    },
+    beforeProxy(context, next) {
+        app.emit('proxy:beforeProxy', context);
         next();
     },
     afterProxy(context) {

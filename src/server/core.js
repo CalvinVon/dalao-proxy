@@ -21,25 +21,6 @@ let shouldCleanUpAllConnections;
 let connections = [];
 let plugins = [];
 
-
-// Calling Plugin instance method (not middleware defined method)
-// function _invokeMethod(target, method, context, next) {
-//     if (!target) return;
-//     const targetMethod = target[method];
-//     if (typeof targetMethod === 'function') {
-//         targetMethod.call(target, context, next);
-//     }
-// }
-
-// // base function for invoke all middlewares
-// function _invokeAllPlugins(functionName, context, next) {
-//     plugins.forEach(plugin => {
-//         _invokeMethod(plugin, functionName, context, err => {
-//             next.call(null, err, plugin, functionName);
-//         });
-//     });
-// }
-
 // Calling Plugin instance method (not middleware defined method)
 function _invokeMethod(target, method, context) {
     return new Promise((resolve, reject) => {
@@ -327,7 +308,7 @@ function proxyRequestWrapper(config) {
                 req.on('end', onRequestData);
 
                 function onRequestData() {
-                    if (!data.rawBody) return;
+                    if (!data.rawBody || !reqContentType) return resolve(context);
 
                     try {
                         if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
@@ -339,7 +320,7 @@ function proxyRequestWrapper(config) {
                         }
                         resolve(context);
                     } catch (error) {
-                        reject(error);
+                        resolve(context);
                         info && console.log(' > Error: can\'t parse requset body. ' + error.message);
                     }
                 }
