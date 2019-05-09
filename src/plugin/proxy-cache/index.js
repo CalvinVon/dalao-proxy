@@ -93,9 +93,8 @@ module.exports = {
         }
 
         function logMatchedPath() {
-            process.stdout.write(`> ⚡   Hit! [${context.matched.path}]`.green);
-            process.stdout.write(`   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${context.proxy.uri}`.white);
-            process.stdout.write('\n');
+            const message = `> ⚡   Hit! [${context.matched.path}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${context.proxy.uri}`.white;
+            console.log(message);
         }
     },
     afterProxy(context) {
