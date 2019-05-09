@@ -29,6 +29,9 @@ module.exports = function (app) {
                 data['Response Headers'] = ctx.response.getHeaders();
                 const now = ctx.monitor.times.end = Date.now();
                 data['Timing'] = now - ctx.monitor.times.start;
+                data.data = {
+                    response: ctx.cache
+                };
                 broadcast(data);
             }
             else {
@@ -49,7 +52,6 @@ module.exports = function (app) {
                     'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`
                 },
                 'Response Headers': ctx.response.getHeaders(),
-                'Request Headers': ctx.request.headers,
                 'Timing': ctx.monitor.times.end - ctx.monitor.times.start
             };
             if (/json/.test(ctx.data.request.type)) {

@@ -5,7 +5,7 @@ let app;
 module.exports = {
     beforeCreate() {
         app = RequestMonitor.launchMonitor(port => {
-            // open(`http://localhost:${port}`);
+            open(`http://localhost:${port}`);
         });
     },
     onRequest(context, next) {
