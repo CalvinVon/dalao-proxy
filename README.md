@@ -404,7 +404,7 @@ You can develop your plugins to expand the ability of `dalao-proxy`.
             - `path`: matched path according to request URL.
             - `route`: matched route object.
         - `context.proxy`
-            - `uri`: the converted URI address.
+            - `uri`: the converted URI address.c
             - `route`: matched route object.
         - `context.data`
             - `request`
@@ -416,6 +416,7 @@ You can develop your plugins to expand the ability of `dalao-proxy`.
                 - `rawBody`: raw data of response body of proxy
                 - `body`: parsed data of response body of proxy
                 - `type`: content type of response of proxy
+                - `size`: content size of response of proxy
                 - `encode`: content type of response of proxy
     - `next`
         - type: `Function`

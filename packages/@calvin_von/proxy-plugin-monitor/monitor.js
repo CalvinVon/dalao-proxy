@@ -10,21 +10,32 @@ module.exports = function (app) {
 
     app.on('proxy:beforeProxy', function (ctx) {
         try {
-            const proxy_URL = ctx.proxy.URL;
+            const id = ctx.monitor.id = ctx.request.url + Date.now();
+            const nameRes = ctx.request.url.match(/\/(?:[^\/]+)?$/)[0];
             const data = {
-                id: ctx.request.url,
-                _type: 'beforeProxy',
+                id,
+                name: {
+                    suffix: nameRes,
+                    prefix: ctx.request.url.replace(nameRes, '')
+                },
+                type: 'beforeProxy',
+                status: '(Pending)',
                 'General': {
-                    'Origin Request URI': ctx.request.URL.pathname,
-                    'Proxy Request URI': proxy_URL.protocol + '//' + proxy_URL.host + proxy_URL.pathname,
+                    'Origin Request URI': ctx.request.url,
+                    'Proxy Request URI': ctx.proxy.uri,
                     'Request Method': ctx.request.method,
                     'Match Route': ctx.matched.path,
                 },
-                'Request Headers': ctx.request.headers
+                'Request Headers': ctx.request.headers,
+                data: {
+                    request: {},
+                    response: {},
+                },
+                'Timing': 0
             };
 
             if (ctx.cache) {
-                data['_type'] = 'hitCache';
+                data['type'] = 'hitCache';
                 data['General']['Status Code'] = '200 Hit Cache';
                 data['Response Headers'] = ctx.response.getHeaders();
                 const now = ctx.monitor.times.end = Date.now();
@@ -32,6 +43,10 @@ module.exports = function (app) {
                 data.data = {
                     response: ctx.cache
                 };
+                data.status = {
+                    code: 200,
+                    message: 'OK'
+                }
                 broadcast(data);
             }
             else {
@@ -45,11 +60,15 @@ module.exports = function (app) {
     app.on('proxy:afterProxy', function (ctx) {
         try {
             const data = {
-                id: ctx.request.url,
-                _type: 'afterProxy',
+                id: ctx.monitor.id,
+                type: 'afterProxy',
                 data: ctx.data,
                 'General': {
-                    'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`
+                    'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`,
+                    status: {
+                        code: ctx.response.statusCode,
+                        message: ctx.response.statusMessage
+                    }
                 },
                 'Response Headers': ctx.response.getHeaders(),
                 'Timing': ctx.monitor.times.end - ctx.monitor.times.start

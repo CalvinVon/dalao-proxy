@@ -30,6 +30,7 @@ module.exports = {
 
                     const fileContent = fs.readFileSync(cacheFileName, 'utf8');
                     const jsonContent = JSON.parse(fileContent);
+                    jsonContent.size = fileContent.length;
 
                     const cachedTimeStamp = jsonContent['CACHE_TIME'] || Date.now();
                     const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);

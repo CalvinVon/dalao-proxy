@@ -1,0 +1,20 @@
+.text {
+    &-light {
+        color: #9E9E9E;
+    }
+}
+
+.flex {
+    display: flex;
+    &-content {
+        &-center {
+            justify-content: center;
+        }
+        &-between {
+            justify-content: space-between;
+        }
+    }
+    &-item-center {
+        align-items: center;
+    }
+}

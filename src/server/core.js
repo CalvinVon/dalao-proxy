@@ -337,6 +337,7 @@ function proxyRequestWrapper(config) {
                     rawData: '',
                     data: '',
                     type: null,
+                    size: 0,
                     encode: null
                 };
                 context.data.response = data;
@@ -349,6 +350,7 @@ function proxyRequestWrapper(config) {
                 function onResponseData() {
                     const buffer = Buffer.concat(responseData);
                     const response = proxyResponse.response;
+                    data.size = Buffer.byteLength(buffer);
 
                     // gunzip first
                     if (/gzip/.test(data.encode = response.headers['content-encoding'])) {
