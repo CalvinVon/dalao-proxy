@@ -17,6 +17,7 @@
   "dependencies": {
     "koa": "^2.7.0",
     "koa-static": "^5.0.0",
+    "mime-types": "^2.1.24",
     "open": "^6.2.0",
     "ws": "^7.0.0"
   }

@@ -1,0 +1,5 @@
+node_modules/
+web/node_modules/
+web/src/
+web/public/
+web/babel.config.js

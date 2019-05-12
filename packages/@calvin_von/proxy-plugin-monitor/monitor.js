@@ -1,3 +1,5 @@
+const mime = require('mime-types');
+
 module.exports = function (app) {
     const broadcast = app.ws.broadcast;
 
@@ -34,6 +36,8 @@ module.exports = function (app) {
                 'Timing': 0
             };
 
+            ctx.monitor.data = data;
+
             if (ctx.cache) {
                 data['type'] = 'hitCache';
                 data['General']['Status Code'] = '200 Hit Cache';
@@ -59,18 +63,19 @@ module.exports = function (app) {
 
     app.on('proxy:afterProxy', function (ctx) {
         try {
+            const headers = ctx.response.getHeaders();
             const data = {
                 id: ctx.monitor.id,
                 type: 'afterProxy',
                 data: ctx.data,
                 'General': {
                     'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`,
-                    status: {
-                        code: ctx.response.statusCode,
-                        message: ctx.response.statusMessage
-                    }
                 },
-                'Response Headers': ctx.response.getHeaders(),
+                status: {
+                    code: ctx.response.statusCode,
+                    message: ctx.response.statusMessage
+                },
+                'Response Headers': headers,
                 'Timing': ctx.monitor.times.end - ctx.monitor.times.start
             };
             if (/json/.test(ctx.data.request.type)) {
@@ -79,6 +84,15 @@ module.exports = function (app) {
 
             if (ctx.request.URL.query) {
                 data['Query String Parameters'] = ctx.data.request.query;
+            }
+
+            if (!headers['content-type']) {
+                if (ctx.request.url === '/') {
+                    headers['content-type'] = 'text/html';
+                }
+                else {
+                    headers['content-type'] = mime.lookup(ctx.request.url);
+                }
             }
 
             broadcast(data);
