@@ -10,7 +10,8 @@
     "ant-design-vue": "^1.2.4",
     "core-js": "^2.6.5",
     "minireset.css": "0.0.4",
-    "vue": "^2.6.10"
+    "vue": "^2.6.10",
+    "vue-json-pretty": "^1.6.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.7.0",
