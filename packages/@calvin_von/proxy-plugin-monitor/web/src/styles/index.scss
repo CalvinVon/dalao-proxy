@@ -1,20 +1,39 @@
 .text {
-    &-light {
-        color: #9E9E9E;
+	&-light {
+		color: #9e9e9e;
+	}
+}
+
+.float {
+    &-right {
+        float: right;
     }
 }
 
 .flex {
-    display: flex;
-    &-content {
-        &-center {
-            justify-content: center;
+	display: flex;
+	&-content {
+		&-center {
+			justify-content: center;
+		}
+		&-between {
+			justify-content: space-between;
+		}
+	}
+	&-item {
+		&-center {
+			align-items: center;
         }
-        &-between {
-            justify-content: space-between;
+        &-start {
+            align-items: flex-start;
         }
     }
-    &-item-center {
-        align-items: center;
+
+    &-column {
+        flex-flow: column;
+    }
+    
+    &-wrap {
+        flex-wrap: wrap;
     }
 }

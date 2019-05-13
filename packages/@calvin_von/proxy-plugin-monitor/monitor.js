@@ -12,10 +12,11 @@ module.exports = function (app) {
 
     app.on('proxy:beforeProxy', function (ctx) {
         try {
-            const id = ctx.monitor.id = ctx.request.url + Date.now();
+            const id = ctx.monitor.id = ctx.request.url + '__' + Date.now();
             const nameRes = ctx.request.url.match(/\/(?:[^\/]+)?$/)[0];
             const data = {
                 id,
+                url: ctx.request.url,
                 name: {
                     suffix: nameRes,
                     prefix: ctx.request.url.replace(nameRes, '')
@@ -90,7 +91,7 @@ module.exports = function (app) {
                 if (ctx.request.url === '/') {
                     headers['content-type'] = 'text/html';
                 }
-                else {
+                else if (/\.\w+$/.test(ctx.request.url)) {
                     headers['content-type'] = mime.lookup(ctx.request.url);
                 }
             }
