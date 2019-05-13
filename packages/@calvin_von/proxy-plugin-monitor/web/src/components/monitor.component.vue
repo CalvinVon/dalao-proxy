@@ -33,75 +33,83 @@
 			</div>
 		</div>
 
-		<a-table :columns="columns"
-		         :dataSource="filteredData"
-		         :pagination="false"
-		         :rowClassName="rowClassName"
-		         rowKey="id"
-		         bordered>
+		<div class="monitor-content flex">
+			<a-table :columns="columns"
+			         :dataSource="filteredData"
+			         :pagination="false"
+			         :rowClassName="rowClassName"
+			         :customRow="customRow"
+			         rowKey="id"
+			         bordered>
 
-			<!-- Name -->
-			<div slot="Name"
-			     slot-scope="text, record">
-				<p>
-					{{ text.suffix }}
-					<template v-if="record.type === 'hitCache'">
-						<span class="cell-status-hitCache">Hit Cache</span>
-					</template>
-				</p>
-				<span class="text-light">{{ text.prefix }}</span>
-			</div>
-			<!-- Name -->
-
-			<!-- Status -->
-			<template slot="Status"
-			          slot-scope="text">
-				<template v-if="is(text, 'String')">
-					{{ text }}
-				</template>
-				<div v-else>
-					<p>{{ text.code }}</p>
-					<span class="text-light">{{ text.message }}</span>
+				<!-- Name -->
+				<div slot="Name"
+				     slot-scope="text, record">
+					<p>
+						{{ text.suffix }}
+						<template v-if="record.type === 'hitCache'">
+							<span class="cell-status-hitCache">Hit Cache</span>
+						</template>
+					</p>
+					<span class="text-light">{{ text.prefix }}</span>
 				</div>
-			</template>
-			<!-- Status -->
+				<!-- Name -->
 
-			<!-- Type -->
-			<div slot="Type"
-			     slot-scope="text, record">
-				<template v-if="record['Response Headers']">
-					{{ record['Response Headers']['content-type'] }}
+				<!-- Status -->
+				<template slot="Status"
+				          slot-scope="text">
+					<template v-if="is(text, 'String')">
+						{{ text }}
+					</template>
+					<div v-else>
+						<p>{{ text.code }}</p>
+						<span class="text-light">{{ text.message }}</span>
+					</div>
 				</template>
-				<template v-else>
-					{{ record['Request Headers']['content-type'] }}
+				<!-- Status -->
+
+				<!-- Type -->
+				<div slot="Type"
+				     slot-scope="text, record">
+					<template v-if="record['Response Headers']">
+						{{ record['Response Headers']['content-type'] }}
+					</template>
+					<template v-else>
+						{{ record['Request Headers']['content-type'] }}
+					</template>
+				</div>
+				<!-- Type -->
+
+				<!-- Size -->
+				<template slot="Size"
+				          slot-scope="text, record">
+					<template v-if="record['Response Headers']">
+						{{ record.data.response.size | unitFormat('size') }}
+					</template>
 				</template>
+				<!-- Size -->
+
+				<!-- Time -->
+				<template slot="Time"
+				          slot-scope="text">
+					{{ text | unitFormat('time') }}
+				</template>
+				<!-- Time -->
+
+				<!-- Hit Cache -->
+				<template slot="Hit Cache"
+				          slot-scope="text">
+					{{ text | whetherHitCache }}
+				</template>
+				<!-- Hit Cache -->
+
+			</a-table>
+
+			<div class="monitor-detail-wrapper">
+				<detail :detail="detail"
+				        v-if="detail.id"></detail>
 			</div>
-			<!-- Type -->
-
-			<!-- Size -->
-			<template slot="Size"
-			          slot-scope="text, record">
-				<template v-if="record['Response Headers']">
-					{{ record.data.response.size | unitFormat('size') }}
-				</template>
-			</template>
-			<!-- Size -->
-
-			<!-- Time -->
-			<template slot="Time"
-			          slot-scope="text">
-				{{ text | unitFormat('time') }}
-			</template>
-			<!-- Time -->
-
-			<!-- Hit Cache -->
-			<template slot="Hit Cache"
-			          slot-scope="text">
-				{{ text | whetherHitCache }}
-			</template>
-			<!-- Hit Cache -->
-
-		</a-table>
+		</div>
 
 		<div class="monitor-footer">
 			{{ filteredData.length }} / {{ monitorData.length }} requests
@@ -121,6 +129,7 @@
 <script>
 import Status from "./monitor/status.component";
 import FilterTab from "./monitor/filter-tab.component";
+import Detail from "./monitor/detail.component";
 const env = process.env.NODE_ENV;
 const customRenderer = field => ({
 	scopedSlots: {
@@ -203,6 +212,7 @@ export default {
 			CACHE_FILTERS,
 
 			columns,
+			detail: {},
 			monitorData: []
 		};
 	},
@@ -265,7 +275,8 @@ export default {
 	},
 	components: {
 		Status,
-		FilterTab
+		FilterTab,
+		Detail
 	},
 	created() {
 		this.connect();
@@ -381,7 +392,20 @@ export default {
 			if (row.status.code === 500) {
 				classes.push("row-status-500");
 			}
+			if (row === this.detail) {
+				classes.push("row-status-selected");
+			}
 			return classes;
+		},
+
+		customRow(item) {
+			return {
+				on: {
+					click: () => {
+						this.detail = item;
+					}
+				}
+			};
 		}
 	}
 };
@@ -393,6 +417,7 @@ export default {
 	display: flex;
 	flex-flow: column nowrap;
 	height: 100%;
+
 	&-header {
 		flex: 0;
 		z-index: 999;
@@ -405,6 +430,7 @@ export default {
 			font-weight: bold;
 		}
 	}
+
 	&-footer {
 		flex: 0;
 		z-index: 999;
@@ -420,6 +446,22 @@ export default {
 			margin: 0 5px;
 			background-color: #616161;
 			user-select: none;
+		}
+	}
+
+	&-content {
+		flex: 1;
+		overflow-y: auto;
+
+		.ant-table-wrapper {
+			flex: 1;
+		}
+
+		.monitor-detail-wrapper {
+			position: absolute;
+			right: 0;
+            width: 80%;
+            z-index: 999;
 		}
 	}
 	.label {
@@ -462,18 +504,17 @@ export default {
 			width: 200px;
 		}
 		&-table {
-			&-wrapper {
-				flex: 1;
-				overflow-y: auto;
-            }
-            &-row {
-                cursor: pointer;
-            }
+			&-row {
+				cursor: pointer;
+			}
 		}
 	}
 
 	.row {
 		&-status {
+			&-selected {
+				background-color: #e1f5fe;
+			}
 			&-500 {
 				background: #fafafa;
 			}
@@ -487,8 +528,8 @@ export default {
 				color: #c0ca33;
 				border: 1px solid #cddc39;
 				border-radius: 4px;
-                padding: 1px 4px;
-                margin-left: 5px;
+				padding: 1px 4px;
+				margin-left: 5px;
 			}
 		}
 	}
