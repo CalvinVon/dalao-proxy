@@ -9,6 +9,7 @@
   "dependencies": {
     "ant-design-vue": "^1.2.4",
     "core-js": "^2.6.5",
+    "highlight.js": "^9.15.6",
     "minireset.css": "0.0.4",
     "vue": "^2.6.10",
     "vue-json-pretty": "^1.6.0"
@@ -22,7 +23,8 @@
     "node-sass": "^4.9.0",
     "sass-loader": "^7.1.0",
     "vue-cli-plugin-ant-design": "^1.0.0",
-    "vue-template-compiler": "^2.5.21"
+    "vue-template-compiler": "^2.5.21",
+    "worker-loader": "^2.0.0"
   },
   "postcss": {
     "plugins": {
