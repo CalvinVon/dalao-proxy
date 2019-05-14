@@ -15,6 +15,6 @@ onmessage = (event) => {
     }
 
     const result = hljs.highlightAuto(rawData);
-    postMessage(result.value);
+    self.postMessage(result.value);
     self.close();
 }

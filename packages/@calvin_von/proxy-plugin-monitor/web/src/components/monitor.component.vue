@@ -4,7 +4,7 @@
 			<div class="flex flex-item-center flex-content-between">
 				<div>
 					<h3>Request Monitor</h3>
-					Proxy server running on the <a :href="`http://${serverConfig.host}:${serverConfig.port}`">{{ serverConfig.host }}:{{ serverConfig.port }}</a>
+					Proxy server running on the <a :href="serverAddress">{{ serverAddress }}</a>
 				</div>
 
 				<status :status="ws_connected"
@@ -205,7 +205,7 @@ export default {
 	name: "monitor-component",
 	data() {
 		return {
-			serverConfig: null,
+			serverConfig: {},
 			ws: null,
 			ws_connected: false,
 
@@ -282,7 +282,10 @@ export default {
 				}
 				return pre;
 			}, 0);
-		}
+        },
+        serverAddress() {
+            return `http://${this.serverConfig.host}:${this.serverConfig.port}`;
+        }
 	},
 	components: {
 		Status,
