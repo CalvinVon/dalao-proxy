@@ -431,7 +431,7 @@ function proxyRequestWrapper(config) {
     }
 
     (function Middleware_beforeCreate() {
-        _invokeAllPlugins('beforeCreate');
+        _invokeAllPlugins('beforeCreate', { config }, new Function);
     })();
     return proxyRequest;
 }

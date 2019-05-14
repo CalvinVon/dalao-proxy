@@ -2,7 +2,10 @@
 	<div class="monitor">
 		<div class="monitor-header">
 			<div class="flex flex-item-center flex-content-between">
-				<h3>Request Monitor</h3>
+				<div>
+					<h3>Request Monitor</h3>
+					Proxy server running on the <a :href="`http://${serverConfig.host}:${serverConfig.port}`">{{ serverConfig.host }}:{{ serverConfig.port }}</a>
+				</div>
 
 				<status :status="ws_connected"
 				        @connect="connect"></status>
@@ -10,7 +13,8 @@
 
 			<div class="request-filter flex flex-content-between">
 				<a-input v-model="textFilter"
-				         placeholder="Filter"></a-input>
+				         class="textFilter"
+				         placeholder="Filter ( Regular Expression supported )"></a-input>
 
 				<button class="btn-clear"
 				        @click="clearAllData">Clear Requests</button>
@@ -201,6 +205,7 @@ export default {
 	name: "monitor-component",
 	data() {
 		return {
+			serverConfig: null,
 			ws: null,
 			ws_connected: false,
 
@@ -332,19 +337,21 @@ export default {
 		// Add data to monitor
 		receivingData(rawData) {
 			const data = JSON.parse(rawData);
-			if (!/(proxy|hitCache)/i.test(data.type)) return;
-
-			let index = this.getMonitorIndexById(data.id);
-			if (index !== -1) {
-				const item = this.monitorData[index];
-				Object.assign(data["General"], item["General"]);
-				this.$set(
-					this.monitorData,
-					index,
-					Object.assign({}, item, data)
-				);
-			} else {
-				this.monitorData.push(data);
+			if (/(proxy|hitCache)/i.test(data.type)) {
+				let index = this.getMonitorIndexById(data.id);
+				if (index !== -1) {
+					const item = this.monitorData[index];
+					Object.assign(data["General"], item["General"]);
+					this.$set(
+						this.monitorData,
+						index,
+						Object.assign({}, item, data)
+					);
+				} else {
+					this.monitorData.push(data);
+				}
+			} else if (/config/.test(data.type)) {
+				this.serverConfig = data.config;
 			}
 		},
 
@@ -413,8 +420,8 @@ export default {
 		box-shadow: 0 2px 5px #f5f5f5;
 		color: #333;
 		h3 {
-			font-size: 18px;
-			font-weight: bold;
+			font-size: 20px;
+			font-weight: 400;
 		}
 	}
 
@@ -451,7 +458,7 @@ export default {
 		}
 
 		.monitor-detail-wrapper {
-			width: 40%;
+			width: 50%;
 			background: #fff;
 			z-index: 999;
 			overflow-y: hidden;
@@ -498,6 +505,9 @@ export default {
 
 	.request-filter {
 		margin-top: 10px;
+		.textFilter {
+			width: 300px;
+		}
 		.filter-tab {
 			margin-right: 20px;
 		}

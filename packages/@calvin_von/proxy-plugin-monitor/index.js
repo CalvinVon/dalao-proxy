@@ -3,10 +3,13 @@ const open = require('open');
 let app;
 
 module.exports = {
-    beforeCreate() {
+    beforeCreate({ config }) {
         app = RequestMonitor.launchMonitor(port => {
             open(`http://localhost:${port}`);
         });
+        app.proxyService = {
+            config
+        };
     },
     onRequest(context, next) {
         context.monitor = {

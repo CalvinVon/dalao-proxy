@@ -3,7 +3,11 @@ const mime = require('mime-types');
 module.exports = function (app) {
     const broadcast = app.ws.broadcast;
 
-    app.ws.on('connection', () => {
+    app.ws.on('connection', client => {
+        client.send(JSON.stringify({
+            type: 'config',
+            config: app.proxyService.config
+        }));
         console.log('  [monitor] Connected!');
     });
     app.ws.on('close', () => {
