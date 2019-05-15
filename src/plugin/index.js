@@ -30,8 +30,8 @@ class Plugin {
             }
         } catch (error) {
             let buildIns;
-            if (buildIns = error.message.match(/^Cannot\sfind\smodule\s'(.+)'$/)) {
-                console.log(`${error.message}. Please check if module '${buildIns[1]}' is installed`.red);
+            if (buildIns = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+                console.log(`${buildIns[0]}. Please check if module '${buildIns[1]}' is installed`.red);
             }
             else {
                 console.error(error);

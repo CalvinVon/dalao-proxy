@@ -112,7 +112,7 @@ module.exports = {
         } = matchedRouter;
 
         // cache the response data
-        if (cache) {
+        if (cache && !context.data.error) {
             try {
                 const response = proxyResponse.response;
                 const cacheFileName = path

@@ -28,9 +28,9 @@ module.exports = function (app) {
                 type: 'beforeProxy',
                 status: '(Pending)',
                 'General': {
-                    'Origin Request URI': ctx.request.url,
-                    'Proxy Request URI': ctx.proxy.uri,
-                    'Request Method': ctx.request.method,
+                    'Origin URI': ctx.request.url,
+                    'Proxy URI': ctx.proxy.uri,
+                    'Method': ctx.request.method,
                     'Match Route': ctx.matched.path,
                 },
                 'Request Headers': ctx.request.headers,
@@ -83,6 +83,15 @@ module.exports = function (app) {
                 'Response Headers': headers,
                 'Timing': ctx.monitor.times.end - ctx.monitor.times.start
             };
+
+            if (ctx.data.error) {
+                data['General']['Status Code'] = `(failed) ${ctx.data.error.code}`;
+                data.status = {
+                    code: '(failed)',
+                    message: ctx.data.error.code
+                };
+            }
+
             if (/json/.test(ctx.data.request.type)) {
                 data['Request Payload'] = ctx.data.request.body;
             }

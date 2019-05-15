@@ -282,10 +282,10 @@ export default {
 				}
 				return pre;
 			}, 0);
-        },
-        serverAddress() {
-            return `http://${this.serverConfig.host}:${this.serverConfig.port}`;
-        }
+		},
+		serverAddress() {
+			return `http://${this.serverConfig.host}:${this.serverConfig.port}`;
+		}
 	},
 	components: {
 		Status,
@@ -528,6 +528,10 @@ export default {
 		&-table {
 			&-row {
 				cursor: pointer;
+			}
+			&-thead > tr > th,
+			&-tbody > tr > td {
+				padding: 10px 16px;
 			}
 		}
 		&-tabs {

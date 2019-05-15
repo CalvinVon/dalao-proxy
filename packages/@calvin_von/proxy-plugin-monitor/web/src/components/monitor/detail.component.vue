@@ -34,13 +34,19 @@
 
 			<a-tab-pane tab="Preview"
 			            class="pane-preview"
-			            v-if="isPending || detail.data.response.type.match(/(json|javascript|html)/)"
+			            v-if="isPending || isError || detail.data.response.type.match(/(json|javascript|html)/)"
 			            key="2">
 
 				<template v-if="isPending">
 					<div class="pending flex flex-center flex-column">
 						<h3>Preview not available</h3>
 						<p>Request not finished yet.</p>
+					</div>
+				</template>
+				<template v-else-if="isError">
+					<div class="pending flex flex-center flex-column">
+						<h3>Preview not available</h3>
+						<p>{{ detail['General']['Method'] }} <a :href="`http://${isError.address}:${isError.port}`">{{ isError.address }}:{{ isError.port }}</a> failed with code {{ isError.code }}.</p>
 					</div>
 				</template>
 				<template v-else>
@@ -64,6 +70,12 @@
 					<div class="pending flex flex-center flex-column">
 						<h3>Response not available</h3>
 						<p>Request not finished yet.</p>
+					</div>
+				</template>
+				<template v-else-if="isError">
+					<div class="pending flex flex-center flex-column">
+						<h3>Response not available</h3>
+						<p>{{ detail['General']['Method'] }} <a :href="`http://${isError.address}:${isError.port}`">{{ isError.address }}:{{ isError.port }}</a> failed with code {{ isError.code }}.</p>
 					</div>
 				</template>
 				<template v-else>
@@ -94,6 +106,9 @@ export default {
 	computed: {
 		isPending() {
 			return /pending/i.test(this.detail.status);
+		},
+		isError() {
+			return this.detail.data.error;
 		}
 	}
 };

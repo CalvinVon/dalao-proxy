@@ -406,7 +406,10 @@ You can develop your plugins to expand the ability of `dalao-proxy`.
         - `context.proxy`
             - `uri`: the converted URI address.c
             - `route`: matched route object.
+            - `request`: proxy request object. Instance of `request.Request`. see [request/request on Github](https://github.com/request/request#streaming)
+            - `response`: proxy response object. Instance of `request.Response`.
         - `context.data`
+            - `error`: proxy request error. instance of `Error`.
             - `request`
                 - `rawBody`: raw data of request body
                 - `body`: parsed data of request body
