@@ -252,11 +252,11 @@ function proxyRequestWrapper(config) {
                 const responseStream = req.pipe(proxyReq);
                 responseStream.pipe(res);
                 req.pipe(responseStream);
-                // proxyReq.setHeader('Content-Length', Buffer.byteLength(context.data.rawBody));
-                // responseStream.end(context.data.rawBody);
+
                 info && console.log(`> 🎯   Proxy [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
                 context.proxy.response = responseStream;
+                context.proxy.request = proxyReq;
                 return context;
             })
 
@@ -301,6 +301,7 @@ function proxyRequestWrapper(config) {
                     type: reqContentType
                 };
                 context.data = {
+                    error: null,
                     request: data,
                     response: null
                 };
@@ -329,7 +330,7 @@ function proxyRequestWrapper(config) {
 
         // Collect response data
         function collectProxyResponseData(context) {
-            const { response: proxyResponse } = context.proxy;
+            const { response: proxyResponse, request: proxyRequest } = context.proxy;
 
             return new Promise((resolve) => {
                 let responseData = [];
@@ -337,9 +338,16 @@ function proxyRequestWrapper(config) {
                     rawData: '',
                     data: '',
                     type: null,
+                    size: 0,
                     encode: null
                 };
                 context.data.response = data;
+                proxyRequest.on('error', err => {
+                    context.data.error = err;
+                    res.writeHead(503, 'Service Unavailable');
+                    res.end('Connect to server failded with code' + err.code);
+                    resolve(context);
+                })
                 proxyResponse.on('data', chunk => {
                     responseData.push(chunk);
                 });
@@ -349,6 +357,7 @@ function proxyRequestWrapper(config) {
                 function onResponseData() {
                     const buffer = Buffer.concat(responseData);
                     const response = proxyResponse.response;
+                    data.size = Buffer.byteLength(buffer);
 
                     // gunzip first
                     if (/gzip/.test(data.encode = response.headers['content-encoding'])) {
@@ -429,7 +438,7 @@ function proxyRequestWrapper(config) {
     }
 
     (function Middleware_beforeCreate() {
-        _invokeAllPlugins('beforeCreate');
+        _invokeAllPlugins('beforeCreate', { config }, new Function);
     })();
     return proxyRequest;
 }

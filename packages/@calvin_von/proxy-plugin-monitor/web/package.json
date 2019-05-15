@@ -1,0 +1,38 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build --mode production"
+  },
+  "dependencies": {
+    "ant-design-vue": "^1.2.4",
+    "core-js": "^2.6.5",
+    "highlight.js": "^9.15.6",
+    "minireset.css": "0.0.4",
+    "vue": "^2.6.10",
+    "vue-json-pretty": "^1.6.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.7.0",
+    "@vue/cli-service": "^3.7.0",
+    "babel-plugin-import": "^1.11.0",
+    "less": "^2.7.3",
+    "less-loader": "^4.1.0",
+    "node-sass": "^4.9.0",
+    "sass-loader": "^7.1.0",
+    "vue-cli-plugin-ant-design": "^1.0.0",
+    "vue-template-compiler": "^2.5.21",
+    "worker-loader": "^2.0.0"
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}

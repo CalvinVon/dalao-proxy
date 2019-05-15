@@ -1,0 +1,49 @@
+.text {
+	&-light {
+		color: #9e9e9e;
+	}
+}
+
+.cursor {
+	&-pointer {
+		cursor: pointer;
+	}
+}
+
+.float {
+	&-right {
+		float: right;
+	}
+}
+
+.flex {
+	display: flex;
+	&-center {
+		justify-content: center;
+		align-items: center;
+	}
+	&-content {
+		&-center {
+			justify-content: center;
+		}
+		&-between {
+			justify-content: space-between;
+		}
+	}
+	&-item {
+		&-center {
+			align-items: center;
+		}
+		&-start {
+			align-items: flex-start;
+		}
+	}
+
+	&-column {
+		flex-flow: column;
+	}
+
+	&-wrap {
+		flex-wrap: wrap;
+	}
+}

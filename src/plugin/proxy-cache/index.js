@@ -44,7 +44,12 @@ module.exports = {
                             'Content-Type': 'application/json'
                         });
                         response.end(fileContent);
-                        context.cache = jsonContent;
+                        context.cache = {
+                            data: jsonContent,
+                            rawData: fileContent,
+                            type: 'application/json',
+                            size: fileContent.length
+                        };
 
                         info && logMatchedPath();
 
@@ -110,7 +115,7 @@ module.exports = {
         } = matchedRouter;
 
         // cache the response data
-        if (cache) {
+        if (cache && !context.data.error) {
             try {
                 const response = proxyResponse.response;
                 const cacheFileName = path

@@ -1,7 +1,7 @@
 const ConfigParser = require('./parser/config-parser');
 const ProxyServer = require('./server');
-const ConfigGenerator = require('./generator/generate-config');
-const MockFileGenerator = require('./generator/generate-mock');
+const ConfigGenerator = require('./scripts/generate-config');
+const MockFileGenerator = require('./scripts/generate-mock');
 
 const rm = require('rimraf');
 const path = require('path');

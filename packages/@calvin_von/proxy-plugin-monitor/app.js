@@ -18,7 +18,7 @@ exports.launchMonitor = function (cb) {
         app.ws.removeAllListeners();
     }
     app = new Koa();
-    app.use(static(path.join(__dirname, '/web/')));
+    app.use(static(path.join(__dirname, '/web/dist/')));
     server = app.server = http.createServer(app.callback());
 
     attachServer(port, ws => {
