@@ -6,29 +6,62 @@ A [dalao-proxy](https://github.com/CalvinVon/dalao-proxy) plugin for request mon
 ![dependencies](https://img.shields.io/david/CalvinVon/@calvin_von/proxy-plugin-monitor.svg)
 
 ## Usage
-### 1. Install `dalao-proxy` cli first
+### 1. Global Install
+Install `dalao-proxy` cli first
 ```bash
 npm install -g dalao-proxy
 ```
 
-### 2. Global Install
+Add plugin
 ```bash
-# global add plugin
 $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor
-> Install complete
+> @calvin_von/proxy-plugin-monitor Install complete
 ```
 
-### 3. Install plugin
-```bash
-npm install -g @calvin_von/proxy-plugin-monitor
-```
-
-### 4. Start
+Start proxy
 ```bash
 $ dalao-proxy start
 > [monitor] attached at http://localhost:40001
 > dalao has setup the Proxy for you 🚀
 > dalao is listening at http://localhost:8000
 ```
+
+### 2. Local Install
+```bash
+npm install -D dalao-proxy
+npm install -D @calvin_von/proxy-plugin-monitor
+```
+Generate config json file
+```bash
+npx dalao-proxy init
+```
+
+Add plugin in config json file
+```json
+{
+    "plugins": [
+        "@calvin_von/proxy-plugin-monitor"
+    ]
+}
+```
+
+package.json
+```json
+{
+    "scripts": {
+        "proxy": "dalao-proxy start"
+    }
+}
+
+```
+Start proxy
+```bash
+npm run proxy
+```
+
+## Screenshots
+![preview](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/feat-plugiu-request-monitor/packages/%40calvin_von/proxy-plugin-monitor/.github/screenshot/preview.png)
+
+![preview-2](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/feat-plugiu-request-monitor/packages/%40calvin_von/proxy-plugin-monitor/.github/screenshot/preview-2.png)
 
 more docs about `dalao-proxy`, see [CalvinVon/dalao-proxy on Github](https://github.com/CalvinVon/dalao-proxy).
