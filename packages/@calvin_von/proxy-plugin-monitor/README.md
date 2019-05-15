@@ -59,8 +59,8 @@ $ npm run proxy
 ```
 
 ## Screenshots
-![preview](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/feat-plugiu-request-monitor/packages/%40calvin_von/proxy-plugin-monitor/.github/screenshot/preview.png)
+![preview](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/master/packages/%40calvin_von/proxy-plugin-monitor/.github/screenshot/preview.png)
 
-![preview-2](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/feat-plugiu-request-monitor/packages/%40calvin_von/proxy-plugin-monitor/.github/screenshot/preview-2.png)
+![preview-2](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/master/packages/%40calvin_von/proxy-plugin-monitor/.github/screenshot/preview-2.png)
 
 more docs about `dalao-proxy`, see [CalvinVon/dalao-proxy on Github](https://github.com/CalvinVon/dalao-proxy).
