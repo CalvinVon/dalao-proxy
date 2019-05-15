@@ -20,6 +20,7 @@ function addPlugin(pluginName, isAdd) {
     fs.writeFileSync(baseConfigFilePath, tpl, { encoding: 'utf8' });
 
     console.log(`\n 🎉   Plugin ${pluginName} ${isAdd ? '' : 'un'}installed successfully!`);
+    process.exit(0);
 }
 
 function installPlugin(pluginName, isAdd, callback) {

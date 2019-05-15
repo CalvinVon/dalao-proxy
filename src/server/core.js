@@ -345,7 +345,7 @@ function proxyRequestWrapper(config) {
                 proxyRequest.on('error', err => {
                     context.data.error = err;
                     res.writeHead(503, 'Service Unavailable');
-                    res.end('Connect to server failded with code' + err.code);
+                    res.end('Connect to server failed with code ' + err.code);
                     resolve(context);
                 })
                 proxyResponse.on('data', chunk => {
