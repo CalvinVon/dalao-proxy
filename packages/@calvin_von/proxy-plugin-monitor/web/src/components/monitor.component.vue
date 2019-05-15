@@ -231,7 +231,7 @@ export default {
 				if (this.textFilter) {
 					try {
 						CONDITIONS.push(
-							new RegExp(this.textFilter).test(item.url)
+							new RegExp(this.textFilter, 'i').test(item.url)
 						);
 					} catch (error) {
 						CONDITIONS.push(

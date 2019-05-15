@@ -34,7 +34,7 @@
 
 			<a-tab-pane tab="Preview"
 			            class="pane-preview"
-			            v-if="isPending || isError || detail.data.response.type.match(/(json|javascript|html)/)"
+			            v-if="isPending || isError || canPreview"
 			            key="2">
 
 				<template v-if="isPending">
@@ -109,6 +109,9 @@ export default {
 		},
 		isError() {
 			return this.detail.data.error;
+		},
+		canPreview() {
+			return this.detail.data.response.type.match(/(json|javascript|html)/)
 		}
 	}
 };
