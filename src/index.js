@@ -2,6 +2,7 @@ const ConfigParser = require('./parser/config-parser');
 const ProxyServer = require('./server');
 const ConfigGenerator = require('./scripts/generate-config');
 const MockFileGenerator = require('./scripts/generate-mock');
+const PluginAdder = require('./scripts/add-plugin');
 
 const rm = require('rimraf');
 const path = require('path');
@@ -74,6 +75,13 @@ exports.CleanCache = function CleanCache(config) {
  */
 exports.Init = function InitConfigFile (program) {
     ConfigGenerator(program);
+};
+
+/**
+ * Add global plugin
+ */
+exports.AddPlugin = function AddPlugin (program, pluginName) {
+    PluginAdder(program, pluginName);
 };
 
 /**

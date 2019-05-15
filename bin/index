@@ -10,12 +10,13 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-const { 
-    Startup, 
-    Reload, 
-    CleanCache, 
-    Init, 
+const {
+    Startup,
+    Reload,
+    CleanCache,
+    Init,
     Mock,
+    AddPlugin,
     printWelcome
 } = require('../src');
 const startupEmitter = new EventEmitter();
@@ -81,6 +82,17 @@ program
     })
 
 program
+    .command('add-plugin <pluginName>')
+    .description('add plugin globally')
+    .option('-d, --delete', 'delete plugin globally')
+    .action(function (pluginName) {
+        rl.close();
+
+        AddPlugin(this, pluginName);
+        input_command = true;
+    })
+
+program
     .on('command:*', function () {
         program.outputHelp();
     })
@@ -92,6 +104,7 @@ program
         console.log('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'.gray);
         console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'.gray);
         console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
+        console.log('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'.gray);
     })
     .parse(process.argv)
 
