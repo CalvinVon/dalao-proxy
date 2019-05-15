@@ -38,13 +38,13 @@
 			            key="2">
 
 				<template v-if="isPending">
-					<div class="pending flex flex-center flex-column">
+					<div class="not-available flex flex-center flex-column">
 						<h3>Preview not available</h3>
 						<p>Request not finished yet.</p>
 					</div>
 				</template>
 				<template v-else-if="isError">
-					<div class="pending flex flex-center flex-column">
+					<div class="not-available flex flex-center flex-column">
 						<h3>Preview not available</h3>
 						<p>{{ detail['General']['Method'] }} <a :href="`http://${isError.address}:${isError.port}`">{{ isError.address }}:{{ isError.port }}</a> failed with code {{ isError.code }}.</p>
 					</div>
@@ -67,15 +67,21 @@
 			            class="pane-response"
 			            key="3">
 				<template v-if="isPending">
-					<div class="pending flex flex-center flex-column">
+					<div class="not-available flex flex-center flex-column">
 						<h3>Response not available</h3>
 						<p>Request not finished yet.</p>
 					</div>
 				</template>
 				<template v-else-if="isError">
-					<div class="pending flex flex-center flex-column">
+					<div class="not-available flex flex-center flex-column">
 						<h3>Response not available</h3>
 						<p>{{ detail['General']['Method'] }} <a :href="`http://${isError.address}:${isError.port}`">{{ isError.address }}:{{ isError.port }}</a> failed with code {{ isError.code }}.</p>
+					</div>
+				</template>
+				<template v-else-if="is_304">
+					<div class="not-available flex flex-center flex-column">
+						<h3>Response is empty</h3>
+						<p>Response status is {{ detail['General']['Status Code'] }}, no response message returned.</p>
 					</div>
 				</template>
 				<template v-else>
@@ -110,8 +116,11 @@ export default {
 		isError() {
 			return this.detail.data.error;
 		},
+		is_304() {
+			return this.detail.status.code === 304;
+		},
 		canPreview() {
-			return this.detail.data.response.type.match(/(json|javascript|html)/)
+			return this.detail.data.response.type && this.detail.data.response.type.match(/(json|javascript|html)/);
 		}
 	}
 };
@@ -192,8 +201,10 @@ export default {
 		&-response,
 		&-preview {
 			padding: 10px;
-			.pending {
+			
+			.not-available {
 				height: 100%;
+				text-align: center;
 				h3 {
 					font-size: 18px;
 				}

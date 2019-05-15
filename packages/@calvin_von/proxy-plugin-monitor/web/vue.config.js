@@ -1,8 +1,6 @@
 module.exports = {
+    productionSourceMap: false,
     configureWebpack: {
-        // output: {
-        //     globalObject: 'self',
-        // },
         module: {
             rules: [
                 {
