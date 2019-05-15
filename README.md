@@ -38,6 +38,10 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
     - [`Read Cache` Mode](#Read-Cache-Mode)
 - [Start Request Mock](#Start-Request-Mock)
 - [Plugin System](#Plugin-System)
+    - [Install Plugin](#Install-Plugin)
+        - [Global Install Plugin](#Global-Install-Plugin)
+        - [Local Install Plugin](#Local-Install-Plugin)
+    - [Available Plugins](#Available-Plugins)
     - [Lifecycle Hook](#Lifecycle-Hook)
         - [beforeCreate](#beforeCreate)
         - [onRequest](#onRequest)
@@ -48,23 +52,23 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
 # Getting Started
 ## Install
 ```bash
-npm i dalao-proxy -g
+$ npm i dalao-proxy -g
 ```
 
 ## Configure
 Default configuration file will be generated in `dalao.config.json`.
 ```bash
 # This utility will walk you through creating a config file
-dalao-proxy init
+$ dalao-proxy init
 
 # Generate config file directly
-dalao-proxy init -y
+$ dalao-proxy init -y
 ```
 
 ## Start proxy
 ```bash
 # dalao will read default config file
-dalao-proxy start
+$ dalao-proxy start
 
 # custom options
 dalao-proxy start -wc --config ./dalao.config.json
@@ -306,7 +310,7 @@ Set option `cacheMaxAge` to *Read Cache* mode. [See option `cacheMaxAge`](#Optio
 Type `dalao-proxy mock <HTTP method>` and the HTTP method you want to mock
 ```bash
 # dalao-proxy mock [options] <method>
-dalao-proxy mock post
+$ dalao-proxy mock post
 > Request url: /api/list
 
 Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.json
@@ -317,8 +321,48 @@ Input some mock data into `GET_api_get.json` file, then you can access `/api/lis
 # Plugin System
 `Dalao-proxy` support custom plugins now by using option [`plugins`](#Option-plugins).
 
+## Install Plugin
+### Global Install Plugin
+```bash
+# Globally install
+$ dalao-proxy add-plugin <plugin name>
+
+# Globally uninstall
+$ dalao-proxy add-plugin -d <plugin name>
+```
+### Local Install Plugin
+```bash
+$ npm install -D dalao-proxy
+$ npm install -D <plugin name>
+```
+Generate config json file
+```bash
+$ npx dalao-proxy init
+```
+
+Add plugin in config json file
+```json
+{
+    "plugins": [
+        "<plugin name>"
+    ]
+}
+```
+
+Then in package.json
+```json
+{
+    "scripts": {
+        "proxy": "dalao-proxy start"
+    }
+}
+```
+
 You can develop your plugins to expand the ability of `dalao-proxy`.
-> see [Build-in plugin example](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin)
+## Available Plugins
+- [Build in] [proxy-cache](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin/proxy-cache)
+- [Build in] [check-version](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin/check-version)
+- [@calvin_von/proxy-plugin-monitor](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/%40calvin_von/proxy-plugin-monitor) A dalao-proxy plugin for request monitoring.
 
 ## Lifecycle Hook
 `Dalao-proxy` provides bellowing lifecycle hooks among different proxy periods.

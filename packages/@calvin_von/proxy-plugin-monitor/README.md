@@ -3,7 +3,6 @@ A [dalao-proxy](https://github.com/CalvinVon/dalao-proxy) plugin for request mon
 
 [![version](https://img.shields.io/npm/v/@calvin_von/proxy-plugin-monitor.svg)](https://www.npmjs.com/package/@calvin_von/proxy-plugin-monitor)
 [![](https://img.shields.io/npm/dt/@calvin_von/proxy-plugin-monitor.svg)](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/@calvin_von/proxy-plugin-monitor)
-![dependencies](https://img.shields.io/david/CalvinVon/@calvin_von/proxy-plugin-monitor.svg)
 
 ## Usage
 ### 1. Global Install
@@ -28,12 +27,12 @@ $ dalao-proxy start
 
 ### 2. Local Install
 ```bash
-npm install -D dalao-proxy
-npm install -D @calvin_von/proxy-plugin-monitor
+$ npm install -D dalao-proxy
+$ npm install -D @calvin_von/proxy-plugin-monitor
 ```
 Generate config json file
 ```bash
-npx dalao-proxy init
+$ npx dalao-proxy init
 ```
 
 Add plugin in config json file
@@ -56,7 +55,7 @@ package.json
 ```
 Start proxy
 ```bash
-npm run proxy
+$ npm run proxy
 ```
 
 ## Screenshots
