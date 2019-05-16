@@ -29,8 +29,5 @@
     "npm": "^6.9.0",
     "request": "^2.88.0",
     "rimraf": "^2.6.3"
-  },
-  "devDependencies": {
-    "worker-loader": "^2.0.0"
   }
 }
