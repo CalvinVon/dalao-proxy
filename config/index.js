@@ -1,5 +1,7 @@
+const version = require('../package.json').version;
+
 const config = {
-    version: '0.8.2',
+    version: version,
     // custom config file path
     configFilename: 'dalao.config.json',
     cacheDirname: '.dalao-cache',

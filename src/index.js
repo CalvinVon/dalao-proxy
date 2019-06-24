@@ -102,7 +102,7 @@ exports.printWelcome = function printWelcome (version) {
     str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
     str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
     str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n\n';
-    str += '                                        ';
+    str += '                                             ';
 
     console.log(str.yellow, 'Dalao Proxy'.yellow, ('v' + version).green);
     console.log('                                            powered by CalvinVon');

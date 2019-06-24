@@ -242,7 +242,7 @@ Example:
     When those three fields satisfied certain conditions, request response would be cached in folder (`cacheDirname` you specified).
 
 ## Example:
-Here is a sample of server response data
+Here is an simple example of server response data
 ```js
 // send request
 POST /api/list HTTP/1.1
@@ -291,9 +291,12 @@ Set option `cacheMaxAge` to *Never Read Cache* mode
 ## `Read Cache` Mode
 When you're ready to develop front-end pages or need [request mock](#Start-Request-Mock)
 
-> `dalao-proxy` would try to look up cache/mock file first, then return a real response after the failure
+> `dalao-proxy` would try to look up cache/mock file first, then return a real response after the failure.
+
+> **Recommended:** The easier way is to delete `CACHE_TIME` field in the cached JSON files rather than frequent restarts of the service because of modifying config file.(Updated at **v0.8.3**)
 
 Set option `cacheMaxAge` to *Read Cache* mode. [See option `cacheMaxAge`](#Option-cacheMaxAge)
+
 
 ```js
 // set permanent request cache

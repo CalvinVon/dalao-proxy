@@ -366,7 +366,7 @@ function proxyRequestWrapper(config) {
                     
                     try {
                         data.rawData = responseData.toString();
-                        if (/(^text|json)/.test(data.type = response.headers['content-type'])) {
+                        if (/json$/.test(data.type = response.headers['content-type'])) {
                             data.data = JSON.parse(fixJson(data.rawData));
                         }
                         resolve(context);

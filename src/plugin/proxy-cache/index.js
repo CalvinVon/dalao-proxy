@@ -15,27 +15,24 @@ module.exports = {
         const { method, url } = request;
 
         // Try to read cache
-        // Cache Read Strategy:
+        // Cache Read Strategy(Updated at v0.9.0):
         //      - `cache` option is `true`
-        //      - `cacheDigit` field > 0
-        //      - `cacheDigit` field is `*`
-        //        `cacheDigit` field is considered to be `*` by default when it's empty
+        //      - the `cache file` DO NOT contains `CACHE_TIME` field
         try {
             if (cache) {
                 checkAndCreateCacheFolder(cacheDirname);
-                const cacheFileName = path
-                    .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`);
-                const [cacheUnit = 'second', cacheDigit = '*'] = cacheMaxAge;
-                if (cacheDigit != 0 && fs.existsSync(cacheFileName)) {
+                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`);
+                const [cacheUnit = 'second', cacheDigit = 0] = cacheMaxAge;
+
+                if (fs.existsSync(cacheFileName)) {
 
                     const fileContent = fs.readFileSync(cacheFileName, 'utf8');
                     const jsonContent = JSON.parse(fileContent);
 
-                    const cachedTimeStamp = jsonContent['CACHE_TIME'] || Date.now();
-                    const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
+                    const cachedTimeStamp = jsonContent['CACHE_TIME'];
 
                     // need validate expire time
-                    if (cacheDigit === '*') {
+                    if (!cachedTimeStamp || cacheDigit === '*') {
                         response.setHeader('X-Cache-Request', 'true');
                         response.setHeader('X-Cache-Expire-Time', 'permanently valid');
                         response.setHeader('X-Cache-Rest-Time', 'forever');
@@ -58,6 +55,7 @@ module.exports = {
                     }
                     // permanently valid
                     else {
+                        const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
                         // valid cache file
                         if (moment().isBefore(deadlineMoment)) {
                             response.setHeader('X-Cache-Request', 'true');
@@ -87,7 +85,9 @@ module.exports = {
                     }
 
                 }
-                else next();
+                else {
+                    next();
+                }
             }
             else {
                 next();
@@ -118,8 +118,7 @@ module.exports = {
         if (cache && !context.data.error) {
             try {
                 const response = proxyResponse.response;
-                const cacheFileName = path
-                    .resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
+                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
 
                 // Only cache ajax request response
                 let contentTypeReg = /application\/json/;
@@ -159,6 +158,7 @@ module.exports = {
                 }
 
             } catch (error) {
+                console.error(error);
                 console.error(` > An error occurred (${error.message}) while caching response data.`.red);
             }
         }
