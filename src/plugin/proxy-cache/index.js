@@ -7,6 +7,16 @@ const {
     url2filename
 } = require('./utils');
 
+function cleanRequireCache(file) {
+    const id = require.resolve(file);
+    const cache = require.cache;
+
+    if (cache[id]) {
+        module.children = module.children.filter(mod => mod.id !== id);
+        delete cache[id];
+    }
+}
+
 module.exports = {
     beforeProxy(context, next) {
         const { config, response, request } = context;
@@ -21,13 +31,14 @@ module.exports = {
         try {
             if (cache) {
                 checkAndCreateCacheFolder(cacheDirname);
-                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`);
+                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
                 const [cacheUnit = 'second', cacheDigit = 0] = cacheMaxAge;
 
-                if (fs.existsSync(cacheFileName)) {
+                if (fs.existsSync(cacheFileName + '.js') || fs.existsSync(cacheFileName + '.json')) {
+                    cleanRequireCache(cacheFileName);
 
-                    const fileContent = fs.readFileSync(cacheFileName, 'utf8');
-                    const jsonContent = JSON.parse(fileContent);
+                    const jsonContent = require(cacheFileName);
+                    const fileContent = JSON.stringify(jsonContent, null, 4);
 
                     const cachedTimeStamp = jsonContent['CACHE_TIME'];
 

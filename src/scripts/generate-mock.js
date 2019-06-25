@@ -20,7 +20,7 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
     if (cacheDirname !== resolvedConfig.cacheDirname) {
         resolvedCacheFolder = cacheDirname;
     }
-    
+
     function question() {
         const rl = readline.createInterface({
             input: process.stdin,
@@ -32,11 +32,10 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
                 rl.close();
                 return question();
             }
-            const mockFileName = path
-                .resolve(process.cwd(), `./${resolvedCacheFolder}/${url2filename(method, url)}.json`)
+            const isInJsFile = program.js;
+            const mockFileName = path.resolve(process.cwd(), `./${resolvedCacheFolder}/${url2filename(method, url)}`) + (isInJsFile ? '.js' : '.json');
             const json = {
                 CACHE_INFO: 'Mocked by Dalao Proxy',
-                CACHE_TIME: Date.now(),
                 CACHE_TIME_TXT: moment().format('llll'),
                 CACHE_REQUEST_DATA: {
                     url,
@@ -46,9 +45,19 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
             };
             json[resolvedConfig.responseFilter[0] || 'code'] = resolvedConfig.responseFilter[1] || 200;
             checkAndCreateCacheFolder(resolvedCacheFolder);
+
+            let fileContent = JSON.stringify(json, null, 4);
+
+            if (isInJsFile) {
+                const wrapper = [
+                    'module.export = ',
+                    ';'
+                ];
+                fileContent = wrapper[0] + fileContent + wrapper[1];
+            }
             fs.writeFileSync(
                 mockFileName,
-                JSON.stringify(json, null, 4),
+                fileContent,
                 {
                     encoding: 'utf8',
                     flag: 'w'

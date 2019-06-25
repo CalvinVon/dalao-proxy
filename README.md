@@ -311,14 +311,22 @@ Set option `cacheMaxAge` to *Read Cache* mode. [See option `cacheMaxAge`](#Optio
 
 # Start Request Mock
 Type `dalao-proxy mock <HTTP method>` and the HTTP method you want to mock
+
+> **Updated at v0.9.0** Now, `dalao-proxy` support Javascript-style cache file, so you can import any dependencies to mock your data. For example using [`Mock.js`](https://github.com/nuysoft/Mock/wiki/Getting-Started)
 ```bash
 # dalao-proxy mock [options] <method>
 $ dalao-proxy mock post
 > Request url: /api/list
 
 Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.json
+
+
+$ dalao-proxy mock post --js
+> Request url: /api/list
+
+Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.js
 ```
-Input some mock data into `GET_api_get.json` file, then you can access `/api/list` and get your mock data.
+Put some mock data into `GET_api_get.json` file or do whatever you want in js file, then you can access `/api/list` to get your mock data.
 
 [back to menu](#Table-of-contents)
 # Plugin System
