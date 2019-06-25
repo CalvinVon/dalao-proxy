@@ -50,7 +50,7 @@ function questionUrl(program, method, { cacheDirname, configFilename }) {
 
             if (isInJsFile) {
                 const wrapper = [
-                    'module.export = ',
+                    'module.exports = ',
                     ';'
                 ];
                 fileContent = wrapper[0] + fileContent + wrapper[1];
