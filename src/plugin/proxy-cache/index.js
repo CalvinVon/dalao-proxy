@@ -7,8 +7,8 @@ const {
     url2filename
 } = require('./utils');
 
-function cleanRequireCache(file) {
-    const id = require.resolve(file);
+function cleanRequireCache(fileName) {
+    const id = fileName;
     const cache = require.cache;
 
     if (cache[id]) {
@@ -35,9 +35,11 @@ module.exports = {
                 const [cacheUnit = 'second', cacheDigit = 0] = cacheMaxAge;
 
                 if (fs.existsSync(cacheFileName + '.js') || fs.existsSync(cacheFileName + '.json')) {
-                    cleanRequireCache(cacheFileName);
+                    const resolvedFileName = require.resolve(cacheFileName);
+                    // Clean cache
+                    cleanRequireCache(resolvedFileName);
 
-                    const jsonContent = require(cacheFileName);
+                    const jsonContent = require(resolvedFileName);
                     const fileContent = JSON.stringify(jsonContent, null, 4);
 
                     const cachedTimeStamp = jsonContent['CACHE_TIME'];
@@ -59,7 +61,7 @@ module.exports = {
                             size: fileContent.length
                         };
 
-                        info && logMatchedPath();
+                        info && logMatchedPath(resolvedFileName);
 
                         // 中断代理请求
                         next('Hit cache');
@@ -80,7 +82,7 @@ module.exports = {
                             response.end(fileContent);
                             context.cache = jsonContent;
 
-                            info && logMatchedPath();
+                            info && logMatchedPath(resolvedFileName);
 
                             // 中断代理请求
                             next('Hit cache');
@@ -108,8 +110,8 @@ module.exports = {
             next();
         }
 
-        function logMatchedPath() {
-            const message = `> ⚡   Hit! [${context.matched.path}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${context.proxy.uri}`.white;
+        function logMatchedPath(resolvedFileName) {
+            const message = `> ⚡   Hit! [${context.matched.path}]`.green + `   ${method.toUpperCase()}   ${url}` +   '  >>>>  '.green +  `${resolvedFileName}`.yellow;
             console.log(message);
         }
     },

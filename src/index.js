@@ -59,7 +59,7 @@ exports.Reload = function Reload () {
 };
 
 exports.CleanCache = function CleanCache(config) {
-    const cacheDir = path.join(process.cwd(), config.cacheDirname, './*.json');
+    const cacheDir = path.join(process.cwd(), config.cacheDirname, './*.js**');
     rm(cacheDir, err => {
         if (err) {
             console.log('  [error] something wrong happened during clean cache'.red, err);
