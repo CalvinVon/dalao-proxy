@@ -1,5 +1,6 @@
 .dalao-cache/
 .vscode/
+.github/
 node_modules/
 packages/
 test/

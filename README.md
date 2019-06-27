@@ -16,6 +16,8 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
 - Auto reload server when config file changes
 - Expandable and plugin-based system
 
+![preview](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/master/.github/screenshot/start.png)
+
 # Table of contents
 - [Getting Started](#Getting-Started)
     - [Install](#Install)
