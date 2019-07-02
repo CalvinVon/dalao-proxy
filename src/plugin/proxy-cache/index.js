@@ -11,8 +11,20 @@ function cleanRequireCache(fileName) {
     const id = fileName;
     const cache = require.cache;
 
+    const cleanRelativeModuleCache = (mod) => {
+        mod.children.forEach(it => {
+            // clean modules not from npm
+            if (!/node_modules/.test(it.id)) {
+                delete require.cache[it.id];
+                cleanRelativeModuleCache(it);
+            }
+        });
+    };
+
     if (cache[id]) {
-        module.children = module.children.filter(mod => mod.id !== id);
+        const mod = cache[id];
+        cleanRelativeModuleCache(mod);
+        module.children = module.children.filter(m => m !== mod);
         delete cache[id];
     }
 }
