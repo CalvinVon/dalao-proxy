@@ -59,7 +59,7 @@ exports.Reload = function Reload () {
 };
 
 exports.CleanCache = function CleanCache(config) {
-    const cacheDir = path.join(process.cwd(), config.cacheDirname, './*.js**');
+    const cacheDir = path.join(process.cwd(), config.cacheDirname || '.dalao-cache', './*.js**');
     rm(cacheDir, err => {
         if (err) {
             console.log('  [error] something wrong happened during clean cache'.red, err);

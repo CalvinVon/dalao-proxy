@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 require('colors');
+const path = require('path');
 const program = require('commander');
 const baseConfig = require('../config');
 const EventEmitter = require('events');
@@ -90,7 +91,7 @@ program
         // only one stdin listener allowed to be attached at same time
         rl.close();
 
-        CleanCache(require(program.config || require('path').join(process.cwd(), baseConfig.configFilename)));
+        CleanCache(require(program.config || path.join(process.cwd(), baseConfig.configFilename)));
         input_command = true;
     })
 
