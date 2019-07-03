@@ -83,6 +83,18 @@ program
     })
 
 program
+    .command('clean')
+    .description('clean cache files'.green)
+    .option('-C, --config <filepath>', 'use custom config file')
+    .action(function () {
+        // only one stdin listener allowed to be attached at same time
+        rl.close();
+
+        CleanCache(require(program.config || require('path').join(process.cwd(), baseConfig.configFilename)));
+        input_command = true;
+    })
+
+program
     .command('add-plugin <pluginName>')
     .description('add plugin globally')
     .option('-d, --delete', 'delete plugin globally')

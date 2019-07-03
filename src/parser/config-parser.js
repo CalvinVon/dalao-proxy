@@ -61,8 +61,8 @@ function fileParser(filePath) {
         
         const mergedConfig_extra_arr = {};
         EXTRA_FIELDS.arr.forEach(field => {
-            const baseConfigField = baseConfig_extra_arr[field];
-            const fileConfigField = fileConfig_extra_arr[field];
+            const baseConfigField = baseConfig_extra_arr[field] || [];
+            const fileConfigField = fileConfig_extra_arr[field] || [];
             mergedConfig_extra_arr[field] = [...new Set([...baseConfigField, ...fileConfigField])];
         });
 
@@ -71,6 +71,7 @@ function fileParser(filePath) {
 
         return mergedFileConfig;
     } catch (error) {
+        console.error(` > An error occurred (${error.message}) while parsing config file.`.red)
         return baseConfig;
     }
 };

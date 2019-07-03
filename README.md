@@ -24,6 +24,7 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
     - [Configure](#Configure)
     - [Start proxy](#Start-proxy)
     - [Enjoy It](#Enjoy-It)
+- [Commands](#Commands)
 - [Docs](#Docs)
     - [Configuration file](#configuration-file)
         - [Option `watch`](#Option-watch)
@@ -94,6 +95,23 @@ Options:
 Every single modification of the configuration file, the `dalao` will automatically restart and output prompts.
 
 [back to menu](#Table-of-contents)
+
+# Commands
+```bash
+$ dalao-proxy --help
+Usage: dalao-proxy [options] [command]
+
+Options:
+  -V, --version                      output the version number
+  -h, --help                         output usage information
+
+Commands:
+  start [options]                    auto detect config & start proxy server
+  init [options]                     create an init config file in current folder
+  mock [options] <method>            create a mock file in json format
+  clean [options]                    clean cache files
+  add-plugin [options] <pluginName>  add plugin globally
+```
 
 # Docs
 ## Configuration file
