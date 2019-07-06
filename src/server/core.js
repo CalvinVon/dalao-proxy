@@ -49,12 +49,17 @@ function _invokeAllPlugins(functionName, context, next) {
         return _invokeMethod(plugin, functionName, context);
     });
     Promise.all(allPluginPromises)
-    .then(() => {
-        next.call(null);
-    })
-    .catch(ctx => {
-        next.call(null, ctx.error, ctx.plugin, functionName);
-    })
+        .then(() => {
+            next.call(null);
+        })
+        .catch(ctx => {
+            if (next) {
+                next.call(null, ctx.error, ctx.plugin, functionName);
+            }
+            else {
+                console.error(functionName, ctx)
+            }
+        })
 }
 
 // plugin interrupter handler
@@ -164,13 +169,17 @@ function proxyRequestWrapper(config) {
                     context.matched = {
                         path: proxyPath,
                         route: matchedRoute,
+                        notFound: false
                     };
                     return context;
                 }
 
                 // if the request not in the proxy table
                 else {
-                    Promise.reject('\n> 😫  Oops, dalao can\'t match any route'.red);
+                    context.matched = {
+                        notFound: true
+                    };
+                    return context;
                 }
             })
 
@@ -192,37 +201,55 @@ function proxyRequestWrapper(config) {
              * @returns {Object} context
              */
             .then(context => {
-                const { route: matchedRoute, path: matchedPath } = context.matched;
-                // route config
+                context.proxy = {};
                 const {
-                    path: overwritePath,
-                    target: overwriteHost,
-                    pathRewrite: overwritePathRewrite,
-                } = matchedRoute;
+                    route: matchedRoute,
+                    path: matchedPath,
+                    notFound,
+                    redirect
+                } = context.matched;
 
-                const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
-                const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
-                const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
+                if (notFound) {
+                    const { request: { method, url }, response } = context;
+                    console.log(`404   ${method.toUpperCase()}   ${url}  can\'t match any route`.white);
+                    response.writeHead(404);
+                    response.end();
+                    return Promise.reject('404 Not found');
+                }
+                else if (!redirect) {
+                    // route config
+                    const {
+                        path: overwritePath,
+                        target: overwriteHost,
+                        pathRewrite: overwritePathRewrite,
+                    } = matchedRoute;
 
-                // invalid request
-                if (new RegExp(`\\b${host}:${port}\\b`).test(overwriteHost)) {
-                    res.writeHead(403, {
-                        'Content-Type': 'text/html; charset=utf-8'
-                    });
-                    res.end(`
+                    const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
+                    const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
+                    const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
+
+                    // invalid request
+                    if (new RegExp(`\\b${host}:${port}\\b`).test(overwriteHost)) {
+                        res.writeHead(403, {
+                            'Content-Type': 'text/html; charset=utf-8'
+                        });
+                        res.end(`
                         <h1>🔴  403 Forbidden</h1>
                         <p>Path to ${overwriteHost} proxy cancelled</p>
                         <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
                     `);
 
-                    return Promise.reject(`> 🔴   Forbidden Hit! [${matchedPath}]`.red);
+                        return Promise.reject(`> 🔴   Forbidden Hit! [${matchedPath}]`.red);
+                    }
+
+                    context.proxy = {
+                        route: matchedRoute,
+                        uri: proxyUrl,
+                        URL: require('url').parse(proxyUrl)
+                    };
                 }
 
-                context.proxy = {
-                    route: matchedRoute,
-                    uri: proxyUrl,
-                    URL: require('url').parse(proxyUrl)
-                };
+
                 return context;
             })
 
@@ -247,16 +274,15 @@ function proxyRequestWrapper(config) {
             .then(context => {
                 const { uri: proxyUrl } = context.proxy;
                 const { path: matchedPath } = context.matched;
-                
-                const proxyReq = _request(proxyUrl);
-                const responseStream = req.pipe(proxyReq);
-                responseStream.pipe(res);
-                req.pipe(responseStream);
+
+                const x = _request(proxyUrl);
+                const proxyStream = req.pipe(x);
+                proxyStream.pipe(res);
 
                 info && console.log(`> 🎯   Proxy [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
 
-                context.proxy.response = responseStream;
-                context.proxy.request = proxyReq;
+                context.proxy.response = proxyStream;
+                context.proxy.request = x;
                 return context;
             })
 
@@ -363,7 +389,7 @@ function proxyRequestWrapper(config) {
                     if (/gzip/.test(data.encode = response.headers['content-encoding'])) {
                         responseData = zlib.gunzipSync(buffer);
                     }
-                    
+
                     try {
                         data.rawData = responseData.toString();
                         if (/json/.test(data.type = response.headers['content-type'])) {

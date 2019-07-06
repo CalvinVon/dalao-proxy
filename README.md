@@ -40,7 +40,7 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
     - [`Never Read Cache` Mode](#Never-Read-Cache-Mode)
     - [`Read Cache` Mode](#Read-Cache-Mode)
 - [Start Request Mock](#Start-Request-Mock)
-- [Plugin System](#Plugin-System)
+- [Plugin System](#Plugin-Systembeta)
     - [Install Plugin](#Install-Plugin)
         - [Global Install Plugin](#Global-Install-Plugin)
         - [Local Install Plugin](#Local-Install-Plugin)
@@ -349,7 +349,7 @@ Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.js
 Put some mock data into `GET_api_get.json` file or do whatever you want in js file, then you can access `/api/list` to get your mock data.
 
 [back to menu](#Table-of-contents)
-# Plugin System
+# Plugin System[Beta]
 `Dalao-proxy` support custom plugins now by using option [`plugins`](#Option-plugins).
 
 ## Install Plugin
@@ -391,16 +391,28 @@ Then in package.json
 
 You can develop your plugins to expand the ability of `dalao-proxy`.
 ## Available Plugins
-- [Build in] [proxy-cache](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin/proxy-cache)
-- [Build in] [check-version](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin/check-version)
-- [@calvin_von/proxy-plugin-monitor](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/%40calvin_von/proxy-plugin-monitor) A dalao-proxy plugin for request monitoring.
+- [*Build in*] [**check-version**](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin/check-version)
 
+    The dalao-proxy will automaticly check the latest version.
+
+- [*Build in*] [**proxy-cache**](https://github.com/CalvinVon/dalao-proxy/tree/master/src/plugin/proxy-cache)
+
+    Doing awesome request cache and mock work.
+
+- [**@calvin_von/proxy-plugin-monitor**](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/%40calvin_von/proxy-plugin-monitor) A dalao-proxy plugin for request monitoring.
+    > Look at where the dalao-proxy forwarded the request.
+- [*New*] [**@calvin_von/proxy-plugin-redirect**](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/%40calvin_von/proxy-plugin-redirect) A dalao-proxy plugin for request redirect.
+    > Awesome plugin for debugging the online program locally.
 ## Lifecycle Hook
 `Dalao-proxy` provides bellowing lifecycle hooks among different proxy periods.
 > Note: All `context` parameters given are not read-only, you can modify and override the values at will.
 
 ### `beforeCreate`
+> You can do some initial operations here.
 - type: `Function`
+- params
+    - `context`
+        - `context.config`: parsed config object.
 - detail:
 
     Invoked before proxy server created.
@@ -433,6 +445,7 @@ You can develop your plugins to expand the ability of `dalao-proxy`.
         - `context.matched`
             - `path`: matched path according to request URL.
             - `route`: matched route object.
+            - `notFound`: whether the route is found.
     - `next`
         - type: `Function`
         - params: `error`/`interruptMessage`

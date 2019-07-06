@@ -1,0 +1,22 @@
+{
+  "name": "@calvin_von/proxy-plugin-redirect",
+  "version": "0.1.0",
+  "description": "A dalao-proxy plugin for request redirect",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CalvinVon/dalao-proxy/tree/master/packages/@calvin_von/proxy-plugin-redirect"
+  },
+  "keywords": [
+    "dalao-proxy",
+    "plugin",
+    "request-redirect",
+    "debug",
+    "proxy online file"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cli-table": "^0.3.1"
+  }
+}

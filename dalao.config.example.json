@@ -1,31 +1,25 @@
 {
-    "cacheDirname": ".dalao-cache",
     "watch": true,
     "host": "localhost",
-    "port": 8000,
-    "target": "192.168.10.215:9132",
-    "cache": true,
-    "cacheContentType": [
-        "application/json"
-    ],
-    "cacheMaxAge": [
-        "second",
-        0
-    ],
-    "responseFilter": [
-        "code",
-        200
-    ],
-    "info": true,
+    "port": "2222",
+    "target": "http://localhost:8083",
     "headers": {},
     "proxyTable": {
         "/": {
-            "target": "localhost:8080"
-        },
-        "/api": {
-            "pathRewrite": {
-                "/api": ""
-            }
+            "target": "https://www.baidu.com"
         }
-    }
+    },
+    "redirect": [
+        {
+            "from": "^http://www.baidu.com/(\\d+).js",
+            "to": "http://localhost:2222/$1.js"
+        },
+        {
+            "from": "^http://customer.tuanyanghuo.com/app.(\\w+).js",
+            "to": "http://localhost:2222/$1.js"
+        }
+    ],
+    "plugins": [
+        "@calvin_von/proxy-plugin-redirect"
+    ]
 }
