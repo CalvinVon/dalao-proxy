@@ -25,12 +25,14 @@ function cleanRequireCache(fileName) {
         const mod = cache[id];
         cleanRelativeModuleCache(mod);
         module.children = module.children.filter(m => m !== mod);
+        cache[id] = null;
         delete cache[id];
     }
 }
 
 module.exports = {
     beforeProxy(context, next) {
+        const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { config, response, request } = context;
         const { cacheDirname, info } = config;
         const { cache, cacheMaxAge } = context.matched.route;
@@ -43,15 +45,20 @@ module.exports = {
         try {
             if (cache) {
                 checkAndCreateCacheFolder(cacheDirname);
-                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
+                const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
                 const [cacheUnit = 'second', cacheDigit = 0] = cacheMaxAge;
 
-                if (fs.existsSync(cacheFileName + '.js') || fs.existsSync(cacheFileName + '.json')) {
-                    const resolvedFileName = require.resolve(cacheFileName);
-                    // Clean cache
-                    cleanRequireCache(resolvedFileName);
+                let targetFileName;
+                const hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
+                    if (fs.existsSync(cacheSearchName + ext)) {
+                        targetFileName = cacheSearchName + ext;
+                        return true;
+                    }
+                    return false;
+                })
 
-                    const jsonContent = require(resolvedFileName);
+                if (hasCacheFile) {
+                    const jsonContent = require(targetFileName);
                     const fileContent = JSON.stringify(jsonContent, null, 4);
 
                     const cachedTimeStamp = jsonContent['CACHE_TIME'];
@@ -73,7 +80,7 @@ module.exports = {
                             size: fileContent.length
                         };
 
-                        info && logMatchedPath(resolvedFileName);
+                        info && logMatchedPath(targetFileName);
 
                         // 中断代理请求
                         next('Hit cache');
@@ -94,7 +101,7 @@ module.exports = {
                             response.end(fileContent);
                             context.cache = jsonContent;
 
-                            info && logMatchedPath(resolvedFileName);
+                            info && logMatchedPath(targetFileName);
 
                             // 中断代理请求
                             next('Hit cache');
@@ -102,12 +109,14 @@ module.exports = {
                         else {
                             // Do not delete expired cache automatically
                             // V0.6.4 2019.4.17
-                            // fs.unlinkSync(cacheFileName);
+                            // fs.unlinkSync(cacheSearchName);
 
                             // 继续代理请求
                             next();
                         }
                     }
+
+                    cleanRequireCache(targetFileName);
 
                 }
                 else {
@@ -122,8 +131,8 @@ module.exports = {
             next();
         }
 
-        function logMatchedPath(resolvedFileName) {
-            const message = `> ⚡   Hit! [${context.matched.path}]`.green + `   ${method.toUpperCase()}   ${url}` +   '  >>>>  '.green +  `${resolvedFileName}`.yellow;
+        function logMatchedPath(targetFileName) {
+            const message = `> ⚡   Hit! [${context.matched.path}]`.green + `   ${method.toUpperCase()}   ${url}` +   '  >>>>  '.green +  `${targetFileName}`.yellow;
             console.log(message);
         }
     },
@@ -143,7 +152,7 @@ module.exports = {
         if (cache && !context.data.error) {
             try {
                 const response = proxyResponse.response;
-                const cacheFileName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
+                const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
 
                 // Only cache ajax request response
                 let contentTypeReg = /application\/json/;
@@ -169,7 +178,7 @@ module.exports = {
                             ...context.data.request
                         };
                         fs.writeFileSync(
-                            cacheFileName,
+                            cacheSearchName,
                             JSON.stringify(resJson, null, 4),
                             {
                                 encoding: 'utf8',
@@ -177,7 +186,7 @@ module.exports = {
                             }
                         );
 
-                        console.log('> 📥   Cached into ['.grey + cacheFileName.grey + ']'.grey);
+                        console.log('> 📥   Cached into ['.grey + cacheSearchName.grey + ']'.grey);
                     }
 
                 }

@@ -71,7 +71,12 @@ function fileParser(filePath) {
 
         return mergedFileConfig;
     } catch (error) {
-        console.error(` > An error occurred (${error.message}) while parsing config file.`.red)
+        if (error.message.indexOf('no such file or directory') !== -1) {
+            console.warn('[info] No config file found');
+        }
+        else {
+            console.error(` > An error occurred (${error.message}) while parsing config file.`.red)
+        }
         return baseConfig;
     }
 };
