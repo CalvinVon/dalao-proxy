@@ -1,6 +1,6 @@
 {
   "name": "dalao-proxy",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "A HTTP proxy for frontend developer with request cache, request mock and hosts modification.",
   "main": "index.js",
   "bin": {
