@@ -1,6 +1,6 @@
 {
   "name": "dalao-proxy",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "A HTTP proxy for frontend developer with request cache, request mock and hosts modification.",
   "main": "index.js",
   "bin": {
@@ -26,7 +26,7 @@
     "install": "^0.12.2",
     "lodash": "^4.17.11",
     "moment": "^2.24.0",
-    "npm": "^6.9.0",
+    "npm": "^6.10.1",
     "request": "^2.88.0",
     "rimraf": "^2.6.3"
   }

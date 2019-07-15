@@ -31,17 +31,17 @@ let defaultAnswers = [
 const answers = [];
 let index = 0;
 
-function createConfigFile() {
+function createConfigFile(forceSkip) {
     let generateConfig = {};
     questionObjs.forEach(function (questionObj, index) {
         generateConfig[questionObj.value] = answers[index];
     });
 
-    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version', 'debug', 'configFilename']), generateConfig, custom_assign);
+    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version', 'debug', 'info', 'configFilename']), generateConfig, custom_assign);
     // prevent build-in plugins exposing
     generateConfig.plugins = [];
 
-    const fullConfigFilePath = path.resolve(pwd, generateConfig.configFilename);
+    const fullConfigFilePath = path.resolve(pwd, forceSkip ? defaultAnswers[0] : generateConfig.configFilename);
     fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
     console.log(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`.green);
     console.log('  More details about proxy config or cache config, please see '.grey +  'https://github.com/CalvinVon/dalao-proxy#docs\n'.yellow);
@@ -58,7 +58,7 @@ function runQuestionLoop(forceSkip) {
     });
 
     if (forceSkip || index === questionObjs.length) {
-        createConfigFile();
+        createConfigFile(forceSkip);
         rl.close();
         process.exit(0);
         return;
