@@ -6,7 +6,7 @@ module.exports = function (app) {
     app.ws.on('connection', client => {
         client.send(JSON.stringify({
             type: 'config',
-            config: app.proxyService.config
+            config: app.monitorService.config
         }));
         console.log('  [monitor] Connected!');
     });
@@ -115,3 +115,16 @@ module.exports = function (app) {
         }
     });
 }
+
+module.exports.syncConfig = function (app) {
+    app.ws.broadcast({
+        type: 'config',
+        config: app.monitorService.config
+    });
+};
+
+module.exports.cleanMonitor = function (app) {
+    app.ws.broadcast({
+        type: 'clean'
+    });
+};

@@ -17,6 +17,18 @@ $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor
 > @calvin_von/proxy-plugin-monitor Install complete
 ```
 
+Add config
+```json
+{
+    "monitor": {
+        "open": true,
+        "cleanOnRestart": true
+    }
+}
+```
+- **`open`**: Auto open monitor page when start. (Default: `true`)
+- **`cleanOnRestart`**: Auto clean monitor data list when restart. (Default: `false`)
+
 Start proxy
 ```bash
 $ dalao-proxy start

@@ -353,8 +353,12 @@ export default {
 				} else {
 					this.monitorData.push(data);
 				}
-			} else if (/config/.test(data.type)) {
+			}
+			else if (/config/.test(data.type)) {
 				this.serverConfig = data.config;
+			}
+			else if (/clean/.test(data.type)) {
+				this.monitorData = [];
 			}
 		},
 

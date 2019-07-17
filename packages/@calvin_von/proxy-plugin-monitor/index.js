@@ -1,4 +1,5 @@
 const RequestMonitor = require('./app');
+const { syncConfig, cleanMonitor } = require('./monitor');
 const open = require('open');
 let app;
 
@@ -6,11 +7,30 @@ module.exports = {
     beforeCreate({ config }) {
         // Disable logger on request
         config.info = false;
-        // Launch monitor server
-        app = RequestMonitor.launchMonitor(port => {
-            open(`http://localhost:${port}`);
-        });
-        app.proxyService = {
+
+        const {
+            open: openOnStart = true,
+            cleanOnRestart = false
+        } = config.monitor || {};
+
+
+        if (app) {
+            app.monitorService.config = config;
+            syncConfig(app);
+            if (cleanOnRestart) {
+                cleanMonitor(app);
+            }
+        }
+        else {
+            // Launch monitor server
+            app = RequestMonitor.launchMonitor(port => {
+                if (openOnStart) {
+                    open(`http://localhost:${port}`);
+                }
+            })
+        }
+
+        app.monitorService = {
             config
         };
     },
