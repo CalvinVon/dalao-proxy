@@ -12,19 +12,19 @@ function addPlugin(pluginName, isAdd) {
         config.plugins = [...new Set(config.plugins)];
     }
     else {
-        config.plugins = config.plugins.filter(it => it === pluginName);
+        config.plugins = config.plugins.filter(it => it !== pluginName);
     }
 
-    const tpl = `const config = ${JSON.stringify(config, null, 4)}; module.exports = config;`;
+    const tpl = `const config = ${JSON.stringify(config, null, 4)};\nmodule.exports = config;`;
 
     fs.writeFileSync(baseConfigFilePath, tpl, { encoding: 'utf8' });
 
-    console.log(`\n 🎉   Plugin ${pluginName} ${isAdd ? '' : 'un'}installed successfully!`);
+    console.log(`\n🎉  Plugin ${pluginName} ${isAdd ? '' : 'un'}installed successfully!`);
     process.exit(0);
 }
 
 function installPlugin(pluginName, isAdd, callback) {
-    console.log(`>  ${isAdd ? 'Installing' : 'Uninstall'} ${pluginName} package...\n`);
+    console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${pluginName} package...`);
     const installCmd = spawn(
         'npm',
         [isAdd ? 'install' : 'uninstall', '-g', pluginName],
@@ -37,17 +37,17 @@ function installPlugin(pluginName, isAdd, callback) {
 
     installCmd.on('exit', code => {
         if (code) {
-            console.log(`\n>  ${pluginName} package ${isAdd ? '' : 'un'}install failed with code ${code}`);
+            console.log(`\n> ${pluginName} package ${isAdd ? '' : 'un'}install failed with code ${code}`);
         }
         else {
-            console.log(`\n>  ${pluginName} package ${isAdd ? '' : 'un'}install completed`);
+            console.log(`\n> ${pluginName} package ${isAdd ? '' : 'un'}install completed`);
             callback();
         }
         installCmd.kill();
     });
     installCmd.on('error', (code, signal) => {
         console.log(code, signal)
-        console.log(`>  ${pluginName} ${isAdd ? '' : 'un'}install failed with code ${code}`);
+        console.log(`> ${pluginName} ${isAdd ? '' : 'un'}install failed with code ${code}`);
         installCmd.kill();
     });
 }
