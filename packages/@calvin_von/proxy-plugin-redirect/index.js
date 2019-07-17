@@ -44,6 +44,7 @@ module.exports = {
             });
 
             if (mostAccurateMatch) {
+                redirectMeta.matched = true;
                 redirectMeta.target = mostAccurateMatch.to.replace(/\$(\d+)/g, (placeholder, holderNumber) => {
                     return matchingResult[holderNumber];
                 });

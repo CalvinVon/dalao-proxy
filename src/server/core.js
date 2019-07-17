@@ -273,13 +273,13 @@ function proxyRequestWrapper(config) {
              */
             .then(context => {
                 const { uri: proxyUrl } = context.proxy;
-                const { path: matchedPath } = context.matched;
+                const { path: matchedPath, redirectMeta = {} } = context.matched;
 
                 const x = _request(proxyUrl);
                 const proxyStream = req.pipe(x);
                 proxyStream.pipe(res);
 
-                info && console.log(`> 🎯   Proxy [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${url}  ${'>>>>'.green}  ${proxyUrl}`.white)
+                info && console.log(`> 🎯   Proxy [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${redirectMeta.matched ? url.yellow : url}  ${'>>>>'.green}  ${proxyUrl}`.white);
 
                 context.proxy.response = proxyStream;
                 context.proxy.request = x;
