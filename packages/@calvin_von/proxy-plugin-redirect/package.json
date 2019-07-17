@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/proxy-plugin-redirect",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A dalao-proxy plugin for request redirect",
   "main": "index.js",
   "repository": {
