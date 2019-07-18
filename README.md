@@ -7,10 +7,14 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
 [![](https://img.shields.io/npm/dt/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
 ![dependencies](https://img.shields.io/david/CalvinVon/dalao-proxy.svg)
 
+[English Doc](https://github.com/CalvinVon/dalao-proxy/blob/master/README.md)
+|
+[中文文档](https://github.com/CalvinVon/dalao-proxy/blob/master/README_CN.md)
+
 ## Features
 - HTTP proxy
 - HTTP capture
-- Request mock file
+- Request mock
 - Request auto cache with flexible configuration
 - Auto-generate config file
 - Auto reload server when config file changes
@@ -27,6 +31,7 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
 - [Commands](#Commands)
 - [Docs](#Docs)
     - [Configuration file](#configuration-file)
+        - [Option `host`](#Option-host)
         - [Option `watch`](#Option-watch)
         - [Option `cache`](#Option-cache)
         - [Option `cacheContentType`](#Option-cacheContentType)
@@ -165,6 +170,12 @@ Default config filename is `dalao.config.json`
     "plugins": []
 }
 ```
+
+### Option `watch`
+- type: **boolean**
+
+    > When configured as `0.0.0.0`, other devices on the LAN can also access the service, and the machine can access using `localhost`.
+
 ### Option `watch`
 - type: **boolean**
 - default: `true`
@@ -175,7 +186,7 @@ Enable proxy server auto reload when config file changes
 - type: **boolean**
 - default: `true`
 
-    Enable request auto cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
+    Enable request cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
     > When a request has been cached, extra field `X-Cache-Request` will be added into response headers.
 
 ### Option `cacheContentType`
@@ -192,7 +203,7 @@ Enable proxy server auto reload when config file changes
     - cacheMaxAge[0]: cache expire time unit
     - cacheMaxAge[1]: cache expire time digit
         - when digit comes to `0`, `dalao-proxy` will **never** try to look up cache file (but still cache request-response) regardless of expire time. 
-        - when digit comes to special value `'*'`, which means cache file will **never expire**, `dalao-proxy` will read cache file first, then send a real request. 
+        - when digit comes to special value `'*'`, which means cache file will **never expire**, and `dalao-proxy` will first try to read and return the cache file, and if it is not found, it would return the real request-response.
 - default: `['second', 0]`
 
     Cache filtering by cache file expires time.
@@ -212,7 +223,7 @@ Cache filtering by response body data. *Not HTTP status code*
 ### Option `plugins`
 - type: **Array**
 
-    Given a list of plugin npm *package name*.
+    A list of plugin npm *package name*.
 
     You will need to add plugins to expand the expandability of `dalao-proxy`. See [Plugins](#Plugins).
 
@@ -330,9 +341,9 @@ Set option `cacheMaxAge` to *Read Cache* mode. [See option `cacheMaxAge`](#Optio
 [back to menu](#Table-of-contents)
 
 # Start Request Mock
-Type `dalao-proxy mock <HTTP method>` and the HTTP method you want to mock
-
 > **Updated at v0.9.0** Now, `dalao-proxy` support Javascript-style cache file, so you can import any dependencies to mock your data. For example using [`Mock.js`](https://github.com/nuysoft/Mock/wiki/Getting-Started)
+
+Type `dalao-proxy mock <HTTP method>` and the HTTP method you want to mock
 ```bash
 # dalao-proxy mock [options] <method>
 $ dalao-proxy mock post
@@ -347,10 +358,32 @@ $ dalao-proxy mock post --js
 Mock file created in /home/$(USER)/$(CWD)/.dalao-cache/GET_api_get.js
 ```
 Put some mock data into `GET_api_get.json` file or do whatever you want in js file, then you can access `/api/list` to get your mock data.
+```json
+{
+    "data": {
+        "list": ["mock", "data"]
+    },
+    "code": 200
+}
+```
+```js
+const mockjs = require('mockjs');
+const list = Mock.mock({
+    'list|1-10': [{
+        'id|+1': 1
+    }]
+});
+
+module.exports = {
+    data: list,
+    code: 200
+};
+```
 
 [back to menu](#Table-of-contents)
 # Plugin System[Beta]
 `Dalao-proxy` support custom plugins now by using option [`plugins`](#Option-plugins).
+> **Note**: Reinstalling `dalao-proxy` will cause globally installed plugins to fail (local installation is not affected) and you will need to reinstall the required plugins globally.
 
 ## Install Plugin
 ### Global Install Plugin
@@ -407,6 +440,7 @@ You can develop your plugins to expand the ability of `dalao-proxy`.
 `Dalao-proxy` provides bellowing lifecycle hooks among different proxy periods.
 > Note: All `context` parameters given are not read-only, you can modify and override the values at will.
 
+> **Best Practices**: Each plugin produces its own context data under the `context` parameter, and appropriately modifies the behavior of `dalao-proxy` and its plugins according to the order in which the plugins are executed.
 ### `beforeCreate`
 > You can do some initial operations here.
 - type: `Function`
