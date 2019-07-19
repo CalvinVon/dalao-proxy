@@ -44,8 +44,8 @@
     - [举个栗子](#举个栗子)
     - [`Never Read Cache` 模式](#Never-Read-Cache-模式)
     - [`Read Cache` 模式](#Read-Cache-模式)
-- [开始 MOCK 请求](#开始-MOCK-请求)
-- [插件系统[Beta版]](#插件系统Beta版])
+- [开始模拟请求数据](#开始模拟请求数据)
+- [插件系统[Beta版]](#插件系统Beta版%5D])
     - [安装插件](#安装插件)
         - [全局安装](#全局安装)
         - [局部安装](#局部安装)
@@ -185,7 +185,7 @@ Commands:
 - 类型: **boolean**
 - 默认值: `true`
 
-    响应满足[一些条件](#Start-Cache-Request-Response)时启用请求缓存。
+    响应满足[一些条件](#开始缓存请求响应)时启用请求缓存。
     > 当请求从缓存文件返回时，会在响应标头中添加额外字段 `X-Cache-Request`。
 
 ### 选项 `cacheContentType`
@@ -321,7 +321,7 @@ vary: Accept-Encoding
 
 > **建议** 当要求返回真实的、高精度的响应数据时。
 
-> **场景** 当后端服务在开发期间崩溃时，你可以快速切换到 [`Never Read Cache` 模式](#Never-Read-Cache-模式) 以 **创建一个不依赖于后端的简单“后台”服务**。
+> **场景** 当后端服务在开发期间崩溃时，你可以快速切换到 [`Read Cache` 模式](#Read-Cache-模式) 以 **创建一个不依赖于后端的简单“后台”服务**。
 
 > 想要在此模式时，**为某个接口单独返回缓存/模拟文件时**，你可以选择删除缓存在JSON（JS）文件中的 `CACHE_TIME` 字段，而不是反复修改配置来切换模式，后者将会频繁重启服务。(更新于 **v0.8.3**)
 
@@ -351,7 +351,7 @@ vary: Accept-Encoding
 
 [返回目录](#目录)
 
-# 开始 MOCK 请求
+# 开始模拟请求数据
 > **v0.9.0更新** 现在, `dalao-proxy` 支持JS类型的缓存文件，因此，你可以引用任何库来模拟你的数据. 例如使用 [`Mock.js`](https://github.com/nuysoft/Mock/wiki/Getting-Started)
 
 输入 `dalao-proxy mock <HTTP method>` 和要模拟的 HTTP 请求方法
