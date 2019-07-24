@@ -5,6 +5,7 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
 
 [![version](https://img.shields.io/npm/v/dalao-proxy.svg)](https://www.npmjs.com/package/dalao-proxy)
 [![](https://img.shields.io/npm/dt/dalao-proxy.svg)](https://github.com/CalvinVon/dalao-proxy)
+[![Package Quality](https://npm.packagequality.com/shield/dalao-proxy.svg)](https://packagequality.com/#?package=dalao-proxy)
 ![dependencies](https://img.shields.io/david/CalvinVon/dalao-proxy.svg)
 
 [English Doc](https://github.com/CalvinVon/dalao-proxy/blob/master/README.md)
