@@ -1,5 +1,7 @@
+const version = require('../package.json').version;
+
 const config = {
-    "version": "0.9.9",
+    version: version,
     "configFilename": "dalao.config.json",
     "cacheDirname": ".dalao-cache",
     "watch": true,

@@ -1,3 +1,4 @@
+const os = require('os');
 const _ = require('lodash');
 const path = require('path');
 
@@ -68,8 +69,8 @@ function transformPath(target, pathRewriteMap) {
                 const replaceStr = pathRewriteMap[path];
                 // use string match replace first, then regexp match
                 result = result
-                        .replace(path, replaceStr)
-                        .replace(rewriteReg, replaceStr)
+                    .replace(path, replaceStr)
+                    .replace(rewriteReg, replaceStr)
             });
 
             return targetTarget + result.replace(/\/\//g, '/');
@@ -103,11 +104,31 @@ function fixJson(value) {
 // is static file uri value
 function isStaticResouce(uri = '') {
     return STATIC_FILE_REG.test(
-            uri
-                .replace(/\?.+/, '')
-                .replace(/#.+/, '')
-        )
-        
+        uri
+            .replace(/\?.+/, '')
+            .replace(/#.+/, '')
+    )
+
+}
+
+function getIPv4Address() {
+    const interfaces = os.networkInterfaces();
+    let ipv4;
+    for (let i in interfaces) {
+        const nets = interfaces[i];
+        const [net] = nets.filter(net => {
+            if (!net.internal && net.family === 'IPv4') {
+                return true;
+            }
+            return false;
+        });
+
+        if (net) {
+            ipv4 = net.address;
+            break;
+        }
+    }
+    return ipv4;
 }
 
 
@@ -121,5 +142,6 @@ module.exports = {
     splitTargetAndPath,
     pathCompareFactory,
     transformPath,
-    fixJson
+    fixJson,
+    getIPv4Address
 }
