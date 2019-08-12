@@ -19,6 +19,7 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
 - Request auto cache with flexible configuration
 - Auto-generate config file
 - Auto reload server when config file changes
+- Support fast switching of multiple environments
 - Expandable and plugin-based system
 
 ![v0.9.2 preview](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/master/.github/screenshot/start.png)

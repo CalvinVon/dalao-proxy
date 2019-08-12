@@ -19,6 +19,7 @@
 - 通过灵活配置自动缓存请求
 - 自动生成配置文件
 - 配置文件更改时自动重启
+- 支持多环境快速自由切换
 - 可扩展和插件架构的系统
 
 ![v0.9.2 preview](https://raw.githubusercontent.com/CalvinVon/dalao-proxy/master/.github/screenshot/start.png)
