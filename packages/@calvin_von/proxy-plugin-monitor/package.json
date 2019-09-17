@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/proxy-plugin-monitor",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A dalao-proxy plugin for request monitoring",
   "main": "index.js",
   "repository": {

@@ -21,10 +21,10 @@ exports.launchMonitor = function (cb) {
     app.use(static(path.join(__dirname, '/web/dist/')));
     server = app.server = http.createServer(app.callback());
 
-    attachServer(port, ws => {
+    attachServer(port, (ws, realPort) => {
         app.ws = ws;
         require('./monitor')(app);
-        cb(port);
+        cb(realPort);
     });
 
     return app;
@@ -49,7 +49,7 @@ exports.launchMonitor = function (cb) {
                     }
                 });
             };
-            callback(ws);
+            callback(ws, port);
         });
 
         server.on('error', function (err) {
