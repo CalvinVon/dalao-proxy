@@ -151,10 +151,7 @@ Default config filename is `dalao.config.json`
         0
     ],
     // define response body filter
-    "responseFilter": [
-        "code",
-        200
-    ],
+    "responseFilter": [],
     // enable logger
     "info": false,
     // show debug message

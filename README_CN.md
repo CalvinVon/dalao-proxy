@@ -151,10 +151,7 @@ Commands:
         0
     ],
     // 设置请求返回体过滤器
-    "responseFilter": [
-        "code",
-        200
-    ],
+    "responseFilter": [],
     // 开启日志
     "info": false,
     // 显示调试信息
