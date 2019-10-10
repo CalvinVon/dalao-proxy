@@ -113,7 +113,7 @@ function proxyRequestWrapper(config) {
         }
 
         // set response CORS
-        setHeaders();
+        setResponseHeaders();
 
         Promise.resolve()
             .then(() => {
@@ -276,6 +276,9 @@ function proxyRequestWrapper(config) {
                 const { path: matchedPath, redirectMeta = {} } = context.matched;
 
                 const x = _request(proxyUrl);
+
+                setProxyRequestHeaders(x);
+
                 const proxyStream = req.pipe(x);
                 proxyStream.pipe(res);
 
@@ -404,15 +407,38 @@ function proxyRequestWrapper(config) {
             });
         }
 
-        function setHeaders() {
+
+        // set headers for response
+        function setResponseHeaders() {
             res.setHeader('Via', 'HTTP/1.1 dalao-proxy');
             res.setHeader('Access-Control-Allow-Origin', requestHost);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
             res.setHeader('Access-Control-Allow-Credentials', true);
             res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
 
+            let _headers;
+
+            if (typeof (headers.response) === 'object') {
+                _headers = headers.response;
+            }
+            // backward compatible
+            else {
+                _headers = headers;
+            }
+
+            setHeadersFor(res, _headers);
+        }
+
+        // set headers for proxy request
+        function setProxyRequestHeaders(proxyRequest) {
+            if (typeof(headers.request) === 'object') {
+                setHeadersFor(proxyRequest, headers.request);
+            }
+        }
+
+        function setHeadersFor(target, headers) {
             for (const header in headers) {
-                res.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
+                target.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
             }
         }
 

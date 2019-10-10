@@ -16,10 +16,7 @@ const config = {
         "second",
         0
     ],
-    "responseFilter": [
-        "code",
-        200
-    ],
+    "responseFilter": [],
     "info": true,
     "debug": false,
     "headers": {},

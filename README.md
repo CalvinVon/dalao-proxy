@@ -31,10 +31,16 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
     - [Start proxy](#Start-proxy)
     - [Enjoy It](#Enjoy-It)
 - [Commands](#Commands)
+- [Start Cache Request Response](#Start-Cache-Request-Response)
+    - [Example](#Example)
+    - [`Never Read Cache` Mode](#Never-Read-Cache-Mode)
+    - [`Read Cache` Mode](#Read-Cache-Mode)
+- [Start Request Mock](#Start-Request-Mock)
 - [Docs](#Docs)
     - [Configuration file](#configuration-file)
         - [Option `host`](#Option-host)
         - [Option `watch`](#Option-watch)
+        - [Option `headers`](#Option-headers)
         - [Option `cache`](#Option-cache)
         - [Option `cacheContentType`](#Option-cacheContentType)
         - [Option `cacheMaxAge`](#Option-cacheMaxAge)
@@ -42,11 +48,6 @@ An expandable HTTP proxy based on the plug-in system for frontend developers wit
         - [Option `proxyTable`](#Option-proxyTable)
         - [Proxy `route` config](#Proxy-route-config)
             - [Route option `pathRewrite`](#Route-option-pathRewrite)
-- [Start Cache Request Response](#Start-Cache-Request-Response)
-    - [Example](#Example)
-    - [`Never Read Cache` Mode](#Never-Read-Cache-Mode)
-    - [`Read Cache` Mode](#Read-Cache-Mode)
-- [Start Request Mock](#Start-Request-Mock)
 - [Plugin System](#Plugin-Systembeta)
     - [Install Plugin](#Install-Plugin)
         - [Global Install Plugin](#Global-Install-Plugin)
@@ -120,150 +121,6 @@ Commands:
   add-plugin [options] <pluginName>  add plugin globally
 ```
 
-# Docs
-## Configuration file
-Dalao will look up the config file in the current working directory while starting up.
-
-Default config filename is `dalao.config.json`
-```js
-{
-    // config file name
-    "configFilename": "dalao.config.json",
-    // cache file store
-    "cacheDirname": ".dalao-cache",
-    // enable reload when config file changes
-    "watch": true,
-    // proxy server host
-    "host": "localhost",
-    // proxy server port
-    "port": 8000,
-    // proxy target (base setting)
-    "target": "target.example.com",
-    // enable proxy request cache (base setting)
-    "cache": false,
-    // define response type to cache (base setting)
-    "cacheContentType": [
-        "application/json"
-    ],
-    // define cache valid max time before expired
-    "cacheMaxAge": [
-        "second",
-        0
-    ],
-    // define response body filter
-    "responseFilter": [],
-    // enable logger
-    "info": false,
-    // show debug message
-    "debug": false,
-    // custom response headers
-    "headers": {},
-    // proxy rule table
-    "proxyTable": {
-        // proxy match rule
-        "/": {
-            "path": "/"
-        }
-    },
-    // extra plugins
-    "plugins": []
-}
-```
-
-### Option `watch`
-- type: **boolean**
-
-    > When configured as `0.0.0.0`, other devices on the LAN can also access the service, and the machine can access using `localhost`.
-
-### Option `watch`
-- type: **boolean**
-- default: `true`
-
-Enable proxy server auto reload when config file changes
-
-### Option `cache`
-- type: **boolean**
-- default: `true`
-
-    Enable request cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
-    > When a request has been cached, extra field `X-Cache-Request` will be added into response headers.
-
-### Option `cacheContentType`
-- *precondition: when `cache` option is `true`*
-- type: **Array**
-- default: `['application/json']`
-
-    Cache filtering by response content type with at least one item matches.
-    *Support `RegExp` expression*
-
-### Option `cacheMaxAge`
-- *precondition: when `cache` option is `true`*
-- type: **Array**
-    - cacheMaxAge[0]: cache expire time unit
-    - cacheMaxAge[1]: cache expire time digit
-        - when digit comes to `0`, `dalao-proxy` will **never** try to look up cache file (but still cache request-response) regardless of expire time. 
-        - when digit comes to special value `'*'`, which means cache file will **never expire**, and `dalao-proxy` will first try to read and return the cache file, and if it is not found, it would return the real request-response.
-- default: `['second', 0]`
-
-    Cache filtering by cache file expires time.
-    > Support quick restart and take effect immediately.
-
-    > `X-Cache-Expire-Time` and `X-Cache-Rest-Time` fields will be included in response headers.
-
-### Option `responseFilter`
-- *precondition: when `cache` option is `true`*
-- type: **Array**
-    - responseFilter[0]: response body field for filtering
-    - responseFilter[1]: valid value for filtering
-- default: `['code', 200]`
-
-Cache filtering by response body data. *Not HTTP status code*
-
-### Option `plugins`
-- type: **Array**
-
-    A list of plugin npm *package name*.
-
-    You will need to add plugins to expand the expandability of `dalao-proxy`. See [Plugins](#Plugins).
-
-### Option `proxyTable`
-- type: **Object**
-- default: `{ "/": { "path": "/" } }`
-
-    Proxy [route](#Proxy-route-config) map set.
-
-### Proxy `route` config
-```js
-{
-    // proxy target path
-    // default: `/`
-    path
-    // proxy target
-    // extend base config option `target`
-    target,
-    // proxy target path rewrite
-    pathRewrite,
-    // route custom config
-    // default: extend base config
-    cache,
-    cacheContentType，
-    cacheMaxAge,
-    responseFilter,
-}
-```
-#### Route option `pathRewrite`
-Use `RegExp` expression to match target path, and replace with rewrite value.
-
-Example:
-```js
-"pathRewrite": {
-    "^/api": ""
-}
-```
-
-`"/api/user/list"` will be replaced to be `"/user/list"`
-
-[back to menu](#Table-of-contents)
 
 # Start Cache Request Response
 1. Set option `cache` to `true`
@@ -380,6 +237,184 @@ module.exports = {
 ```
 
 [back to menu](#Table-of-contents)
+
+
+
+# Docs
+## Configuration file
+Dalao will look up the config file in the current working directory while starting up.
+
+Default config filename is `dalao.config.json`
+```js
+{
+    // config file name
+    "configFilename": "dalao.config.json",
+    // cache file store
+    "cacheDirname": ".dalao-cache",
+    // enable reload when config file changes
+    "watch": true,
+    // proxy server host
+    "host": "localhost",
+    // proxy server port
+    "port": 8000,
+    // proxy target (base setting)
+    "target": "target.example.com",
+    // enable proxy request cache (base setting)
+    "cache": false,
+    // define response type to cache (base setting)
+    "cacheContentType": [
+        "application/json"
+    ],
+    // define cache valid max time before expired
+    "cacheMaxAge": [
+        "second",
+        0
+    ],
+    // define response body filter
+    "responseFilter": [],
+    // enable logger
+    "info": false,
+    // show debug message
+    "debug": false,
+    // custom response headers
+    "headers": {},
+    // proxy rule table
+    "proxyTable": {
+        // proxy match rule
+        "/": {
+            "path": "/"
+        }
+    },
+    // extra plugins
+    "plugins": []
+}
+```
+
+### Option `host`
+- type: **string**
+- default: `localhost`
+
+    > When configured as `0.0.0.0`, other devices on the LAN can also access the service, and the local machine can access using `localhost`.
+
+### Option `watch`
+- type: **boolean**
+- default: `true`
+
+Enable proxy server auto reload when config file changes
+
+
+### Option `headers`
+- type: **Object**
+
+Adding custom **request headers** or **response headers** ([Updated at **v0.9.11**](./CHANGELOG.md#0911-2019-10-10)).
+
+Example:
+```json
+{
+    "headers": {
+        "request": {
+            "Token": "THIS-IS-YOUR-FAKE-TOKEN"
+        },
+        "response": {
+            "Authorization": "THIS-IS-YOUR-FAKE-AUTHORIZATION"
+        }
+    }
+}
+```
+or **only setting response headers** by default (backward compatible).
+```json
+{
+    "headers": {
+        "Authorization": "THIS-IS-YOUR-FAKE-AUTHORIZATION"
+    }
+}
+```
+
+### Option `cache`
+- type: **boolean**
+- default: `true`
+
+    Enable request cache when response satisfies [certain conditions](https://github.com/CalvinVon/dalao-proxy#Start-Cache-Request-Response).
+    > When a request has been cached, extra field `X-Cache-Request` will be added into response headers.
+
+### Option `cacheContentType`
+- *precondition: when `cache` option is `true`*
+- type: **Array**
+- default: `['application/json']`
+
+    Cache filtering by response content type with at least one item matches.
+    *Support `RegExp` expression*
+
+### Option `cacheMaxAge`
+- *precondition: when `cache` option is `true`*
+- type: **Array**
+    - cacheMaxAge[0]: cache expire time unit
+    - cacheMaxAge[1]: cache expire time digit
+        - when digit comes to `0`, `dalao-proxy` will **never** try to look up cache file (but still cache request-response) regardless of expire time. 
+        - when digit comes to special value `'*'`, which means cache file will **never expire**, and `dalao-proxy` will first try to read and return the cache file, and if it is not found, it would return the real request-response.
+- default: `['second', 0]`
+
+    Cache filtering by cache file expires time.
+    > Support quick restart and take effect immediately.
+
+    > `X-Cache-Expire-Time` and `X-Cache-Rest-Time` fields will be included in response headers.
+
+### Option `responseFilter`
+- *precondition: when `cache` option is `true`*
+- type: **Array**
+    - responseFilter[0]: response body field for filtering
+    - responseFilter[1]: valid value for filtering
+- default: `['code', 200]`
+
+Cache filtering by response body data. *Not HTTP status code*
+
+### Option `plugins`
+- type: **Array**
+
+    A list of plugin npm *package name*.
+
+    You will need to add plugins to expand the expandability of `dalao-proxy`. See [Plugins](#Plugins).
+
+### Option `proxyTable`
+- type: **Object**
+- default: `{ "/": { "path": "/" } }`
+
+    Proxy [route](#Proxy-route-config) map set.
+
+### Proxy `route` config
+```js
+{
+    // proxy target path
+    // default: `/`
+    path
+    // proxy target
+    // extend base config option `target`
+    target,
+    // proxy target path rewrite
+    pathRewrite,
+    // route custom config
+    // default: extend base config
+    cache,
+    cacheContentType，
+    cacheMaxAge,
+    responseFilter,
+}
+```
+#### Route option `pathRewrite`
+Use `RegExp` expression to match target path, and replace with rewrite value.
+
+Example:
+```js
+"pathRewrite": {
+    "^/api": ""
+}
+```
+
+`"/api/user/list"` will be replaced to be `"/user/list"`
+
+[back to menu](#Table-of-contents)
+
+
 # Plugin System[Beta]
 `Dalao-proxy` support custom plugins now by using option [`plugins`](#Option-plugins).
 > **Note**: Reinstalling `dalao-proxy` will cause globally installed plugins to fail (local installation is not affected) and you will need to reinstall the required plugins globally.
