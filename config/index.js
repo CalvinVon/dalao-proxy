@@ -3,20 +3,39 @@ const version = require('../package.json').version;
 const config = {
     version: version,
     "configFilename": "dalao.config.json",
-    "cacheDirname": ".dalao-cache",
+    // "cacheDirname": ".dalao-cache",
     "watch": true,
     "host": "localhost",
     "port": 8000,
     "target": "target.example.com",
-    "cache": false,
-    "cacheContentType": [
-        "application/json"
-    ],
-    "cacheMaxAge": [
-        "second",
-        0
-    ],
-    "responseFilter": [],
+    // "cache": false,
+    "cache": {
+        "enable": true,
+        "dirname": ".dalao-cache",
+        "contentType": [
+            "application/json"
+        ],
+        "maxAge": [
+            "second",
+            0
+        ],
+        "filters": [
+            {
+                "when": "response",
+                "by": "header",
+                "field": "code",
+                "value": 200
+            }
+        ],
+    },
+    // "cacheContentType": [
+    //     "application/json"
+    // ],
+    // "cacheMaxAge": [
+    //     "second",
+    //     0
+    // ],
+    // "responseFilter": [],
     "info": true,
     "debug": false,
     "headers": {},
