@@ -16,8 +16,6 @@ const {
     fixJson
 } = require('../utils');
 
-const { checkAndCreateCacheFolder } = require('../plugin/proxy-cache/utils');
-
 const parseEmitter = new EventEmitter();
 exports.parseEmitter = parseEmitter;
 
@@ -90,20 +88,12 @@ function parseRouter(config) {
     const {
         target,
         proxyTable,
-        cache,
-        cacheDirname,
-        cacheContentType,
-        cacheMaxAge,
-        responseFilter
     } = config;
 
-    if (cache) {
-        checkAndCreateCacheFolder(cacheDirname);
-    }
 
     const Table = require('cli-table');
     const outputTable = new Table({
-        head: ['Proxy'.yellow, 'Target'.white, 'Path Rewrite'.white, 'Result'.yellow, 'Cache'.yellow]
+        head: ['Proxy'.yellow, 'Target'.white, 'Path Rewrite'.white, 'Result'.yellow]
     });
 
     const proxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(1));
@@ -120,10 +110,6 @@ function parseRouter(config) {
             ['path',            '/',        CheckFunctions.proxyTable.path],
             ['target',          target,     CheckFunctions.proxyTable.target],
             ['pathRewrite',     {}],
-            ['cache',           cache,      CheckFunctions.proxyTable.cache],
-            ['cacheContentType',cacheContentType],
-            ['cacheMaxAge',     cacheMaxAge],
-            ['responseFilter',  responseFilter]
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
@@ -159,7 +145,6 @@ function resolveRouteProxyMap(proxyPath, router) {
         path: overwritePath,
         target: overwriteTarget,
         pathRewrite: overwritePathRewrite,
-        cache: overwriteCache,
     } = router;
 
     function pathRewriteToString(pathRewriteMap) {
@@ -204,8 +189,6 @@ function resolveRouteProxyMap(proxyPath, router) {
         pathRewriteToString(overwritePathRewrite),
         // Result
         resolveProxyRoute(),
-        // Cache
-        overwriteCache
     ];
 }
 /**
@@ -227,7 +210,6 @@ exports.parse = function parse(program) {
         "port",
         "host",
         "target",
-        "cache",
         "info",
     ]);
 

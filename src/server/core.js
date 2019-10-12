@@ -92,6 +92,7 @@ function interrupter(context, resolve, reject) {
  */
 function proxyRequestWrapper(config) {
     shouldCleanUpAllConnections = true;
+    plugins = config._plugins;
 
     function proxyRequest(req, res) {
         const {
@@ -495,18 +496,7 @@ function proxyRequestWrapper(config) {
     return proxyRequest;
 }
 
-/**
- * Install plugins as proxy middleware
- * @param {Array} plugins plugin name array to install
- */
-function usePlugins(pluginNames) {
-    plugins = [];
-    pluginNames.forEach(pluginName => {
-        plugins.push(new Plugin(pluginName));
-    });
-}
 
 module.exports = {
     httpCallback: proxyRequestWrapper,
-    usePlugins
 }

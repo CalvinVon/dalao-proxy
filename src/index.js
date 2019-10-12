@@ -3,11 +3,11 @@ const ProxyServer = require('./server');
 const ConfigGenerator = require('./scripts/generate-config');
 const MockFileGenerator = require('./scripts/generate-mock');
 const PluginAdder = require('./scripts/add-plugin');
+const { Plugin } = require('./plugin');
 
 const rm = require('rimraf');
 const path = require('path');
 
-let _program;
 
 /**
  * Config Parse & Start Proxy Server
@@ -17,8 +17,6 @@ exports.Startup = function Startup (program, startupEmitter) {
 
     // ### Startup Emitter Hook
     startupEmitter.emit('startup:init');
-
-    _program = program;
 
     let proxyServer;
     
@@ -43,19 +41,16 @@ exports.Startup = function Startup (program, startupEmitter) {
         startupEmitter.emit('startup:server', proxyServer);
     });
 
-    // start to parse
-    ConfigParser.parse(program);
-
     return startupEmitter;
 };
 
 /**
  * Reparse configuration, and reload program
  */
-exports.Reload = function Reload () {
+exports.Reload = function Reload (program) {
     console.clear();
     console.log('\n> dalao is reloading...'.green);
-    ConfigParser.parse(_program);
+    ConfigParser.parse(program);
 };
 
 exports.CleanCache = function CleanCache(config) {
@@ -109,3 +104,12 @@ exports.printWelcome = function printWelcome (version) {
     console.log('                        https://github.com/CalvinVon/dalao-proxy'.grey);
     console.log('\n');
 };
+
+exports.usePlugins = function usePlugins(program, pluginEmitter, { plugins }) {
+    program._plugins = [];
+    plugins.forEach(name => {
+        const plugin = new Plugin(name);
+        program._plugins.push(plugin);
+        plugin.register(program, pluginEmitter);
+    });
+}

@@ -3,13 +3,11 @@
 require('colors');
 const path = require('path');
 const program = require('commander');
-const baseConfig = require('../config');
+const { Command } = require('commander');
 const EventEmitter = require('events');
 const readline = require('readline');
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const baseConfig = require('../config');
+const ConfigParser = require('./parser/config-parser');
 
 const {
     Startup,
@@ -18,13 +16,47 @@ const {
     Init,
     Mock,
     AddPlugin,
-    printWelcome
+    printWelcome,
+    usePlugins
 } = require('../src');
+
 const startupEmitter = new EventEmitter();
+const pluginEmitter = new EventEmitter();
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
 
 let runtimeConfig,
     proxySever,
     input_command;
+
+const originCommandFn = Command.prototype.command;
+const originActionFn = Command.prototype.action;
+
+
+Command.prototype.command = function commandWrapper() {
+    const commandName = arguments[0];
+    this.on('command:' + commandName, function () {
+        pluginEmitter.emit('command:' + commandName, arguments);
+    });
+    return originCommandFn.apply(this, arguments);
+};
+
+Command.prototype.action = function actionWrapper() {
+    input_command = true;
+    return originActionFn.apply(this, arguments);
+};
+
+
+startupEmitter
+    .on('startup:config', function (config) {
+        runtimeConfig = config;
+    })
+    .on('startup:server', function (server) {
+        proxySever = server;
+    })
 
 program
     .version(baseConfig.version)
@@ -40,17 +72,8 @@ program
     .action(function () {
         printWelcome(baseConfig.version);
 
-        startupEmitter
-            .on('startup:config', function (config) {
-                runtimeConfig = config;
-            })
-            .on('startup:server', function (server) {
-                proxySever = server;
-            })
-
         Startup(this, startupEmitter);
-        input_command = true;
-    })
+    });
 
 program
     .command('init')
@@ -61,8 +84,7 @@ program
         rl.close();
 
         Init(this);
-        input_command = true;
-    })
+    });
 
 program
     .command('mock <method>')
@@ -80,8 +102,7 @@ program
             return;
         }
         Mock(this, method);
-        input_command = true;
-    })
+    });
 
 program
     .command('clean')
@@ -92,8 +113,7 @@ program
         rl.close();
 
         CleanCache(require(program.config || path.join(process.cwd(), baseConfig.configFilename)));
-        input_command = true;
-    })
+    });
 
 program
     .command('add-plugin <pluginName>')
@@ -103,8 +123,10 @@ program
         rl.close();
 
         AddPlugin(this, pluginName);
-        input_command = true;
-    })
+    });
+
+
+usePlugins(program, pluginEmitter, runtimeConfig);
 
 program
     .on('command:*', function () {
@@ -120,7 +142,10 @@ program
         console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
         console.log('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'.gray);
     })
-    .parse(process.argv)
+    .parse(process.argv);
+
+
+ConfigParser.parse(program);
 
 if (!input_command) {
     program.outputHelp();
@@ -129,9 +154,11 @@ if (!input_command) {
 
 // user runtime input listener
 rl.on('line', runtimeCmd => {
+    pluginEmitter.emit('input', runtimeCmd);
+
     if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
         proxySever.close();
-        Reload();
+        Reload(program);
     }
     else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
         CleanCache(runtimeConfig);

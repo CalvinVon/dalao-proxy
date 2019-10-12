@@ -36,9 +36,6 @@ function attachServerListener(server, config) {
 
 function createProxyServer(config) {
 
-    // use plugins
-    dalaoProxy.usePlugins(config.plugins);
-
     // create server
     const server = http.createServer(dalaoProxy.httpCallback(config));
 
