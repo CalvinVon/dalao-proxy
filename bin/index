@@ -2,152 +2,71 @@
 
 require('colors');
 const path = require('path');
-const program = require('commander');
-const { Command } = require('commander');
-const EventEmitter = require('events');
 const readline = require('readline');
 const baseConfig = require('../config');
-const ConfigParser = require('./parser/config-parser');
 
+const pluginEmitter = require('../src/plugin').pluginEmitter;
 const {
-    Startup,
-    Reload,
+    program,
+    ConfigParser,
+    parserEmitter,
     CleanCache,
-    Init,
-    Mock,
-    AddPlugin,
     printWelcome,
-    usePlugins
+    usePlugins,
+    commands: Commands,
 } = require('../src');
-
-const startupEmitter = new EventEmitter();
-const pluginEmitter = new EventEmitter();
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
 
 let runtimeConfig,
     proxySever,
-    input_command;
-
-const originCommandFn = Command.prototype.command;
-const originActionFn = Command.prototype.action;
+    rl;
 
 
-Command.prototype.command = function commandWrapper() {
-    const commandName = arguments[0];
-    this.on('command:' + commandName, function () {
-        pluginEmitter.emit('command:' + commandName, arguments);
-    });
-    return originCommandFn.apply(this, arguments);
-};
+parserEmitter.on('config:parsed', function (config) {
+    program.context.config = runtimeConfig = config;
+    usePlugins(program, runtimeConfig);
+});
 
-Command.prototype.action = function actionWrapper() {
-    input_command = true;
-    return originActionFn.apply(this, arguments);
-};
-
-
-startupEmitter
-    .on('startup:config', function (config) {
-        runtimeConfig = config;
-    })
-    .on('startup:server', function (server) {
-        proxySever = server;
-    })
-
-program
-    .version(baseConfig.version)
-    .command('start')
-    .description('auto detect config & start proxy server'.green)
-    .option('-C, --config <filepath>', 'use custom config file')
-    .option('-w, --watch', 'reload when config file changes')
-    .option('-P, --port <port>', 'custom proxy server listening port')
-    .option('-H, --host <hostname>', 'custom proxy server hostname')
-    .option('-t, --target <proxyTarget>', 'target server to proxy')
-    .option('-c, --cache', 'enable request cache')
-    .option('-i, --info', 'enable log print')
-    .action(function () {
-        printWelcome(baseConfig.version);
-
-        Startup(this, startupEmitter);
-    });
-
-program
-    .command('init')
-    .description('create an init config file in current folder'.green)
-    .option('-f, --force', 'Skip options and force generate default config file', false)
-    .action(function () {
-        // only one stdin listener allowed to be attached at same time
+// Command: Start
+program.use(Commands.start, function (server) {
+    if (rl) {
         rl.close();
-
-        Init(this);
+    }
+    rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
     });
+    program.context.server = proxySever = server;
+    printWelcome(baseConfig.version);
+});
 
-program
-    .command('mock <method>')
-    .description('create a mock file in json format')
-    .option('--js', 'use javascript file')
-    .option('-C, --config <filepath>', 'use custom config file')
-    .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
-    .action(function (method) {
-        // only one stdin listener allowed to be attached at same time
-        rl.close();
+// Command: Init
+program.use(Commands.init);
 
-        if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
-            console.error(method.red + ' is NOT a valid HTTP method');
-            process.exit(-1);
-            return;
-        }
-        Mock(this, method);
-    });
+// Command: Add-plugin
+program.use(Commands.addPlugin);
 
-program
-    .command('clean')
-    .description('clean cache files'.green)
-    .option('-C, --config <filepath>', 'use custom config file')
-    .action(function () {
-        // only one stdin listener allowed to be attached at same time
-        rl.close();
+program.use(function () {
+    program
+        .on('command:*', function () {
+            program.outputHelp();
+        })
+        .on('--help', function () {
+            console.log('')
+            console.log('Examples:');
+            console.log('  $ dalao-proxy init'.gray);
+            console.log('  $ dalao-proxy mock get'.gray);
+            console.log('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'.gray);
+            console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'.gray);
+            console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
+            console.log('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'.gray);
+        });
+});
 
-        CleanCache(require(program.config || path.join(process.cwd(), baseConfig.configFilename)));
-    });
-
-program
-    .command('add-plugin <pluginName>')
-    .description('add plugin globally')
-    .option('-d, --delete', 'delete plugin globally')
-    .action(function (pluginName) {
-        rl.close();
-
-        AddPlugin(this, pluginName);
-    });
-
-
-usePlugins(program, pluginEmitter, runtimeConfig);
-
-program
-    .on('command:*', function () {
-        program.outputHelp();
-    })
-    .on('--help', function () {
-        console.log('')
-        console.log('Examples:');
-        console.log('  $ dalao-proxy init'.gray);
-        console.log('  $ dalao-proxy mock get'.gray);
-        console.log('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'.gray);
-        console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'.gray);
-        console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
-        console.log('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'.gray);
-    })
-    .parse(process.argv);
-
-
+program.parse(process.argv);
 ConfigParser.parse(program);
 
-if (!input_command) {
+if (!program.context.command) {
     program.outputHelp();
     process.exit(1);
 }
@@ -157,12 +76,16 @@ rl.on('line', runtimeCmd => {
     pluginEmitter.emit('input', runtimeCmd);
 
     if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
-        proxySever.close();
-        Reload(program);
+        console.clear();
+        console.log('\n> dalao is reloading...'.green);
+
+        proxySever.close(function () {
+            ConfigParser.parse(program);
+        });
     }
-    else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
-        CleanCache(runtimeConfig);
-    }
+    // else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
+    //     CleanCache(runtimeConfig);
+    // }
 });
 
 // process error caughtor

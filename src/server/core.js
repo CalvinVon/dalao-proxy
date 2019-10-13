@@ -90,9 +90,9 @@ function interrupter(context, resolve, reject) {
  * - Collect request/proxy-response data
  * - Middleware: after proxy request                  [life-cycle:afterProxy]
  */
-function proxyRequestWrapper(config) {
+function proxyRequestWrapper(config, corePlugins) {
     shouldCleanUpAllConnections = true;
-    plugins = config._plugins;
+    plugins = corePlugins;
 
     function proxyRequest(req, res) {
         const {

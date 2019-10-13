@@ -1,57 +1,45 @@
+const program = require('commander');
+const { Command } = require('commander');
 const ConfigParser = require('./parser/config-parser');
-const ProxyServer = require('./server');
-const ConfigGenerator = require('./scripts/generate-config');
 const MockFileGenerator = require('./scripts/generate-mock');
-const PluginAdder = require('./scripts/add-plugin');
-const { Plugin } = require('./plugin');
+const { Plugin, pluginEmitter } = require('./plugin');
+
+program.context = {};
+
+exports.ConfigParser = ConfigParser;
+exports.parserEmitter = ConfigParser.emitter;
+
+// Commands
+exports.commands = {
+    start: require('./commands/start.command'),
+    init: require('./commands/init.command'),
+    addPlugin: require('./commands/add-plugin.command'),
+};
 
 const rm = require('rimraf');
 const path = require('path');
 
+const originCommandFn = Command.prototype.command;
+const originActionFn = Command.prototype.action;
 
-/**
- * Config Parse & Start Proxy Server
- * @return {EventEmitter} ConfigParser.parseEmitter
- */
-exports.Startup = function Startup (program, startupEmitter) {
-
-    // ### Startup Emitter Hook
-    startupEmitter.emit('startup:init');
-
-    let proxyServer;
-    
-    // registe listener
-    ConfigParser.parseEmitter.on('config:parsed', function (config) {
-        // ### Startup Emitter Hook
-        startupEmitter.emit('startup:config', config);
-
-        if (config.debug) {
-            console.log('> parsed user configuration'.yellow)
-            console.log(config);
-        }
-
-        if (proxyServer) {
-            proxyServer.close();
-        }
-
-        // start a proxy server
-        proxyServer = ProxyServer.createProxyServer(config);
-
-        // ### Startup Emitter Hook
-        startupEmitter.emit('startup:server', proxyServer);
+Command.prototype.command = function commandWrapper() {
+    const commandName = arguments[0];
+    this.on('command:' + commandName, function () {
+        this.context.command = commandName;
+        pluginEmitter.emit('command:' + commandName, arguments);
     });
-
-    return startupEmitter;
+    return originCommandFn.apply(this, arguments);
 };
 
-/**
- * Reparse configuration, and reload program
- */
-exports.Reload = function Reload (program) {
-    console.clear();
-    console.log('\n> dalao is reloading...'.green);
-    ConfigParser.parse(program);
+Command.prototype.action = function actionWrapper() {
+    return originActionFn.apply(this, arguments);
 };
+
+exports.program = program;
+program.use = function use(register, callback) {
+    register.call(program, program, callback);
+};
+
 
 exports.CleanCache = function CleanCache(config) {
     const cacheDir = path.join(process.cwd(), config.cacheDirname || '.dalao-cache', './*.js**');
@@ -65,28 +53,15 @@ exports.CleanCache = function CleanCache(config) {
     })
 };
 
-/**
- * Generate Config File Based By User Input
- */
-exports.Init = function InitConfigFile (program) {
-    ConfigGenerator(program);
-};
-
-/**
- * Add global plugin
- */
-exports.AddPlugin = function AddPlugin (program, pluginName) {
-    PluginAdder(program, pluginName);
-};
 
 /**
  * Generate Base Mock File
  */
-exports.Mock = function GenerateMock (program, method, runtimeConfig) {
+exports.Mock = function GenerateMock(program, method, runtimeConfig) {
     MockFileGenerator(program, method, runtimeConfig);
 };
 
-exports.printWelcome = function printWelcome (version) {
+exports.printWelcome = function printWelcome(version) {
     let str = '';
     // str += '________           .__                    __________                                 \n';
     // str += '\\______ \\  _____   |  |  _____     ____   \\______   \\_______   ____  ___  ___ ___.__.\n';
@@ -105,11 +80,11 @@ exports.printWelcome = function printWelcome (version) {
     console.log('\n');
 };
 
-exports.usePlugins = function usePlugins(program, pluginEmitter, { plugins }) {
-    program._plugins = [];
-    plugins.forEach(name => {
+exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
+    program.context.plugins = [];
+    pluginsNames.forEach(name => {
         const plugin = new Plugin(name);
-        program._plugins.push(plugin);
-        plugin.register(program, pluginEmitter);
+        program.context.plugins.push(plugin);
+        plugin.register(program);
     });
 }

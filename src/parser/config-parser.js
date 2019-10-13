@@ -17,7 +17,7 @@ const {
 } = require('../utils');
 
 const parseEmitter = new EventEmitter();
-exports.parseEmitter = parseEmitter;
+exports.emitter = parseEmitter;
 
 let isWatching;
 
@@ -56,7 +56,7 @@ function fileParser(filePath) {
         });
 
         const mergedConfig_extra_obj = _.merge({}, baseConfig_extra_obj, fileConfig_extra_obj);
-        
+
         const mergedConfig_extra_arr = {};
         EXTRA_FIELDS.arr.forEach(field => {
             const baseConfigField = baseConfig_extra_arr[field] || [];
@@ -82,6 +82,7 @@ function fileParser(filePath) {
 /**
  * Parse each router in Route Table
  * @param {Object} config
+ * @return {CliTable}
  */
 function parseRouter(config) {
 
@@ -107,16 +108,17 @@ function parseRouter(config) {
          * [ localKey, defaultValue, checkFunction ]
          */
         [
-            ['path',            '/',        CheckFunctions.proxyTable.path],
-            ['target',          target,     CheckFunctions.proxyTable.target],
-            ['pathRewrite',     {}],
+            ['path', '/', CheckFunctions.proxyTable.path],
+            ['target', target, CheckFunctions.proxyTable.target],
+            ['pathRewrite', {}],
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
 
         outputTable.push(resolveRouteProxyMap(proxyPath, router));
     });
-    console.log(outputTable.toString().green);
+
+    return outputTable;
 }
 
 /**
@@ -227,9 +229,13 @@ exports.parse = function parse(program) {
     const fileConfig = fileParser(filePath);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
-    parseRouter(runtimeConfig);
+    runtimeConfig.output = {
+        routeTable: parseRouter(runtimeConfig)
+    };
 
-    if (fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
+    const currentCommand = program.context.command;
+
+    if (currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
         console.log(`> 👳   dalao is ${'watching'.green} at your config file`);
         fs.watchFile(filePath, function () {
             console.clear();
@@ -240,7 +246,7 @@ exports.parse = function parse(program) {
             const changedFileConfig = fileParser(filePath);
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
-            parseRouter(runtimeConfig);
+            runtimeConfig.output.routeTable = parseRouter(runtimeConfig);
             // emit event to reload proxy server
             parseEmitter.emit('config:parsed', runtimeConfig);
             isWatching = true;

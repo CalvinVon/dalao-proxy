@@ -34,10 +34,11 @@ function attachServerListener(server, config) {
     server.listen(port, host);
 }
 
-function createProxyServer(config) {
+function createProxyServer(program) {
+    const { config, plugins } = program.context;
 
     // create server
-    const server = http.createServer(dalaoProxy.httpCallback(config));
+    const server = http.createServer(dalaoProxy.httpCallback(config, plugins));
 
     // attach server to port
     attachServerListener(server, config);

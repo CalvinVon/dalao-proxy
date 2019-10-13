@@ -1,10 +1,13 @@
 
 const path = require('path');
+const EventEmitter = require('events');
 const { isDebugMode } = require('../utils');
 const PATH_COMMANDER = './commander';
 
 function noop() { }
 function nonCallback(next) { next && next(false); }
+const pluginEmitter = new EventEmitter();
+
 
 /**
  * @class Plugin
@@ -37,10 +40,10 @@ class Plugin {
             else {
                 if (isDebugMode()) {
                     const pluginPath = path.resolve(__dirname, '../../packages/', pluginName);
-                    const pluginPath = path.resolve(pluginPath, PATH_COMMANDER);
+                    const pluginCommanderPath = path.resolve(pluginPath, PATH_COMMANDER);
                     this.middleware = require(pluginPath);
                     try {
-                        this.commander = require()
+                        this.commander = require(pluginCommanderPath)
                     } catch (error) {
                         // do nothing
                     }
@@ -78,11 +81,10 @@ class Plugin {
     /**
      * Register commanders or listeners
      * @param {Commander.Program} program 
-     * @param {Commander.Program} program 
      */
-    register(program, emitter) {
+    register(program) {
         if (this.commander && typeof(this.commander) === 'function') {
-            this.commander.call(this, program, emitter);
+            this.commander.call(this, program, pluginEmitter);
         }
     }
 
@@ -121,5 +123,6 @@ class PluginInterrupt {
 
 module.exports = {
     Plugin,
-    PluginInterrupt
+    PluginInterrupt,
+    pluginEmitter,
 }

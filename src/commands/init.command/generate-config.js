@@ -2,9 +2,9 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const defaultConfig = require('../../config');
+const defaultConfig = require('../../../config');
 const pwd = process.cwd();
-const custom_assign = require('../utils').custom_assign;
+const custom_assign = require('../../utils').custom_assign;
 
 // questions
 let questionObjs = [
