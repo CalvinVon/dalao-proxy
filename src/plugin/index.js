@@ -6,23 +6,40 @@ const PATH_COMMANDER = './commander';
 
 function noop() { }
 function nonCallback(next) { next && next(false); }
-const pluginEmitter = new EventEmitter();
+function isNoCommanderError(error) {
+    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/Cannot find module.*commander'$/);
+}
+
+class Register extends EventEmitter {
+    constructor() {
+        super();
+    }
+
+    configure(field, setter) {
+
+    }
+}
+
+const register = new Register();
 
 
 /**
  * @class Plugin
+ * @member id plugin id
  * @member middleware core proxy middleware
  * @member commander register commands
+ * @member context program context
  */
 class Plugin {
     /**
-     * @param {String} id id of plugin
+     * @param {String} name
      * @param {String} pluginName
      */
-    constructor(pluginName, id) {
+    constructor(pluginName, program) {
+        this.context = program.context;
         this.middleware = {};
         this.commander = {};
-        this.id = id || pluginName;
+        this.id = pluginName;
 
         try {
             let match;
@@ -34,7 +51,9 @@ class Plugin {
                 try {
                     this.commander = require(buildInCommanderPath);
                 } catch (error) {
-                    // do nothing
+                    if (!isNoCommanderError(error)) {
+                        console.error(error);
+                    }
                 }
             }
             else {
@@ -45,7 +64,9 @@ class Plugin {
                     try {
                         this.commander = require(pluginCommanderPath);
                     } catch (error) {
-                        // do nothing
+                        if (!isNoCommanderError(error)) {
+                            console.error(error);
+                        }
                     }
                 }
                 else {
@@ -53,7 +74,9 @@ class Plugin {
                     try {
                         this.commander = require(path.join(pluginName, PATH_COMMANDER));
                     } catch (error) {
-                        // do nothing
+                        if (!isNoCommanderError(error)) {
+                            console.error(error);
+                        }
                     }
                 }
             }
@@ -66,6 +89,8 @@ class Plugin {
                 console.error(error);
             }
         }
+
+        this.extends(program);
     }
 
     _methodWrapper(method, replacement, ...args) {
@@ -82,9 +107,9 @@ class Plugin {
      * Register commanders or listeners
      * @param {Commander.Program} program 
      */
-    register(program) {
+    extends(program) {
         if (this.commander && typeof (this.commander) === 'function') {
-            this.commander.call(this, program, pluginEmitter);
+            this.commander.call(this, program, register);
         }
     }
 
@@ -124,5 +149,5 @@ class PluginInterrupt {
 module.exports = {
     Plugin,
     PluginInterrupt,
-    pluginEmitter,
+    register,
 }

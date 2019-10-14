@@ -43,6 +43,9 @@ function createProxyServer(program) {
     // attach server to port
     attachServerListener(server, config);
 
+    // print route table
+    console.log(program.context.output.routeTable.toString());
+
     return server;
 }
 

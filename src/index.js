@@ -1,15 +1,7 @@
 const program = require('commander');
 const { Command } = require('commander');
 const ConfigParser = require('./parser/config-parser');
-const { Plugin, pluginEmitter } = require('./plugin');
-
-program.context = {
-    config: null,
-    server: null,
-    command: null,
-    plugins: [],
-    output: {},
-};
+const { Plugin, register } = require('./plugin');
 
 exports.ConfigParser = ConfigParser;
 exports.parserEmitter = ConfigParser.emitter;
@@ -25,30 +17,40 @@ exports.commands = {
 const originCommandFn = Command.prototype.command;
 const originActionFn = Command.prototype.action;
 
+// Expose states so plugins can access
+Command.prototype.context = {
+    config: null,
+    server: null,
+    command: null,
+    plugins: [],
+    output: {},
+};
+
 Command.prototype.command = function commandWrapper() {
     const commandName = arguments[0];
     this.on('command:' + commandName, function () {
         this.context.command = commandName;
-        pluginEmitter.emit('command:' + commandName, arguments);
+        register.emit('command:' + commandName, arguments);
     });
     return originCommandFn.apply(this, arguments);
 };
 
-Command.prototype.action = function actionWrapper() {
-    return originActionFn.apply(this, arguments);
+Command.prototype.action = function actionWrapper(callback) {
+    const that = this;
+    return originActionFn.call(this, function callbackWrapper() {
+        callback.apply(this, arguments);
+    });
 };
 
 exports.program = program;
-program.use = function use(register, callback) {
-    register.call(program, program, callback);
+program.use = function use(command, callback) {
+    command.call(program, program, callback);
 };
 
 exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
     program.context.plugins = [];
     pluginsNames.forEach(name => {
-        const plugin = new Plugin(name);
-        program.context.plugins.push(plugin);
-        plugin.register(program);
+        program.context.plugins.push(new Plugin(name, program));
     });
 };
 

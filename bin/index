@@ -1,27 +1,26 @@
 #!/usr/bin/env node
 
 require('colors');
-const path = require('path');
 const readline = require('readline');
 const baseConfig = require('../config');
 
-const pluginEmitter = require('../src/plugin').pluginEmitter;
+const register = require('../src/plugin').register;
 const {
     program,
     ConfigParser,
     parserEmitter,
-    CleanCache,
     printWelcome,
     usePlugins,
     commands: Commands,
 } = require('../src');
 
+printWelcome(baseConfig.version);
+
 
 let runtimeConfig,
-    proxySever,
-    rl;
+    proxySever;
 
-rl = readline.createInterface({
+const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
@@ -29,15 +28,17 @@ rl = readline.createInterface({
 parserEmitter.on('config:parsed', function (config) {
     program.context.config = runtimeConfig = config;
     usePlugins(program, runtimeConfig);
+    program.parse(process.argv);
+
+    if (config.debug) {
+        console.log('> parsed user configuration'.yellow)
+        console.log(config);
+    }
 });
 
 // Command: Start
 program.use(Commands.start, function (server) {
-    if (rl) {
-        rl.close();
-    }
     program.context.server = proxySever = server;
-    printWelcome(baseConfig.version);
 });
 
 // Command: Init
@@ -63,7 +64,6 @@ program.use(function () {
         });
 });
 
-program.parse(process.argv);
 ConfigParser.parse(program);
 
 if (!program.context.command) {
@@ -73,7 +73,7 @@ if (!program.context.command) {
 
 // user runtime input listener
 rl.on('line', runtimeCmd => {
-    pluginEmitter.emit('input', runtimeCmd);
+    register.emit('input', runtimeCmd);
 
     if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
         console.clear();

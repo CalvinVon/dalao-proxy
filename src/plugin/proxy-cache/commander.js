@@ -2,7 +2,8 @@ const path = require('path');
 const rm = require('rimraf');
 const MockFileGenerator = require('./generate-mock');
 
-module.exports = function (program, emitter) {
+module.exports = function (program, register) {
+    console.log(this)
     program
         .command('mock <method>')
         .description('create a mock file in json format')
@@ -31,6 +32,14 @@ module.exports = function (program, emitter) {
         });
 
 
+    // register.on('command:start', function () {
+    //     console.log('plugin-cache.commander', program.context)
+    // });
+
+    // register.on('input', console.log);
+    register.configure('output', output => {
+        console.log(output);
+    });
 };
 
 function CleanCache(config) {

@@ -1,6 +1,6 @@
 const baseConfig = require('../../../config');
-const { parserEmitter } = require('../../');
 const ProxyServer = require('../../server');
+let proxyServer;
 
 module.exports = function startCommand(program, callback) {
     program
@@ -15,27 +15,13 @@ module.exports = function startCommand(program, callback) {
         .option('-c, --cache', 'enable request cache')
         .option('-i, --info', 'enable log print')
         .action(function () {
-            startup(program, callback);
+            if (proxyServer) {
+                proxyServer.close();
+            }
+
+            // start a proxy server
+            proxyServer = ProxyServer.createProxyServer(program);
+            
+            callback(proxyServer);
         });
-}
-
-function startup(program, callback) {
-    let proxyServer;
-
-    parserEmitter.on('config:parsed', function (config) {
-
-        if (config.debug) {
-            console.log('> parsed user configuration'.yellow)
-            console.log(config);
-        }
-
-        if (proxyServer) {
-            proxyServer.close();
-        }
-
-        // start a proxy server
-        proxyServer = ProxyServer.createProxyServer(program);
-
-        callback(proxyServer);
-    });
-}
+};
