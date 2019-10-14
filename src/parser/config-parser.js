@@ -229,7 +229,8 @@ exports.parse = function parse(program) {
     const fileConfig = fileParser(filePath);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
-    runtimeConfig.output = {
+    
+    program.output = {
         routeTable: parseRouter(runtimeConfig)
     };
 

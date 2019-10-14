@@ -21,6 +21,10 @@ let runtimeConfig,
     proxySever,
     rl;
 
+rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 parserEmitter.on('config:parsed', function (config) {
     program.context.config = runtimeConfig = config;
@@ -32,10 +36,6 @@ program.use(Commands.start, function (server) {
     if (rl) {
         rl.close();
     }
-    rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
     program.context.server = proxySever = server;
     printWelcome(baseConfig.version);
 });

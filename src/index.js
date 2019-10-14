@@ -1,10 +1,15 @@
 const program = require('commander');
 const { Command } = require('commander');
 const ConfigParser = require('./parser/config-parser');
-const MockFileGenerator = require('./scripts/generate-mock');
 const { Plugin, pluginEmitter } = require('./plugin');
 
-program.context = {};
+program.context = {
+    config: null,
+    server: null,
+    command: null,
+    plugins: [],
+    output: {},
+};
 
 exports.ConfigParser = ConfigParser;
 exports.parserEmitter = ConfigParser.emitter;
@@ -16,8 +21,6 @@ exports.commands = {
     addPlugin: require('./commands/add-plugin.command'),
 };
 
-const rm = require('rimraf');
-const path = require('path');
 
 const originCommandFn = Command.prototype.command;
 const originActionFn = Command.prototype.action;
@@ -40,26 +43,15 @@ program.use = function use(register, callback) {
     register.call(program, program, callback);
 };
 
-
-exports.CleanCache = function CleanCache(config) {
-    const cacheDir = path.join(process.cwd(), config.cacheDirname || '.dalao-cache', './*.js**');
-    rm(cacheDir, err => {
-        if (err) {
-            console.log('  [error] something wrong happened during clean cache'.red, err);
-        }
-        else {
-            console.log('  [info] dalao cache has been cleaned!'.green);
-        }
-    })
+exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
+    program.context.plugins = [];
+    pluginsNames.forEach(name => {
+        const plugin = new Plugin(name);
+        program.context.plugins.push(plugin);
+        plugin.register(program);
+    });
 };
 
-
-/**
- * Generate Base Mock File
- */
-exports.Mock = function GenerateMock(program, method, runtimeConfig) {
-    MockFileGenerator(program, method, runtimeConfig);
-};
 
 exports.printWelcome = function printWelcome(version) {
     let str = '';
@@ -79,12 +71,3 @@ exports.printWelcome = function printWelcome(version) {
     console.log('                        https://github.com/CalvinVon/dalao-proxy'.grey);
     console.log('\n');
 };
-
-exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
-    program.context.plugins = [];
-    pluginsNames.forEach(name => {
-        const plugin = new Plugin(name);
-        program.context.plugins.push(plugin);
-        plugin.register(program);
-    });
-}

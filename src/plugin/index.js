@@ -43,7 +43,7 @@ class Plugin {
                     const pluginCommanderPath = path.resolve(pluginPath, PATH_COMMANDER);
                     this.middleware = require(pluginPath);
                     try {
-                        this.commander = require(pluginCommanderPath)
+                        this.commander = require(pluginCommanderPath);
                     } catch (error) {
                         // do nothing
                     }
@@ -58,9 +58,9 @@ class Plugin {
                 }
             }
         } catch (error) {
-            let plguinErrResult;
-            if (plguinErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
-                console.log(`${plguinErrResult[0]}. Please check if module '${plguinErrResult[1]}' is installed`.red);
+            let pluginErrResult;
+            if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+                console.log(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`.red);
             }
             else {
                 console.error(error);
@@ -83,7 +83,7 @@ class Plugin {
      * @param {Commander.Program} program 
      */
     register(program) {
-        if (this.commander && typeof(this.commander) === 'function') {
+        if (this.commander && typeof (this.commander) === 'function') {
             this.commander.call(this, program, pluginEmitter);
         }
     }

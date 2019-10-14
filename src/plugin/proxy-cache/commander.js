@@ -1,3 +1,7 @@
+const path = require('path');
+const rm = require('rimraf');
+const MockFileGenerator = require('./generate-mock');
+
 module.exports = function (program, emitter) {
     program
         .command('mock <method>')
@@ -13,7 +17,7 @@ module.exports = function (program, emitter) {
                 process.exit(-1);
                 return;
             }
-            MockFileGenerator(program, method, this.context.config);
+            MockFileGenerator(program, method, program.context.config);
         });
 
     program
@@ -23,8 +27,20 @@ module.exports = function (program, emitter) {
         .action(function () {
             // only one stdin listener allowed to be attached at same time
 
-            CleanCache(require(program.config || path.join(process.cwd(), baseConfig.configFilename)));
+            CleanCache(program.context.config);
         });
 
 
+};
+
+function CleanCache(config) {
+    const cacheDir = path.join(process.cwd(), config.cacheDirname || '.dalao-cache', './*.js**');
+    rm(cacheDir, err => {
+        if (err) {
+            console.log('  [error] something wrong happened during clean cache'.red, err);
+        }
+        else {
+            console.log('  [info] dalao cache has been cleaned!'.green);
+        }
+    })
 };

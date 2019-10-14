@@ -1,9 +1,9 @@
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-const { checkAndCreateCacheFolder, url2filename } = require('../plugin/proxy-cache/utils');
-const baseConfig = require('../../config');
+const { checkAndCreateCacheFolder, url2filename } = require('./utils');
 const moment = require('moment');
+const baseConfig = require('../../../config');
 
 let resolvedConfig = baseConfig;
 let resolvedCacheFolder = baseConfig.cacheDirname;
