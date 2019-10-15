@@ -25,21 +25,13 @@ module.exports = function (program, register) {
         .description('clean cache files'.green)
         .option('-C, --config <filepath>', 'use custom config file')
         .action(function () {
-            // only one stdin listener allowed to be attached at same time
-
             CleanCache(program.context.config);
         });
 
-
-    // register.on('command:start', function () {
-    //     console.log('plugin-cache.commander', program.context)
-    // });
-
-    // register.on('input', console.log);
-    register.configure('config', (config, callback) => {
-        config.hhh = 1;
-        console.log(config);
-        callback(null, []);
+    register.on('input', input => {
+        if (/\b(cacheclr|clean|cacheclean)\b/.test(input)) {
+            CleanCache(program.context.config);
+        }
     });
 };
 

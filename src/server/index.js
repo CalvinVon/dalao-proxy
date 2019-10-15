@@ -37,14 +37,14 @@ function attachServerListener(server, config) {
 function createProxyServer(program) {
     const { config, plugins } = program.context;
 
+    // print route table
+    console.log(program.context.output.routeTable.toString());
+
     // create server
     const server = http.createServer(dalaoProxy.httpCallback(config, plugins));
 
     // attach server to port
     attachServerListener(server, config);
-
-    // print route table
-    console.log(program.context.output.routeTable.toString());
 
     return server;
 }

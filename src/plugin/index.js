@@ -1,8 +1,10 @@
 
 const path = require('path');
 const EventEmitter = require('events');
+const { version } = require('../../config');
 const { isDebugMode, getType } = require('../utils');
 const PATH_COMMANDER = './commander';
+const PATH_PACKAGE = './package.json';
 
 function noop() { }
 function nonCallback(next) { next && next(false); }
@@ -25,9 +27,9 @@ class Register extends EventEmitter {
      * @param {Function} callback return the value after `configure`
      */
     _trigger(field, value, callback) {
-        const registerSetters = this.registerMapper[field];
+        const registerSetters = this.registerMapper[field] || [];
 
-        let index = 0, total = registerSetters.length - 1;
+        let index = 0, total = registerSetters.length;
         if (!total) {
             callback(value);
         }
@@ -52,7 +54,7 @@ class Register extends EventEmitter {
                                 lastValue = returnValue;
                             }
                             else {
-                                console.warn(`Plugin configure warn: The plugin [${setter.plugin.id}] can't change the type of value while configuring ${field}.`);
+                                console.warn(`Plugin warning: The plugin [${setter.plugin.id}] can't change the type of value while configuring the field [${field}].`.yellow);
                             }
                             next();
                         }
@@ -64,8 +66,8 @@ class Register extends EventEmitter {
 
             function next() {
                 // execute next setter
-                if (index < total) {
-                    currentSetter = registerSetters[index + 1];
+                if (index < total - 1) {
+                    currentSetter = registerSetters[++index];
                     executeSetter(currentSetter, cb);
                 }
                 else {
@@ -73,6 +75,11 @@ class Register extends EventEmitter {
                 }
             }
         }
+    }
+
+    _reset() {
+        this.registerMapper = {};
+        this.removeAllListeners();
     }
 
 
@@ -95,6 +102,7 @@ class Register extends EventEmitter {
 }
 
 const register = new Register();
+const configure = Register.prototype.configure;
 
 
 /**
@@ -110,6 +118,7 @@ class Plugin {
      * @param {String} pluginName
      */
     constructor(pluginName, program) {
+        this.meta = {};
         this.context = program.context;
         this.middleware = {};
         this.commander = {};
@@ -121,6 +130,7 @@ class Plugin {
                 const buildInPluginPath = path.resolve(__dirname, match[1]);
                 const buildInCommanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
                 this.middleware = require(buildInPluginPath);
+                this.meta = { isBuildIn: true, version };
 
                 try {
                     this.commander = require(buildInCommanderPath);
@@ -135,6 +145,8 @@ class Plugin {
                     const pluginPath = path.resolve(__dirname, '../../packages/', pluginName);
                     const pluginCommanderPath = path.resolve(pluginPath, PATH_COMMANDER);
                     this.middleware = require(pluginPath);
+                    this.meta = require(path.resolve(pluginPath, PATH_PACKAGE));
+                    this.meta.isDebug = true;
                     try {
                         this.commander = require(pluginCommanderPath);
                     } catch (error) {
@@ -145,6 +157,7 @@ class Plugin {
                 }
                 else {
                     this.middleware = require(pluginName);
+                    this.meta = require(path.join(pluginName, PATH_PACKAGE));
                     try {
                         this.commander = require(path.join(pluginName, PATH_COMMANDER));
                     } catch (error) {
@@ -183,7 +196,7 @@ class Plugin {
      */
     extends(program) {
         if (this.commander && typeof (this.commander) === 'function') {
-            const configure = Register.prototype.configure;
+            
             const plugin = this;
             // why? binding the corresponding plugin to the setter method
             Register.prototype.configure = function configureWrapper(field, registerSetter) {

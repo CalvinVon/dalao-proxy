@@ -1,6 +1,5 @@
 const baseConfig = require('../../../config');
 const ProxyServer = require('../../server');
-let proxyServer;
 
 module.exports = function startCommand(program, callback) {
     program
@@ -15,13 +14,8 @@ module.exports = function startCommand(program, callback) {
         .option('-c, --cache', 'enable request cache')
         .option('-i, --info', 'enable log print')
         .action(function () {
-            if (proxyServer) {
-                proxyServer.close();
-            }
-
             // start a proxy server
-            proxyServer = ProxyServer.createProxyServer(program);
-            
+            const proxyServer = ProxyServer.createProxyServer(program);
             callback(proxyServer);
         });
 };

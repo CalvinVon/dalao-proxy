@@ -15,15 +15,14 @@ exports.commands = {
 
 
 const originCommandFn = Command.prototype.command;
-const originActionFn = Command.prototype.action;
 
 // Expose states so plugins can access
 Command.prototype.context = {
-    config: null,
-    server: null,
+    config: null,   // plugin configurable
+    server: null,   // plugin configurable
     command: null,
     plugins: [],
-    output: {},
+    output: {},     // plugin configurable
 };
 
 Command.prototype.command = function commandWrapper() {
@@ -43,6 +42,8 @@ program.use = function use(command, callback) {
 
 exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
     program.context.plugins = [];
+    register._reset();
+
     pluginsNames.forEach(name => {
         program.context.plugins.push(new Plugin(name, program));
     });

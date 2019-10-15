@@ -17,18 +17,16 @@ const {
 printWelcome(baseConfig.version);
 
 
-let runtimeConfig,
-    proxySever;
-
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
 parserEmitter.on('config:parsed', function (config) {
-    program.context.config = runtimeConfig = config;
-    usePlugins(program, runtimeConfig);
+    // program.context.config = config;
+    usePlugins(program, config);
 
+    // trigger field `config`
     register._trigger('config', config, value => {
         program.context.config = value;
 
@@ -43,7 +41,14 @@ parserEmitter.on('config:parsed', function (config) {
 
 // Command: Start
 program.use(Commands.start, function (server) {
-    program.context.server = proxySever = server;
+    const proxyServer = program.context.server;
+    if (proxyServer) {
+        proxyServer.close();
+    }
+    // trigger field `server`
+    register._trigger('server', server, value => {
+        program.context.server = value;
+    });
 });
 
 // Command: Init
@@ -84,13 +89,10 @@ rl.on('line', runtimeCmd => {
         console.clear();
         console.log('\n> dalao is reloading...'.green);
 
-        proxySever.close(function () {
+        program.context.server.close(function () {
             ConfigParser.parse(program);
         });
     }
-    // else if (/\b(cacheclr|clean|cacheclean)\b/.test(runtimeCmd)) {
-    //     CleanCache(runtimeConfig);
-    // }
 });
 
 // process error caughtor

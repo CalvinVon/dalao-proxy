@@ -6,6 +6,7 @@ const _ = require('lodash')
 const pwd = process.cwd();
 const baseConfig = require('../../config');
 const CheckFunctions = require('./check');
+const { register } = require('../plugin');
 const {
     custom_assign,
     pathCompareFactory,
@@ -230,14 +231,17 @@ exports.parse = function parse(program) {
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
     
-    program.context.output = {
+    const output = {
         routeTable: parseRouter(runtimeConfig)
     };
 
+    register._trigger('output', output, value => {
+        program.context.output = value;
+    });
+
     const currentCommand = program.context.command;
 
-    if (currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
-        console.log(`> 👳   dalao is ${'watching'.green} at your config file`);
+    if (!currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
         fs.watchFile(filePath, function () {
             console.clear();
             console.log('> 👳   dalao is watching at your config file');
@@ -247,10 +251,15 @@ exports.parse = function parse(program) {
             const changedFileConfig = fileParser(filePath);
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
-            runtimeConfig.output.routeTable = parseRouter(runtimeConfig);
-            // emit event to reload proxy server
-            parseEmitter.emit('config:parsed', runtimeConfig);
-            isWatching = true;
+            
+            const routeTable = parseRouter(runtimeConfig);
+            register._trigger('output', { routeTable }, value => {
+                program.context.output = value;
+                
+                // emit event to reload proxy server
+                parseEmitter.emit('config:parsed', runtimeConfig);
+                isWatching = true;
+            });
         });
     }
     // emit event to reload proxy server
