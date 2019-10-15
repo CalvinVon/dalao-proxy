@@ -131,6 +131,13 @@ function getIPv4Address() {
     return ipv4;
 }
 
+function getType(value, type) {
+    if (type) {
+        return Object.prototype.toString.call(value) === `[object ${type}]`;
+    }
+    return Object.prototype.toString.call(value);
+}
+
 
 module.exports = {
     isDebugMode,
@@ -143,5 +150,6 @@ module.exports = {
     pathCompareFactory,
     transformPath,
     fixJson,
-    getIPv4Address
+    getIPv4Address,
+    getType
 }

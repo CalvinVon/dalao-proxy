@@ -1,22 +1,96 @@
 
 const path = require('path');
 const EventEmitter = require('events');
-const { isDebugMode } = require('../utils');
+const { isDebugMode, getType } = require('../utils');
 const PATH_COMMANDER = './commander';
 
 function noop() { }
 function nonCallback(next) { next && next(false); }
 function isNoCommanderError(error) {
-    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/Cannot find module.*commander'$/);
+    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/(?:\/|\\)commander'/);
 }
 
 class Register extends EventEmitter {
     constructor() {
         super();
+        this.registerMapper = {};
     }
 
-    configure(field, setter) {
 
+    /**
+     * @private
+     * trigger field listeners
+     * @param {String} field the field of `program.context` to set
+     * @param {*} value
+     * @param {Function} callback return the value after `configure`
+     */
+    _trigger(field, value, callback) {
+        const registerSetters = this.registerMapper[field];
+
+        let index = 0, total = registerSetters.length - 1;
+        if (!total) {
+            callback(value);
+        }
+
+        let lastValue = value;
+        let currentSetter = registerSetters[index];
+
+        executeSetter(currentSetter, () => {
+            callback(lastValue);
+        });
+
+
+        function executeSetter(setter, cb) {
+            if (getType(setter, 'Function')) {
+                try {
+                    setter.call(null, lastValue, (err, returnValue) => {
+                        if (!err) {
+
+                            // keep corresponding type
+                            if (getType(returnValue) === getType(value)) {
+                                // remember last value after setter
+                                lastValue = returnValue;
+                            }
+                            else {
+                                console.warn(`Plugin configure warn: The plugin [${setter.plugin.id}] can't change the type of value while configuring ${field}.`);
+                            }
+                            next();
+                        }
+                    });
+                } catch (error) {
+                    next();
+                }
+            }
+
+            function next() {
+                // execute next setter
+                if (index < total) {
+                    currentSetter = registerSetters[index + 1];
+                    executeSetter(currentSetter, cb);
+                }
+                else {
+                    cb();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * configure 
+     * @param {String} field the field of `program.context` to set
+     * @param {Function} registerSetter register the setter which can access context when the field value is assigned
+     *      Will receive two parameters
+     *      - `value` the value of the field
+     *      - `callback(err, value)` must be called when done
+     */
+    configure(field, registerSetter) {
+        if (this.registerMapper[field]) {
+            this.registerMapper[field].push(registerSetter);
+        }
+        else {
+            this.registerMapper[field] = [registerSetter];
+        }
     }
 }
 
@@ -109,6 +183,13 @@ class Plugin {
      */
     extends(program) {
         if (this.commander && typeof (this.commander) === 'function') {
+            const configure = Register.prototype.configure;
+            const plugin = this;
+            // why? binding the corresponding plugin to the setter method
+            Register.prototype.configure = function configureWrapper(field, registerSetter) {
+                registerSetter.plugin = plugin;
+                configure.call(this, field, registerSetter);
+            };
             this.commander.call(this, program, register);
         }
     }

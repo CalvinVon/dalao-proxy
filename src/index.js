@@ -35,12 +35,6 @@ Command.prototype.command = function commandWrapper() {
     return originCommandFn.apply(this, arguments);
 };
 
-Command.prototype.action = function actionWrapper(callback) {
-    const that = this;
-    return originActionFn.call(this, function callbackWrapper() {
-        callback.apply(this, arguments);
-    });
-};
 
 exports.program = program;
 program.use = function use(command, callback) {
@@ -57,12 +51,6 @@ exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
 
 exports.printWelcome = function printWelcome(version) {
     let str = '';
-    // str += '________           .__                    __________                                 \n';
-    // str += '\\______ \\  _____   |  |  _____     ____   \\______   \\_______   ____  ___  ___ ___.__.\n';
-    // str += ' |    |  \\ \\__  \\  |  |  \\__  \\   /  _ \\   |     ___/\\_  __ \\ /  _ \\ \\  \\/  /<   |  |\n';
-    // str += ' |    `   \\ / __ \\_|  |__ / __ \\_(  <_> )  |    |     |  | \\/(  <_> ) >    <  \\___  |\n';
-    // str += '/_______  /(____  /|____/(____  / \\____/   |____|     |__|    \\____/ /__/\\_ \\ / ____|\n';
-    // str += '        \\/      \\/            \\/                                           \\/ \\/     \n';
     str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
     str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
     str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n\n';

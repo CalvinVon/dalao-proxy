@@ -14,19 +14,19 @@ function checkVersion() {
     versionCmd.stdout.on('data', data => {
         const { version: latestVersion, time } = JSON.parse(data);
 
-        const latestVersion = latestVersion.match(REG_VERSION) || [];
-        const currentVersion = version.match(REG_VERSION) || [];
+        const latestVer = latestVersion.match(REG_VERSION) || [];
+        const currentVer = version.match(REG_VERSION) || [];
 
-        const latestMajor = latestVersion[1];
-        const latestMinor = latestVersion[2];
-        const latestFix = latestVersion[3];
-        const currentMajor = currentVersion[1];
-        const currentMinor = currentVersion[2];
-        const currentFix = currentVersion[3];
+        const latestMajor = latestVer[1];
+        const latestMinor = latestVer[2];
+        const latestFix = latestVer[3];
+        const currentMajor = currentVer[1];
+        const currentMinor = currentVer[2];
+        const currentFix = currentVer[3];
 
         const needUpdate =
-            100 * latestMajor + 10 * latestMinor + 1 * latestFix
-            > 100 * currentMajor + 10 * currentMinor + 1 * currentFix;
+            10000 * latestMajor + 100 * latestMinor + 1 * latestFix
+            > 10000 * currentMajor + 100 * currentMinor + 1 * currentFix;
 
         let whatUpdate;
         if (Number(latestMajor) > Number(currentMajor)) {
@@ -42,11 +42,11 @@ function checkVersion() {
         }
 
         if (needUpdate) {
-            const updateTime = time[latestVersion].replace(/T.+$/, '');
+            const updateTime = time[latestVer].replace(/T.+$/, '');
             console.log(`
-> 🎉  A new ${whatUpdate} version (${latestVersion}) of dalao-proxy has published at ${updateTime}!
-  Type \`npm i -g dalao-proxy@${latestVersion}\` to update.`.yellow)
-            console.log(`  See https://github.com/CalvinVon/dalao-proxy/blob/master/CHANGELOG.md#${latestMajor}${latestMinor}${latestFix}-${updateTime} to get latest infomation of version ${latestVersion} \n\n`.grey);
+> 🎉  A new ${whatUpdate} version (${latestVer}) of dalao-proxy has published at ${updateTime}!
+  Type \`npm i -g dalao-proxy@${latestVer}\` to update.`.yellow)
+            console.log(`  See https://github.com/CalvinVon/dalao-proxy/blob/master/CHANGELOG.md#${latestMajor}${latestMinor}${latestFix}-${updateTime} to get latest infomation of version ${latestVer} \n\n`.grey);
         }
         versionCmd.kill();
     });

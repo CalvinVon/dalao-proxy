@@ -3,7 +3,6 @@ const rm = require('rimraf');
 const MockFileGenerator = require('./generate-mock');
 
 module.exports = function (program, register) {
-    console.log(this)
     program
         .command('mock <method>')
         .description('create a mock file in json format')
@@ -37,8 +36,10 @@ module.exports = function (program, register) {
     // });
 
     // register.on('input', console.log);
-    register.configure('output', output => {
-        console.log(output);
+    register.configure('config', (config, callback) => {
+        config.hhh = 1;
+        console.log(config);
+        callback(null, []);
     });
 };
 

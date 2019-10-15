@@ -28,12 +28,17 @@ const rl = readline.createInterface({
 parserEmitter.on('config:parsed', function (config) {
     program.context.config = runtimeConfig = config;
     usePlugins(program, runtimeConfig);
-    program.parse(process.argv);
 
-    if (config.debug) {
-        console.log('> parsed user configuration'.yellow)
-        console.log(config);
-    }
+    register._trigger('config', config, value => {
+        program.context.config = value;
+
+        if (config.debug) {
+            console.log('> parsed user configuration'.yellow)
+            console.log(program.context.config);
+        }
+    });
+
+    program.parse(process.argv);
 });
 
 // Command: Start
