@@ -1,4 +1,4 @@
-const { Plugin, PluginInterrupt } = require('../plugin');
+const { PluginInterrupt } = require('../plugin');
 const request = require('request');
 const zlib = require('zlib');
 const querystring = require('querystring');

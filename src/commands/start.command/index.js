@@ -13,7 +13,7 @@ module.exports = function startCommand(program, callback) {
         .option('-t, --target <proxyTarget>', 'target server to proxy')
         .option('-c, --cache', 'enable request cache')
         .option('-i, --info', 'enable log print')
-        .action(function () {
+        .action(function (...args) {
             // start a proxy server
             const proxyServer = ProxyServer.createProxyServer(program);
             callback(proxyServer);

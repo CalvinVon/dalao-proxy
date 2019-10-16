@@ -23,17 +23,16 @@ const proxyTable = {
     
     // Support $n replacement
     path: value => _check('proxyTable.path', value, /^\/([\w-_]+\/?)*$/),
-    // path: value => _check('proxyTable.path', value, /^\/([\w-_$]+\/?)*$/),
     target: value => _check('proxyTable.target', value, REG_PROTOCOL_HOST_PORT, true),
     cache: value => _check('proxyTable.cache', value, /^(true|false)$/),
 }
 
 // All check functions return true when it is valid.
 module.exports = {
-    configFileName: value => _check('configFileName', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+\.js(on)?$/),
+    configFileName: value => _check('configFileName', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+(\.js(on)?)?$/),
     cacheDirname: value => _check('cacheDirname', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+$/),
     watch: value => _check('watch', value, /^(true|false)$/),
-    cache: value => _check('cache', value, /^(true|false)$/),
+    // cache: value => _check('cache', value, /^(true|false)$/),
     host: value => _check('host', value, /^([\w-_]+\.)*[\w-_]+$/),
     port: value => _check('port', value, /^\d{2,5}$/),
     target: value => _check('target', value, REG_PROTOCOL_HOST_PORT),

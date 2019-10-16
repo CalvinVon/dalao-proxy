@@ -36,6 +36,7 @@ parserEmitter.on('config:parsed', function (config) {
         }
     });
 
+    // parse command and options
     program.parse(process.argv);
 });
 

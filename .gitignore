@@ -2,3 +2,4 @@ node_modules/
 .dalao-cache/
 .vscode/
 dalao.config.json
+dalao.config.js

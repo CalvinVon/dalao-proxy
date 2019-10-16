@@ -22,6 +22,18 @@ exports.emitter = parseEmitter;
 
 let isWatching;
 
+function cleanRequireCache(fileName) {
+    const id = fileName;
+    const cache = require.cache;
+
+    if (cache[id]) {
+        const mod = cache[id];
+        module.children = module.children.filter(m => m !== mod);
+        cache[id] = null;
+        delete cache[id];
+    }
+}
+
 
 /**
  * Parse file defined config
@@ -30,8 +42,8 @@ let isWatching;
  */
 function fileParser(filePath) {
     try {
-        const file = fs.readFileSync(filePath, 'utf-8');
-        const fileConfig = JSON.parse(fixJson(file));
+        cleanRequireCache(filePath);
+        const fileConfig = require(filePath);
         // * merge strategy fields
         const EXTRA_FIELDS = {
             obj: ['headers', 'proxyTable'],
@@ -227,10 +239,11 @@ exports.parse = function parse(program) {
         filePath = path.resolve(pwd, configFile);
     }
 
+    filePath = require.resolve(filePath);
     const fileConfig = fileParser(filePath);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
-    
+
     const output = {
         routeTable: parseRouter(runtimeConfig)
     };
@@ -251,11 +264,11 @@ exports.parse = function parse(program) {
             const changedFileConfig = fileParser(filePath);
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
-            
+
             const routeTable = parseRouter(runtimeConfig);
             register._trigger('output', { routeTable }, value => {
                 program.context.output = value;
-                
+
                 // emit event to reload proxy server
                 parseEmitter.emit('config:parsed', runtimeConfig);
                 isWatching = true;
