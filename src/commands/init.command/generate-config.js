@@ -8,7 +8,7 @@ const custom_assign = require('../../utils').custom_assign;
 
 // questions
 let questionObjs = [
-    { label: 'Config file name', value: 'configFilename', text: true, radio: false },
+    { label: 'Config file name', value: 'configFileName', text: true, radio: false },
     { label: 'Proxy server host', value: 'host', text: true, radio: false },
     { label: 'Proxy server port', value: 'port', text: true, radio: false },
     { label: 'Proxy target server address', value: 'target', text: true, radio: false },
@@ -18,7 +18,7 @@ let questionObjs = [
 
 // default answers
 let defaultAnswers = [
-    defaultConfig.configFilename,
+    defaultConfig.configFileName,
     defaultConfig.host,
     defaultConfig.port,
     defaultConfig.target,
@@ -37,11 +37,11 @@ function createConfigFile(forceSkip) {
         generateConfig[questionObj.value] = answers[index];
     });
 
-    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version', 'debug', 'info', 'configFilename']), generateConfig, custom_assign);
+    generateConfig = _.assignWith({}, _.omit(defaultConfig, ['version', 'debug', 'info', 'configFileName']), generateConfig, custom_assign);
     // prevent build-in plugins exposing
     generateConfig.plugins = [];
 
-    const fullConfigFilePath = path.resolve(pwd, forceSkip ? defaultAnswers[0] : generateConfig.configFilename);
+    const fullConfigFilePath = path.resolve(pwd, forceSkip ? defaultAnswers[0] : generateConfig.configFileName);
     fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
     console.log(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`.green);
     console.log('  More details about proxy config or cache config, please see '.grey +  'https://github.com/CalvinVon/dalao-proxy#docs\n'.yellow);

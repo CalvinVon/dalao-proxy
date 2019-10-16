@@ -2,7 +2,7 @@ const version = require('../package.json').version;
 
 const config = {
     version: version,
-    "configFilename": "dalao.config.json",
+    "configFileName": "dalao.config",
     "info": true,
     "debug": false,
     "watch": true,

@@ -216,12 +216,12 @@ exports.parse = function parse(program) {
         "info",
     ]);
 
-    argsConfig.configFilename = configFile;
+    argsConfig.configFileName = configFile;
     delete argsConfig.config;
 
     let filePath;
     if (!configFile) {
-        filePath = path.resolve(baseConfig.configFilename);
+        filePath = path.resolve(baseConfig.configFileName);
     }
     else {
         filePath = path.resolve(pwd, configFile);

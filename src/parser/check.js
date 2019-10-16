@@ -30,7 +30,7 @@ const proxyTable = {
 
 // All check functions return true when it is valid.
 module.exports = {
-    configFilename: value => _check('configFilename', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+\.js(on)?$/),
+    configFileName: value => _check('configFileName', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+\.js(on)?$/),
     cacheDirname: value => _check('cacheDirname', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+$/),
     watch: value => _check('watch', value, /^(true|false)$/),
     cache: value => _check('cache', value, /^(true|false)$/),

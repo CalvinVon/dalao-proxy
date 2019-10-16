@@ -248,7 +248,7 @@ Default config filename is `dalao.config.json`
 ```js
 {
     // config file name
-    "configFilename": "dalao.config.json",
+    "configFileName": "dalao.config.json",
     // cache file store
     "cacheDirname": ".dalao-cache",
     // enable reload when config file changes

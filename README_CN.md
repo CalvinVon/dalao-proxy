@@ -254,7 +254,7 @@ module.exports = {
 ```js
 {
     // 配置文件文件名
-    "configFilename": "dalao.config.json",
+    "configFileName": "dalao.config.json",
     // 请求缓存文件存储文件夹名称
     "cacheDirname": ".dalao-cache",
     // 是否监听配置文件更改并自动重新加载

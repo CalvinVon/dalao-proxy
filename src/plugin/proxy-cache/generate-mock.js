@@ -7,11 +7,11 @@ const baseConfig = require('../../../config');
 
 let resolvedConfig = baseConfig;
 let resolvedCacheFolder = baseConfig.cacheDirname;
-function questionUrl(program, method, { cacheDirname, configFilename }) {
+function questionUrl(program, method, { cacheDirname, configFileName }) {
     // used custom config file
-    if (configFilename !== baseConfig.configFilename) {
+    if (configFileName !== baseConfig.configFileName) {
         try {
-            resolvedConfig = JSON.parse(fs.readFileSync(configFilename));
+            resolvedConfig = JSON.parse(fs.readFileSync(configFileName));
             resolvedCacheFolder = resolvedConfig.cacheDirname;
         } catch (error) {
             console.error(' Parse config file failed with ' + error.message);
@@ -80,7 +80,7 @@ module.exports = function MockFileGenerator(program, method, runtimeConfig) {
     else {
         return questionUrl(program, method, {
             cacheDirname: program.dir || baseConfig.cacheDirname,
-            configFilename: program.config || baseConfig.configFilename
+            configFileName: program.config || baseConfig.configFileName
         });
     }
 }
