@@ -4,7 +4,7 @@
   "description": "An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!",
   "main": "index.js",
   "bin": {
-    "dalao-proxy": "bin/index"
+    "dalao-proxy": "bin/dalao-proxy"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

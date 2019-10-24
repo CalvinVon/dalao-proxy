@@ -76,6 +76,7 @@ program.use(function () {
 });
 
 ConfigParser.parse(program);
+console.log(ConfigParser.parsePlugins());
 
 if (!program.context.command) {
     program.outputHelp();

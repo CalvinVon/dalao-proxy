@@ -9,6 +9,12 @@ const config = {
     "host": "localhost",
     "port": 8000,
     "target": "target.example.com",
+    "headers": {},
+    "proxyTable": {
+        "/": {
+            "path": "/"
+        }
+    },
     "cache": {
         "enable": true,
         "dirname": ".dalao-cache",
@@ -27,12 +33,6 @@ const config = {
                 "value": 200
             }
         ],
-    },
-    "headers": {},
-    "proxyTable": {
-        "/": {
-            "path": "/"
-        }
     },
     "plugins": [
         "BuildIn:plugin/proxy-cache",

@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const _ = require('lodash')
 
 const pwd = process.cwd();
-const baseConfig = require('../../config');
+const defaultConfig = require('../../config');
 const CheckFunctions = require('./check');
 const { register } = require('../plugin');
 const {
@@ -14,7 +14,6 @@ const {
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
-    fixJson
 } = require('../utils');
 
 const parseEmitter = new EventEmitter();
@@ -36,51 +35,14 @@ function cleanRequireCache(fileName) {
 
 
 /**
- * Parse file defined config
- * @argument {String} filePath target file to parse
- * @return {Config} mergedFileConfig
+ * Parse config file in JSON and JS type into an object
+ * @param {String} filePath
+ * @returns {Object}
  */
 function fileParser(filePath) {
     try {
         cleanRequireCache(filePath);
-        const fileConfig = require(filePath);
-        // * merge strategy fields
-        const EXTRA_FIELDS = {
-            obj: ['headers', 'proxyTable'],
-            arr: ['plugins']
-        };
-        const EXTRA_FIELDS_ALL = [...EXTRA_FIELDS.obj, ...EXTRA_FIELDS.arr];
-
-        // extra fields need to be merged
-        const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
-        const baseConfig_extra_arr = _.pick(baseConfig, EXTRA_FIELDS.arr);
-        const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS_ALL);
-
-        const fileConfig_extra_obj = _.pick(fileConfig, EXTRA_FIELDS.obj);
-        const fileConfig_extra_arr = _.pick(fileConfig, EXTRA_FIELDS.arr);
-        const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS_ALL);
-
-        const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
-
-        // Check config value
-        Object.keys(mergedConfig_plain).forEach(config => {
-            const checkFn = CheckFunctions[config];
-            checkFn && checkFn(mergedConfig_plain[config]);
-        });
-
-        const mergedConfig_extra_obj = _.merge({}, baseConfig_extra_obj, fileConfig_extra_obj);
-
-        const mergedConfig_extra_arr = {};
-        EXTRA_FIELDS.arr.forEach(field => {
-            const baseConfigField = baseConfig_extra_arr[field] || [];
-            const fileConfigField = fileConfig_extra_arr[field] || [];
-            mergedConfig_extra_arr[field] = [...new Set([...baseConfigField, ...fileConfigField])];
-        });
-
-        // other plain field need to be replaced
-        const mergedFileConfig = _.merge({}, mergedConfig_extra_obj, mergedConfig_extra_arr, mergedConfig_plain)
-
-        return mergedFileConfig;
+        return require(filePath);
     } catch (error) {
         if (error.message.indexOf('no such file or directory') !== -1) {
             console.warn('[info] No config file found');
@@ -88,9 +50,97 @@ function fileParser(filePath) {
         else {
             console.error(` > An error occurred (${error.message}) while parsing config file.`.red)
         }
-        return baseConfig;
+        return null;
     }
-};
+}
+
+
+/**
+ * Parse value of `config` from command line
+ * @returns {String}
+ */
+function parsePathFromArgv() {
+    const argvs = process.argv;
+
+    let i = 0;
+    for (let argv of argvs) {
+        let matched;
+        if (matched = argv.match(/^(?:--config|-C)(?:=(.+))?/)) {
+            let theValue;
+            if (matched[1]) {
+                theValue = matched[1];
+            }
+            else {
+                theValue = argvs[i + 1];
+            }
+            if (!/^--?/.test(theValue)) {
+                return theValue;
+            }
+        }
+        i++;
+    }
+}
+
+
+function resolveConfigPath(configFilePath) {
+    let filePath;
+    if (configFilePath) {
+        filePath = path.resolve(pwd, configFilePath);
+    }
+    else {
+        filePath = path.resolve(defaultConfig.configFileName);
+    }
+
+    filePath = require.resolve(filePath);
+    return filePath;
+}
+
+/**
+ * Merge base config and file config
+ * @param {Object} fileConfig
+ * @returns {Object}
+ */
+function mergeConfig(baseConfig, fileConfig) {
+    if (!fileConfig) return baseConfig;
+
+    // * merge strategy fields
+    const EXTRA_FIELDS = {
+        obj: ['headers', 'proxyTable'],
+        arr: ['plugins']
+    };
+    const EXTRA_FIELDS_ALL = [...EXTRA_FIELDS.obj, ...EXTRA_FIELDS.arr];
+
+    // extra fields need to be merged
+    const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
+    const baseConfig_extra_arr = _.pick(baseConfig, EXTRA_FIELDS.arr);
+    const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS_ALL);
+
+    const fileConfig_extra_obj = _.pick(fileConfig, EXTRA_FIELDS.obj);
+    const fileConfig_extra_arr = _.pick(fileConfig, EXTRA_FIELDS.arr);
+    const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS_ALL);
+
+    const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
+
+    // Check config value
+    Object.keys(mergedConfig_plain).forEach(config => {
+        const checkFn = CheckFunctions[config];
+        checkFn && checkFn(mergedConfig_plain[config]);
+    });
+
+    const mergedConfig_extra_obj = _.merge({}, baseConfig_extra_obj, fileConfig_extra_obj);
+
+    const mergedConfig_extra_arr = {};
+    EXTRA_FIELDS.arr.forEach(field => {
+        const baseConfigField = baseConfig_extra_arr[field] || [];
+        const fileConfigField = fileConfig_extra_arr[field] || [];
+        mergedConfig_extra_arr[field] = [...new Set([...baseConfigField, ...fileConfigField])];
+    });
+
+    // other plain field need to be replaced
+    const mergedFileConfig = _.merge({}, mergedConfig_extra_obj, mergedConfig_extra_arr, mergedConfig_plain)
+
+    return mergedFileConfig;
+}
 
 /**
  * Parse each router in Route Table
@@ -206,6 +256,8 @@ function resolveRouteProxyMap(proxyPath, router) {
         resolveProxyRoute(),
     ];
 }
+
+
 /**
  * Main Config Parser
  * user arguments setting > user file setting > base internal setting
@@ -215,7 +267,6 @@ function resolveRouteProxyMap(proxyPath, router) {
 exports.parse = function parse(program) {
 
     let runtimeConfig = {};
-
     const { config: configFile } = program;
 
     // configs
@@ -231,16 +282,8 @@ exports.parse = function parse(program) {
     argsConfig.configFileName = configFile;
     delete argsConfig.config;
 
-    let filePath;
-    if (!configFile) {
-        filePath = path.resolve(baseConfig.configFileName);
-    }
-    else {
-        filePath = path.resolve(pwd, configFile);
-    }
-
-    filePath = require.resolve(filePath);
-    const fileConfig = fileParser(filePath);
+    const filePath = resolveConfigPath(configFile);
+    const fileConfig = mergeConfig(defaultConfig, fileParser(filePath));
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
@@ -279,3 +322,14 @@ exports.parse = function parse(program) {
     parseEmitter.emit('config:parsed', runtimeConfig);
 
 };
+
+
+/**
+ * Parse plugins from config and installed
+ * @returns {Array}
+ */
+exports.parsePlugins = function parsePlugins() {
+    const filePath = resolveConfigPath(parsePathFromArgv());
+    const fileConfig = mergeConfig(defaultConfig, fileParser(filePath));
+    return fileConfig.plugins;
+}
