@@ -1,4 +1,4 @@
-const program = require('commander');
+const chalk = require('chalk');
 const { Command } = require('commander');
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, register } = require('./plugin');
@@ -14,8 +14,6 @@ exports.commands = {
 };
 
 
-const originCommandFn = Command.prototype.command;
-
 // Expose states so plugins can access
 Command.prototype.context = {
     config: null,   // plugin configurable
@@ -25,8 +23,9 @@ Command.prototype.context = {
     output: {},     // plugin configurable
 };
 
+const originCommandFn = Command.prototype.command;
 Command.prototype.command = function commandWrapper() {
-    const commandName = arguments[0];
+    const commandName = arguments[0].split(/ +/).shift();
     this.on('command:' + commandName, function () {
         this.context.command = commandName;
         register.emit('command:' + commandName, arguments);
@@ -34,13 +33,18 @@ Command.prototype.command = function commandWrapper() {
     return originCommandFn.apply(this, arguments);
 };
 
-
-exports.program = program;
-program.use = function use(command, callback) {
-    command.call(program, program, callback);
+Command.prototype.use = function use(command, callback) {
+    command.call(this, this, callback);
 };
 
-exports.usePlugins = function usePlugins(program, { plugins: pluginsNames }) {
+// Enable readline and emit 'input' event
+Command.prototype.enableInput = function () {
+    this._enableInput = true;
+};
+
+exports.program = new Command();
+
+exports.usePlugins = function usePlugins(program, pluginsNames) {
     program.context.plugins = [];
     register._reset();
 
@@ -57,8 +61,8 @@ exports.printWelcome = function printWelcome(version) {
     str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n\n';
     str += '                                             ';
 
-    console.log(str.yellow, 'Dalao Proxy'.yellow, ('v' + version).green);
+    console.log(chalk.yellow(str), chalk.yellow('Dalao Proxy'), chalk.green('v' + version));
     console.log('                                            powered by CalvinVon');
-    console.log('                        https://github.com/CalvinVon/dalao-proxy'.grey);
+    console.log(chalk.grey('                        https://github.com/CalvinVon/dalao-proxy'));
     console.log('\n');
 };

@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const path = require('path');
 const rm = require('rimraf');
 const MockFileGenerator = require('./generate-mock');
@@ -13,7 +14,7 @@ module.exports = function (program, register) {
             // only one stdin listener allowed to be attached at same time
 
             if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
-                console.error(method.red + ' is NOT a valid HTTP method');
+                console.error(chalk.red(method) + ' is NOT a valid HTTP method');
                 process.exit(-1);
                 return;
             }
@@ -22,11 +23,14 @@ module.exports = function (program, register) {
 
     program
         .command('clean')
-        .description('clean cache files'.green)
+        .description('clean cache files')
         .option('-C, --config <filepath>', 'use custom config file')
         .action(function () {
             CleanCache(program.context.config);
+            console.log();
+            process.exit(0);
         });
+
 
     register.on('input', input => {
         if (/\b(cacheclr|clean|cacheclean)\b/.test(input)) {
@@ -39,10 +43,10 @@ function CleanCache(config) {
     const cacheDir = path.join(process.cwd(), config.cacheDirname || '.dalao-cache', './*.js**');
     rm(cacheDir, err => {
         if (err) {
-            console.log('  [error] something wrong happened during clean cache'.red, err);
+            console.log(chalk.red('  [error] something wrong happened during clean cache'), err);
         }
         else {
-            console.log('  [info] dalao cache has been cleaned!'.green);
+            console.log(chalk.green('  [info] dalao cache has been cleaned!'));
         }
     })
 };

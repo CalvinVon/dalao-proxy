@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
@@ -43,8 +44,8 @@ function createConfigFile(forceSkip) {
 
     const fullConfigFilePath = path.resolve(pwd, forceSkip ? defaultAnswers[0] : generateConfig.configFileName);
     fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
-    console.log(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`.green);
-    console.log('  More details about proxy config or cache config, please see '.grey +  'https://github.com/CalvinVon/dalao-proxy#docs\n'.yellow);
+    console.log(chalk.green(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`));
+    console.log(chalk.grey('  More details about proxy config or cache config, please see ') + chalk.yellow('https://github.com/CalvinVon/dalao-proxy#docs\n'));
 }
 
 /**
@@ -93,7 +94,7 @@ function runQuestionLoop(forceSkip) {
                     index++;
                 }
                 else {
-                    console.log('> dalao says: 👋  enter `y/yes` or `n/no`'.red);
+                    console.log(chalk.red('> dalao says: 👋  enter `y/yes` or `n/no`' ));
                 }
             }
         }

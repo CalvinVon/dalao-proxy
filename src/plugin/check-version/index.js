@@ -1,4 +1,4 @@
-require('colors')
+const chalk = require('chalk');
 const { spawn } = require('child_process');
 const { version } = require('../../../config')
 
@@ -43,10 +43,10 @@ function checkVersion() {
 
         if (needUpdate) {
             const updateTime = time[latestVer].replace(/T.+$/, '');
-            console.log(`
+            console.log(chalk.yellow(`
 > 🎉  A new ${whatUpdate} version (${latestVer}) of dalao-proxy has published at ${updateTime}!
-  Type \`npm i -g dalao-proxy@${latestVer}\` to update.`.yellow)
-            console.log(`  See https://github.com/CalvinVon/dalao-proxy/blob/master/CHANGELOG.md#${latestMajor}${latestMinor}${latestFix}-${updateTime} to get latest infomation of version ${latestVer} \n\n`.grey);
+  Type \`npm i -g dalao-proxy@${latestVer}\` to update.`))
+            console.log(chalk.grey(`  See https://github.com/CalvinVon/dalao-proxy/blob/master/CHANGELOG.md#${latestMajor}${latestMinor}${latestFix}-${updateTime} to get latest infomation of version ${latestVer} \n\n`));
         }
         versionCmd.kill();
     });

@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const path = require('path');
 const moment = require('moment');
 const fs = require('fs');
@@ -135,7 +136,10 @@ module.exports = {
         }
 
         function logMatchedPath(targetFileName) {
-            const message = `> ⚡   Hit! [${context.matched.path}]`.green + `   ${method.toUpperCase()}   ${url}` +   '  >>>>  '.green +  `${targetFileName}`.yellow;
+            const message = chalk.green(`> ⚡   Hit! [${context.matched.path}]`)
+                + `   ${method.toUpperCase()}   ${url}`
+                + chalk.green('  >>>>  ')
+                + chalk.yellow(targetFileName);
             console.log(message);
         }
     },
@@ -189,14 +193,14 @@ module.exports = {
                             }
                         );
 
-                        console.log('> 📥   Cached into ['.grey + cacheSearchName.grey + ']'.grey);
+                        console.log(chalk.grey('> 📥   Cached into [') + chalk.grey(cacheSearchName) + chalk.grey(']'));
                     }
 
                 }
 
             } catch (error) {
                 console.error(error);
-                console.error(` > An error occurred (${error.message}) while caching response data.`.red);
+                console.error(chalk.red(` > An error occurred (${error.message}) while caching response data.`));
             }
         }
     }

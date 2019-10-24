@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const { PluginInterrupt } = require('../plugin');
 const request = require('request');
 const zlib = require('zlib');
@@ -212,7 +213,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
                 if (notFound) {
                     const { request: { method, url }, response } = context;
-                    console.log(`404   ${method.toUpperCase()}   ${url}  can\'t match any route`.white);
+                    console.log(`404   ${method.toUpperCase()}   ${url}  can\'t match any route`);
                     response.writeHead(404);
                     response.end();
                     return Promise.reject('404 Not found');
@@ -240,7 +241,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
                     `);
 
-                        return Promise.reject(`> 🔴   Forbidden Hit! [${matchedPath}]`.red);
+                        return Promise.reject(chalk.red(`> 🔴   Forbidden Hit! [${matchedPath}]`));
                     }
 
                     context.proxy = {
@@ -283,7 +284,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 const proxyStream = req.pipe(x);
                 proxyStream.pipe(res);
 
-                info && console.log(`> 🎯   Proxy [${matchedPath}]`.green + `   ${method.toUpperCase()}   ${redirectMeta.matched ? url.yellow : url}  ${'>>>>'.green}  ${proxyUrl}`.white);
+                info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
                 context.proxy.response = proxyStream;
                 context.proxy.request = x;
@@ -401,7 +402,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         }
                         resolve(context);
                     } catch (error) {
-                        console.error(` > An error occurred (${error.message}) while parsing response data.`.red);
+                        console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
                         resolve(context);
                     }
                 }

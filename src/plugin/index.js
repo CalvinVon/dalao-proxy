@@ -1,4 +1,4 @@
-
+const chalk = require('chalk');
 const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
@@ -54,7 +54,7 @@ class Register extends EventEmitter {
                                 lastValue = returnValue;
                             }
                             else {
-                                console.warn(`Plugin warning: The plugin [${setter.plugin.id}] can't change the type of value while configuring the field [${field}].`.yellow);
+                                console.warn(chalk.yellow(`Plugin warning: The plugin [${setter.plugin.id}] can't change the type of value while configuring the field [${field}].`));
                             }
                             next();
                         }
@@ -170,7 +170,7 @@ class Plugin {
         } catch (error) {
             let pluginErrResult;
             if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
-                console.log(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`.red);
+                console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
             }
             else {
                 console.error(error);

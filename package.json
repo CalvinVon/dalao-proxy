@@ -20,14 +20,13 @@
   "license": "MIT",
   "repository": "https://github.com/CalvinVon/dalao-proxy.git",
   "dependencies": {
+    "chalk": "^2.4.2",
     "cli-table": "^0.3.1",
-    "colors": "^1.4.0",
-    "commander": "^2.20.3",
-    "install": "^0.12.2",
+    "commander": "^3.0.2",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
     "npm": "^6.12.0",
     "request": "^2.88.0",
-    "rimraf": "^2.7.1"
+    "rimraf": "^3.0.0"
   }
 }

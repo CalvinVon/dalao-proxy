@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const http = require('http');
 const dalaoProxy = require('./core');
 const { getIPv4Address } = require('../utils');
@@ -8,22 +9,22 @@ function attachServerListener(server, config) {
 
     server.on('listening', function () {
         config.port = port;
-        console.log('\n> dalao has setup the Proxy for you 🚀\n'.green);
+        console.log(chalk.green('\n> dalao has setup the Proxy for you 🚀\n'));
         console.log('> dalao is listening at: ');
-        console.log('  - Local:    ' + `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`.green);
-        console.log('  - Network:  ' + `http://${getIPv4Address()}:${port}`.green);
-        console.log('  You can enter `rs`,`restart`,`reload` to reload server anytime.'.gray);
-        console.log('  You can enter `clean`,`cacheclr`,`cacheclean` to clean cached ajax data.'.gray);
+        console.log('  - Local:    ' + chalk.green(`http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`));
+        console.log('  - Network:  ' + chalk.green(`http://${getIPv4Address()}:${port}`));
+        console.log(chalk.grey('  You can enter `rs`,`restart`,`reload` to reload server anytime.'));
+        console.log(chalk.grey('  You can enter `clean`,`cacheclr`,`cacheclean` to clean cached ajax data.'));
     });
 
     server.on('error', function (err) {
         server.close();
         if (/listen EACCES/.test(err.message)) {
-            console.error(`  Try listening port ${port} failed with code ${err.code}, please change anther port`.red);
+            console.error(chalk.red(`  Try listening port ${port} failed with code ${err.code}, please change anther port`));
             console.error(err);
         }
         else if (/EADDRINUSE/i.test(err.message)) {
-            console.log(`  Port ${port} is in use, dalao is trying to change port to ${++port}`.grey);
+            console.log(chalk.grey(`  Port ${port} is in use, dalao is trying to change port to ${++port}`));
             server.listen(port, host);
         }
         else {

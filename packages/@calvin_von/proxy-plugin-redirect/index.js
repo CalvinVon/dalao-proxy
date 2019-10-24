@@ -1,3 +1,5 @@
+const chalk = require('chalk');
+
 module.exports = {
     beforeCreate({ config }) {
         const { redirect = [] } = config;
@@ -6,7 +8,7 @@ module.exports = {
             parse(redirect);
         }
         else {
-            throw new Error('[plugin-redirect] config.redirect should be an array.'.red);
+            throw new Error(chalk.red('[plugin-redirect] config.redirect should be an array.'));
         }
     },
     onRouteMatch(context, next) {
@@ -67,7 +69,7 @@ module.exports = {
 function parse(redirect) {
     const Table = require('cli-table');
     const outputTable = new Table({
-        head: ['From'.yellow, 'To'.yellow]
+        head: [chalk.yellow('From'), chalk.yellow('To')]
     });
 
     redirect.forEach(it => {
@@ -76,6 +78,6 @@ function parse(redirect) {
 
     if (redirect.length) {
         console.log('\nRedirect config table: ');
-        console.log(outputTable.toString().green);
+        console.log(chalk.green(outputTable.toString()));
     }
 }

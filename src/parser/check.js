@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const REG_PROTOCOL_HOST_PORT = /^(https?:\/\/)?(([\w-_]+\.)+[\w-_]+|localhost)(\:\d+)?/;
 
 /**
@@ -11,7 +12,7 @@ function _check (field, value, regexp, canIgnore = false) {
     if (regexp.test(String(value))) {
         return true;
     }
-    console.log(`[Config check]: ${canIgnore ? 'Deprecated' : 'Incorrect' } config field \`${field}\`: value \`${value}\`, please check your config file`.red);
+    console.log(chalk.red(`[Config check]: ${canIgnore ? 'Deprecated' : 'Incorrect' } config field \`${field}\`: value \`${value}\`, please check your config file`));
     // return false || canIgnore;
     !canIgnore && process.exit(-1);
 }

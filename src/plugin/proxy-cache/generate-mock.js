@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
@@ -26,7 +27,7 @@ function questionUrl(program, method, { cacheDirname, configFileName }) {
             input: process.stdin,
             output: process.stdout
         });
-        rl.question('> Request url path: '.yellow, function (url) {
+        rl.question(chalk.yellow('> Request url path: '), function (url) {
             if (!/^\/([\w-_]+\/?)*$/.test(url)) {
                 console.log('Please input a valid path');
                 rl.close();
@@ -63,7 +64,7 @@ function questionUrl(program, method, { cacheDirname, configFileName }) {
                     flag: 'w'
                 }
             );
-            console.log(`Mock file created in ${mockFileName}\n`.yellow);
+            console.log(chalk.yellow(`Mock file created in ${mockFileName}\n`));
             rl.close();
             process.exit(1);
         });

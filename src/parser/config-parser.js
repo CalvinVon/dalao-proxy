@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
@@ -35,22 +36,57 @@ function cleanRequireCache(fileName) {
 
 
 /**
+ * Resolve the absolute path of config file
+ * @param {String} configFilePath
+ * @returns {String}
+ */
+function resolveConfigPath(configFilePath) {
+    let filePath;
+    // if specific
+    if (configFilePath) {
+        filePath = path.resolve(pwd, configFilePath);
+    }
+    else {
+        filePath = path.resolve(defaultConfig.configFileName);
+    }
+
+    try {
+        filePath = require.resolve(filePath);
+        return filePath;
+    } catch (error) {
+        return null;
+    }
+}
+
+
+/**
  * Parse config file in JSON and JS type into an object
  * @param {String} filePath
  * @returns {Object}
  */
-function fileParser(filePath) {
+function parseFile(filePath) {
+    const resolvedPath = resolveConfigPath(filePath);
     try {
-        cleanRequireCache(filePath);
-        return require(filePath);
-    } catch (error) {
-        if (error.message.indexOf('no such file or directory') !== -1) {
-            console.warn('[info] No config file found');
+        if (resolvedPath) {
+            cleanRequireCache(resolvedPath);
+            const fileConfig = require(resolvedPath);
+            return {
+                path: resolvedPath,
+                config: mergeConfig(defaultConfig, fileConfig)
+            };
         }
         else {
-            console.error(` > An error occurred (${error.message}) while parsing config file.`.red)
+            return {
+                path: null,
+                config: defaultConfig
+            };
         }
-        return null;
+    } catch (error) {
+        console.error(chalk.red(` > An error occurred (${error.message}) while parsing config file.`))
+        return {
+            path: resolvedPath,
+            config: defaultConfig
+        };
     }
 }
 
@@ -81,19 +117,6 @@ function parsePathFromArgv() {
     }
 }
 
-
-function resolveConfigPath(configFilePath) {
-    let filePath;
-    if (configFilePath) {
-        filePath = path.resolve(pwd, configFilePath);
-    }
-    else {
-        filePath = path.resolve(defaultConfig.configFileName);
-    }
-
-    filePath = require.resolve(filePath);
-    return filePath;
-}
 
 /**
  * Merge base config and file config
@@ -157,7 +180,7 @@ function parseRouter(config) {
 
     const Table = require('cli-table');
     const outputTable = new Table({
-        head: ['Proxy'.yellow, 'Target'.white, 'Path Rewrite'.white, 'Result'.yellow]
+        head: [chalk.yellow('Proxy'), chalk.white('Target'), chalk.white('Path Rewrite'), chalk.yellow('Result')]
     });
 
     const proxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(1));
@@ -230,7 +253,7 @@ function resolveRouteProxyMap(proxyPath, router) {
 
 
             Object.keys(pathRewriteMap).forEach(path => {
-                rewriteMapTable.push([`'${path}'`, '->'.yellow, `'${pathRewriteMap[path]}'`]);
+                rewriteMapTable.push([`'${path}'`, chalk.yellow('->'), `'${pathRewriteMap[path]}'`]);
             });
 
             return rewriteMapTable.toString();
@@ -282,8 +305,7 @@ exports.parse = function parse(program) {
     argsConfig.configFileName = configFile;
     delete argsConfig.config;
 
-    const filePath = resolveConfigPath(configFile);
-    const fileConfig = mergeConfig(defaultConfig, fileParser(filePath));
+    const { path: filePath, config: fileConfig} = parseFile(configFile);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
@@ -301,10 +323,10 @@ exports.parse = function parse(program) {
         fs.watchFile(filePath, function () {
             console.clear();
             console.log('> 👳   dalao is watching at your config file');
-            console.log('> 😤   dalao find your config file has changed, reloading...'.yellow);
+            console.log(chalk.yellow('> 😤   dalao find your config file has changed, reloading...'));
 
             // re-parse config file
-            const changedFileConfig = fileParser(filePath);
+            const changedFileConfig = parseFile(filePath);
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
 
@@ -329,7 +351,6 @@ exports.parse = function parse(program) {
  * @returns {Array}
  */
 exports.parsePlugins = function parsePlugins() {
-    const filePath = resolveConfigPath(parsePathFromArgv());
-    const fileConfig = mergeConfig(defaultConfig, fileParser(filePath));
+    const fileConfig = parseFile(parsePathFromArgv()).config;
     return fileConfig.plugins;
 }

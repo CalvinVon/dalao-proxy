@@ -5,7 +5,7 @@ module.exports = function startCommand(program, callback) {
     program
         .version(baseConfig.version)
         .command('start')
-        .description('auto detect config & start proxy server'.green)
+        .description('start proxy server')
         .option('-C, --config <filepath>', 'use custom config file')
         .option('-w, --watch', 'reload when config file changes')
         .option('-P, --port <port>', 'custom proxy server listening port')
@@ -13,7 +13,8 @@ module.exports = function startCommand(program, callback) {
         .option('-t, --target <proxyTarget>', 'target server to proxy')
         .option('-c, --cache', 'enable request cache')
         .option('-i, --info', 'enable log print')
-        .action(function (...args) {
+        .action(function () {
+            program.enableInput();
             // start a proxy server
             const proxyServer = ProxyServer.createProxyServer(program);
             callback(proxyServer);

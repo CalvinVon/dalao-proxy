@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('colors');
+const chalk = require('chalk');
 const readline = require('readline');
 const baseConfig = require('../config');
 
@@ -17,21 +17,16 @@ const {
 printWelcome(baseConfig.version);
 
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
+// On config parsed
 parserEmitter.on('config:parsed', function (config) {
     // program.context.config = config;
-    usePlugins(program, config);
 
     // trigger field `config`
     register._trigger('config', config, value => {
         program.context.config = value;
 
         if (config.debug) {
-            console.log('> parsed user configuration'.yellow)
+            console.log(chalk.yellow('> parsed user configuration'));
             console.log(program.context.config);
         }
     });
@@ -58,6 +53,10 @@ program.use(Commands.init);
 // Command: Add-plugin
 program.use(Commands.addPlugin);
 
+// Register commands from plugins
+usePlugins(program, ConfigParser.parsePlugins());
+
+// Command: *
 program.use(function () {
     program
         .on('command:*', function () {
@@ -66,51 +65,62 @@ program.use(function () {
         .on('--help', function () {
             console.log('')
             console.log('Examples:');
-            console.log('  $ dalao-proxy init'.gray);
-            console.log('  $ dalao-proxy mock get'.gray);
-            console.log('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'.gray);
-            console.log('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'.gray);
-            console.log('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'.gray);
-            console.log('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'.gray);
+            console.log(chalk.grey('  $ dalao-proxy init'));
+            console.log(chalk.grey('  $ dalao-proxy mock get'));
+            console.log(chalk.grey('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'));
+            console.log(chalk.grey('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'));
+            console.log(chalk.grey('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'));
+            console.log(chalk.grey('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'));
         });
 });
 
+// Start parsing config
 ConfigParser.parse(program);
-console.log(ConfigParser.parsePlugins());
 
+
+if (program._enableInput) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    // user runtime input listener
+    rl.on('line', runtimeCmd => {
+        register.emit('input', runtimeCmd);
+
+        if (program.context.command === 'start') {
+            if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
+                console.clear();
+                console.log(chalk.green('\n> dalao is reloading...'));
+
+                program.context.server.close(function () {
+                    ConfigParser.parse(program);
+                });
+            }
+        }
+    });
+}
+
+
+// If no command input
 if (!program.context.command) {
     program.outputHelp();
     process.exit(1);
 }
 
-// user runtime input listener
-rl.on('line', runtimeCmd => {
-    register.emit('input', runtimeCmd);
-
-    if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
-        console.clear();
-        console.log('\n> dalao is reloading...'.green);
-
-        program.context.server.close(function () {
-            ConfigParser.parse(program);
-        });
-    }
-});
-
 // process error caughtor
 process.on('uncaughtException', function (err) {
     if (/(ECONNREFUSED|ECONNRESET)/i.test(err.message)) {
-        console.log('\n> 😫  Oops, dalao can\'t proxy to target'.red);
+        console.log(chalk.red('\n> 😫  Oops, dalao can\'t proxy to target'));
         console.error(err.message);
     }
     else {
-        console.log('\n> 😫  Oops, dalao can\'t handle this...'.red);
+        console.log(chalk.red('\n> 😫  Oops, dalao can\'t handle this...'));
         console.error(err);
-        console.log(`
+        console.log(chalk.yellow(`
     Current version: ${baseConfig.version}
     You may need to: 1.Update to the latest version by \`(sudo) npm i dalao-proxy@latest -g\`. 2.Look up your config file, check
     if there is any syntax problem(s). 3.Create a bug issue on https://github.com/CalvinVon/dalao-proxy/issues.
-    dalao is sorry about this.`.yellow
+    dalao is sorry about this.`)
         );
     }
 });
