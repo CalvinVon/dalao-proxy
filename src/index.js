@@ -16,18 +16,20 @@ exports.commands = {
 
 // Expose states so plugins can access
 Command.prototype.context = {
-    config: null,   // plugin configurable
-    server: null,   // plugin configurable
-    command: null,
+    command: null,          // current (sub)command
+    commandName: null,      // current (sub)command name
+    config: null,           // plugin configurable
+    server: null,           // plugin configurable
     plugins: [],
-    output: {},     // plugin configurable
+    output: {},             // plugin configurable
 };
 
 const originCommandFn = Command.prototype.command;
 Command.prototype.command = function commandWrapper() {
     const commandName = arguments[0].split(/ +/).shift();
     this.on('command:' + commandName, function () {
-        this.context.command = commandName;
+        this.context.command = this.commands.find(it => it._name === commandName);
+        this.context.commandName = commandName;
         register.emit('command:' + commandName, arguments);
     });
     return originCommandFn.apply(this, arguments);

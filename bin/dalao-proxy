@@ -30,22 +30,10 @@ parserEmitter.on('config:parsed', function (config) {
             console.log(program.context.config);
         }
     });
-
-    // parse command and options
-    program.parse(process.argv);
 });
 
 // Command: Start
-program.use(Commands.start, function (server) {
-    const proxyServer = program.context.server;
-    if (proxyServer) {
-        proxyServer.close();
-    }
-    // trigger field `server`
-    register._trigger('server', server, value => {
-        program.context.server = value;
-    });
-});
+program.use(Commands.start);
 
 // Command: Init
 program.use(Commands.init);
@@ -74,38 +62,42 @@ program.use(function () {
         });
 });
 
-// Start parsing config
-ConfigParser.parse(program);
+// Parse command and options
+program.parse(process.argv);
 
+if (program.context.command) {
+    // Start parsing config
+    ConfigParser.parse(program.context.command);
 
-if (program._enableInput) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-    // user runtime input listener
-    rl.on('line', runtimeCmd => {
-        register.emit('input', runtimeCmd);
+    // Enable input
+    if (program._enableInput) {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+        // user runtime input listener
+        rl.on('line', runtimeCmd => {
+            register.emit('input', runtimeCmd);
 
-        if (program.context.command === 'start') {
-            if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
-                console.clear();
-                console.log(chalk.green('\n> dalao is reloading...'));
+            if (program.context.commandName === 'start') {
+                if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
+                    console.clear();
+                    console.log(chalk.green('\n> dalao is reloading...'));
 
-                program.context.server.close(function () {
-                    ConfigParser.parse(program);
-                });
+                    program.context.server.close(function () {
+                        ConfigParser.parse(program);
+                    });
+                }
             }
-        }
-    });
+        });
+    }
 }
-
-
-// If no command input
-if (!program.context.command) {
+else {
     program.outputHelp();
     process.exit(1);
 }
+
+
 
 // process error caughtor
 process.on('uncaughtException', function (err) {

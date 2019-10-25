@@ -1,7 +1,11 @@
 const baseConfig = require('../../../config');
 const ProxyServer = require('../../server');
+const parserEmitter = require('../../parser/config-parser').emitter;
+const register = require('../../plugin/index').register;
 
-module.exports = function startCommand(program, callback) {
+let proxyServer;
+
+module.exports = function startCommand(program) {
     program
         .version(baseConfig.version)
         .command('start')
@@ -13,10 +17,21 @@ module.exports = function startCommand(program, callback) {
         .option('-t, --target <proxyTarget>', 'target server to proxy')
         .option('-c, --cache', 'enable request cache')
         .option('-i, --info', 'enable log print')
-        .action(function () {
+        .action(function (command) {
             program.enableInput();
-            // start a proxy server
-            const proxyServer = ProxyServer.createProxyServer(program);
-            callback(proxyServer);
+
+            // On config parsed
+            parserEmitter.on('config:parsed', function () {
+                if (proxyServer) {
+                    proxyServer.close();
+                }
+                
+                proxyServer = ProxyServer.createProxyServer(command);
+
+                // trigger field `server`
+                register._trigger('server', proxyServer, value => {
+                    program.context.server = value;
+                });
+            });
         });
 };

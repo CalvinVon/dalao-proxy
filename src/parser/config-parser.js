@@ -285,15 +285,15 @@ function resolveRouteProxyMap(proxyPath, router) {
  * Main Config Parser
  * user arguments setting > user file setting > base internal setting
  * @author Calvin
- * @param {commander.CommanderStatic} program
+ * @param {Commander} command
  */
-exports.parse = function parse(program) {
+exports.parse = function parse(command) {
 
     let runtimeConfig = {};
-    const { config: configFile } = program;
+    const { config: configFile } = command;
 
     // configs
-    const argsConfig = _.pick(program, [
+    const argsConfig = _.pick(command, [
         'config',
         "watch",
         "port",
@@ -314,10 +314,10 @@ exports.parse = function parse(program) {
     };
 
     register._trigger('output', output, value => {
-        program.context.output = value;
+        command.context.output = value;
     });
 
-    const currentCommand = program.context.command;
+    const currentCommand = command.context.command;
 
     if (!currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
         fs.watchFile(filePath, function () {
@@ -332,7 +332,7 @@ exports.parse = function parse(program) {
 
             const routeTable = parseRouter(runtimeConfig);
             register._trigger('output', { routeTable }, value => {
-                program.context.output = value;
+                command.context.output = value;
 
                 // emit event to reload proxy server
                 parseEmitter.emit('config:parsed', runtimeConfig);
