@@ -305,7 +305,7 @@ exports.parse = function parse(command) {
     argsConfig.configFileName = configFile;
     delete argsConfig.config;
 
-    const { path: filePath, config: fileConfig} = parseFile(configFile);
+    const { path: filePath, config: fileConfig } = parseFile(configFile);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 
@@ -319,14 +319,14 @@ exports.parse = function parse(command) {
 
     const currentCommand = command.context.command;
 
-    if (!currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
+    if (currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
         fs.watchFile(filePath, function () {
             console.clear();
             console.log('> 👳   dalao is watching at your config file');
             console.log(chalk.yellow('> 😤   dalao find your config file has changed, reloading...'));
 
-            // re-parse config file
-            const changedFileConfig = parseFile(filePath);
+            // reparse config file
+            const changedFileConfig = parseFile(filePath).config;
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
 
@@ -335,13 +335,20 @@ exports.parse = function parse(command) {
                 command.context.output = value;
 
                 // emit event to reload proxy server
-                parseEmitter.emit('config:parsed', runtimeConfig);
+                parseEmitter.emit('config:parsed', {
+                    path: filePath,
+                    config: runtimeConfig
+                });
                 isWatching = true;
             });
         });
     }
     // emit event to reload proxy server
-    parseEmitter.emit('config:parsed', runtimeConfig);
+    // parseEmitter.emit('config:parsed', runtimeConfig);
+    parseEmitter.emit('config:parsed', {
+        path: filePath,
+        config: runtimeConfig
+    });
 
 };
 

@@ -18,8 +18,10 @@ printWelcome(baseConfig.version);
 
 
 // On config parsed
-parserEmitter.on('config:parsed', function (config) {
-    // program.context.config = config;
+parserEmitter.on('config:parsed', function (configObject) {
+    const { path: configPath, config } = configObject;
+    program.context.configPath = configPath;
+    program.config = configPath;
 
     // trigger field `config`
     register._trigger('config', config, value => {

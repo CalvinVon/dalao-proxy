@@ -4,7 +4,7 @@ const { version } = require('../../../config')
 
 const REG_VERSION = /^(\d+)\.(\d+)\.(\d+)/;
 
-function checkVersion() {
+function checkVersion({ debug }) {
     const versionCmd = spawn('npm', ['view', 'dalao-proxy', 'version', 'time', '--json'], {
         stdio: 'pipe',
         shell: true,
@@ -12,7 +12,9 @@ function checkVersion() {
     });
 
     versionCmd.stdout.on('data', data => {
-        const { version: latestVersion, time } = JSON.parse(data);
+        const { error, version: latestVersion, time } = JSON.parse(data);
+
+        if (error) return;
 
         const latestVer = latestVersion.match(REG_VERSION) || [];
         const currentVer = version.match(REG_VERSION) || [];
@@ -51,17 +53,23 @@ function checkVersion() {
         versionCmd.kill();
     });
 
-    versionCmd.stderr.on('data', data => {
-        console.log('Can\'t get version info with error');
-        console.error(data);
+    let errorData = '';
+    versionCmd.stderr.on('data', data => errorData += data);
+    versionCmd.stderr.on('end', () => {
+        if (debug) {
+            console.log('\n\nCan\'t get version info with error');
+            console.error(errorData.toString());
+        }
         versionCmd.kill();
     });
 
-    versionCmd.stdin.end('npm show dalao-proxy time --json');
+    // versionCmd.stderr.on('end')
+
+    // versionCmd.stdin.end('npm show dalao-proxy time --json');
 }
 
 module.exports = {
-    beforeCreate() {
-        checkVersion();
+    beforeCreate({ config }) {
+        checkVersion(config);
     }
 }

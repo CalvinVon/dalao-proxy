@@ -19,6 +19,7 @@ Command.prototype.context = {
     command: null,          // current (sub)command
     commandName: null,      // current (sub)command name
     config: null,           // plugin configurable
+    configPath: null,
     server: null,           // plugin configurable
     plugins: [],
     output: {},             // plugin configurable

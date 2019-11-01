@@ -58,6 +58,9 @@ class Register extends EventEmitter {
                             }
                             next();
                         }
+                        else {
+                            next();
+                        }
                     });
                 } catch (error) {
                     next();
@@ -191,6 +194,7 @@ class Plugin {
     }
 
     /**
+     * @private
      * Register commanders or listeners
      * @param {Commander.Program} program 
      */
