@@ -23,10 +23,15 @@ module.exports = function startCommand(program) {
             // On config parsed
             parserEmitter.on('config:parsed', function () {
                 if (proxyServer) {
-                    proxyServer.close();
+                    proxyServer.close(() => {
+                        // parserEmitter.emit('server:close');
+                    });
                 }
                 
                 proxyServer = ProxyServer.createProxyServer(command);
+                // proxyServer.on('close', () => {
+                //     parserEmitter.emit('server:close');
+                // })
 
                 // trigger field `server`
                 register._trigger('server', proxyServer, value => {

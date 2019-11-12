@@ -342,6 +342,8 @@ exports.parse = function parse(command) {
                 isWatching = true;
             });
         });
+
+        parseEmitter.on('server:close', () => fs.unwatchFile(filePath));
     }
     // emit event to reload proxy server
     // parseEmitter.emit('config:parsed', runtimeConfig);
