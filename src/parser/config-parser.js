@@ -320,6 +320,7 @@ exports.parse = function parse(command) {
     const currentCommand = command.context.command;
 
     if (currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
+        fs.unwatchFile(filePath);
         fs.watchFile(filePath, function () {
             console.clear();
             console.log('> 👳   dalao is watching at your config file');
@@ -342,8 +343,6 @@ exports.parse = function parse(command) {
                 isWatching = true;
             });
         });
-
-        parseEmitter.on('server:close', () => fs.unwatchFile(filePath));
     }
     // emit event to reload proxy server
     // parseEmitter.emit('config:parsed', runtimeConfig);
