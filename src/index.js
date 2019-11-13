@@ -13,7 +13,7 @@ exports.commands = {
     addPlugin: require('./commands/add-plugin.command'),
 };
 
-
+const originCommandFn = Command.prototype.command;
 // Expose states so plugins can access
 Command.prototype.context = {
     command: null,          // current (sub)command
@@ -25,22 +25,41 @@ Command.prototype.context = {
     output: {},             // plugin configurable
 };
 
-const originCommandFn = Command.prototype.command;
+/**
+ * @public
+ * Find subcommand by name
+ */
+Command.prototype.findCommand = function findCommand(subcommandName) {
+    return this.commands.find(it => it._name === subcommandName);
+};
+
+
+/**
+ * @public
+ * Overwrite original method and adding extra features
+ */
 Command.prototype.command = function commandWrapper() {
     const commandName = arguments[0].split(/ +/).shift();
     this.on('command:' + commandName, function () {
-        this.context.command = this.commands.find(it => it._name === commandName);
+        this.context.command = this.findCommand(commandName);
         this.context.commandName = commandName;
         register.emit('command:' + commandName, arguments);
     });
     return originCommandFn.apply(this, arguments);
 };
 
+/**
+ * @private
+ */
 Command.prototype.use = function use(command, callback) {
     command.call(this, this, callback);
 };
 
-// Enable readline and emit 'input' event
+
+/**
+ * @public
+ * Enable program read user input and emit 'input' event
+ */
 Command.prototype.enableInput = function () {
     this._enableInput = true;
 };
