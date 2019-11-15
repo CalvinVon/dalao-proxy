@@ -19,10 +19,13 @@
   "author": "Calvin",
   "license": "MIT",
   "repository": "https://github.com/CalvinVon/dalao-proxy.git",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "dependencies": {
     "chalk": "^2.4.2",
     "cli-table": "^0.3.1",
-    "commander": "^3.0.2",
+    "commander": "^4.0.1",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
     "npm": "^6.13.0",
