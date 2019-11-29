@@ -10,7 +10,7 @@ exports.parserEmitter = ConfigParser.emitter;
 exports.commands = {
     start: require('./commands/start.command'),
     init: require('./commands/init.command'),
-    addPlugin: require('./commands/add-plugin.command'),
+    pluginManager: require('./commands/plugin-manager.command')
 };
 
 const originCommandFn = Command.prototype.command;
@@ -46,6 +46,37 @@ Command.prototype.command = function commandWrapper() {
         register.emit('command:' + commandName, arguments);
     });
     return originCommandFn.apply(this, arguments);
+};
+
+Command.prototype.forwardSubcommands = function() {
+    var self = this;
+    var listener = function(args, unknown) {
+        // Parse any so-far unknown options
+        args = args || [];
+        unknown = unknown || [];
+
+        var parsed = self.parseOptions(unknown);
+        if (parsed.args.length) args = parsed.args.concat(args);
+        unknown = parsed.unknown;
+
+        // Output help if necessary
+        if (unknown.includes('--help') || unknown.includes('-h')) {
+            self.outputHelp();
+            process.exit(0);
+        }
+
+        self.parseArgs(args, unknown);
+    };
+
+    if (this._args.length > 0) {
+        console.error('forwardSubcommands cannot be applied to command with explicit args');
+    }
+
+    var parent = this.parent || this;
+    var name = parent === this ? '*' : this._name;
+    parent.on('command:' + name, listener);
+    if (this._alias) parent.on('command:' + this._alias, listener);
+    return this;
 };
 
 /**

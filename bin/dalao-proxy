@@ -40,8 +40,8 @@ program.use(Commands.start);
 // Command: Init
 program.use(Commands.init);
 
-// Command: Add-plugin
-program.use(Commands.addPlugin);
+// Command: Plugin Manage
+program.use(Commands.pluginManager);
 
 // Register commands from plugins
 usePlugins(program, ConfigParser.parsePlugins());
