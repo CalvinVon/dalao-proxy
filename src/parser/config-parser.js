@@ -290,22 +290,12 @@ function resolveRouteProxyMap(proxyPath, router) {
 exports.parse = function parse(command) {
 
     let runtimeConfig = {};
-    const { config: configFile } = command;
+    const argsConfig = Object.assign({}, command.context.options);
 
-    // configs
-    const argsConfig = _.pick(command, [
-        'config',
-        "watch",
-        "port",
-        "host",
-        "target",
-        "info",
-    ]);
-
-    argsConfig.configFileName = configFile;
+    argsConfig.configFileName = argsConfig.config;
     delete argsConfig.config;
 
-    const { path: filePath, config: fileConfig } = parseFile(configFile);
+    const { path: filePath, config: fileConfig } = parseFile(argsConfig.configFileName);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
 

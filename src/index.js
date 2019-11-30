@@ -1,5 +1,5 @@
 const chalk = require('chalk');
-const { Command } = require('commander');
+const { Command, Option } = require('commander');
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, register } = require('./plugin');
 
@@ -14,10 +14,12 @@ exports.commands = {
 };
 
 const originCommandFn = Command.prototype.command;
+const originOptionFn = Command.prototype.option;
 // Expose states so plugins can access
 Command.prototype.context = {
     command: null,          // current (sub)command
     commandName: null,      // current (sub)command name
+    options: {},            // parsed option values
     config: null,           // plugin configurable
     configPath: null,
     server: null,           // plugin configurable
@@ -40,12 +42,23 @@ Command.prototype.findCommand = function findCommand(subcommandName) {
  */
 Command.prototype.command = function commandWrapper() {
     const commandName = arguments[0].split(/ +/).shift();
-    this.on('command:' + commandName, function () {
+    this.on('command:' + commandName, () => {
         this.context.command = this.findCommand(commandName);
         this.context.commandName = commandName;
         register.emit('command:' + commandName, arguments);
     });
     return originCommandFn.apply(this, arguments);
+};
+
+Command.prototype.option = function optionWrapper(flags, description, fn, defaultValue) {
+    originOptionFn.call(this, flags, description, fn, defaultValue);
+    const option = new Option(flags, description);
+    const optionName = option.name();
+    this.on('option:' + optionName, val => {
+        this.context.options[optionName] = val || this[optionName];
+    });
+
+    return this;
 };
 
 Command.prototype.forwardSubcommands = function() {
@@ -84,6 +97,7 @@ Command.prototype.forwardSubcommands = function() {
  */
 Command.prototype.use = function use(command, callback) {
     command.call(this, this, callback);
+    return this;
 };
 
 

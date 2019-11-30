@@ -6,8 +6,12 @@ const {
 module.exports = function pluginManagerCommand(program) {
     program
         .command('plugin')
-        .option('-C, --config <filepath>', 'use custom config file')
         .description('plugin manager, list and view all plugins, install, remove or update plugins')
         .forwardSubcommands()
-        .use(pluginInstallCommand);
+        .action(function() {
+            if (this.context.commandName === 'plugin') {
+                this.help();
+            }
+        })
+        .use(pluginInstallCommand)
 };

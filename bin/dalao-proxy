@@ -34,38 +34,29 @@ parserEmitter.on('config:parsed', function (configObject) {
     });
 });
 
-// Command: Start
-program.use(Commands.start);
+// Add global options
+program
+    .use(function defineGlobalOptions() {
+        program
+            .option('-C, --config <filepath>', 'use custom config file')
+    })
 
-// Command: Init
-program.use(Commands.init);
+    // Command: Start
+    .use(Commands.start)
 
-// Command: Plugin Manage
-program.use(Commands.pluginManager);
+    // Command: Init
+    .use(Commands.init)
 
-// Register commands from plugins
-usePlugins(program, ConfigParser.parsePlugins());
+    // Command: Plugin Manage
+    .use(Commands.pluginManager)
 
-// Command: *
-program.use(function () {
-    program
-        .on('command:*', function () {
-            program.outputHelp();
-        })
-        .on('--help', function () {
-            console.log('')
-            console.log('Examples:');
-            console.log(chalk.grey('  $ dalao-proxy init'));
-            console.log(chalk.grey('  $ dalao-proxy mock get'));
-            console.log(chalk.grey('  $ dalao-proxy start -C ./my-config.json -p 1234 -wc'));
-            console.log(chalk.grey('  $ dalao-proxy start -p 9090 -h test.dalao-proxy.com -wc'));
-            console.log(chalk.grey('  $ dalao-proxy start --port=9090 --host=test.dalao-proxy.com --watch --cache=true'));
-            console.log(chalk.grey('  $ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor'));
-        });
-});
-
-// Parse command and options
-program.parse(process.argv);
+    // Register commands from plugins
+    .use(function registerPlugins() {
+        usePlugins(program, ConfigParser.parsePlugins());
+    })
+    
+    // Parse command and options
+    .parse(process.argv);
 
 if (program.context.command) {
     // Start parsing config
@@ -95,8 +86,7 @@ if (program.context.command) {
     }
 }
 else {
-    program.outputHelp();
-    process.exit(1);
+    program.help();
 }
 
 
