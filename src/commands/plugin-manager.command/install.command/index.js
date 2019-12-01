@@ -5,13 +5,17 @@ exports.pluginInstallCommand = function pluginInstallCommand(pluginCommand) {
         .command('install <name> [names...]')
         .alias('add', 'update')
         .description('install plugins to extends ability')
-        .option('-l, --local', 'install plugin locally')
+        .option('-D, --local', 'install plugin locally')
         .option('-g, --global', 'install plugin globally')
+        .option('--before <plugin>', 'make it execute before the existed plugin')
+        .option('--after <plugin>', 'make it execute after the existed plugin')
         .action(function (name, names) {
-            const isLocally = this.context.options.local;
-            console.log(name, names, isLocally);
-            // process.exit(0);
-            // install([name, ...names], isLocally);
+            const { local, global, before, after } = this.context.options;
+            install([name, ...names], {
+                isLocally: global ? false : local,
+                before,
+                after,
+            });
         });
 
     pluginCommand
@@ -21,7 +25,9 @@ exports.pluginInstallCommand = function pluginInstallCommand(pluginCommand) {
         .option('-l, --local', 'install plugin locally')
         .option('-g, --global', 'install plugin globally')
         .action(function (name, names) {
-            const isLocally = this.context.options.local;
-            uninstall([name, ...names], isLocally);
+            const { local, global } = this.context.options;
+            uninstall([name, ...names], {
+                isLocally: global ? false : local,
+            });
         });
 };

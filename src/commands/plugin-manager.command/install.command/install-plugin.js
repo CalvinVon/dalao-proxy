@@ -3,13 +3,13 @@ const path = require('path');
 const fs = require('fs');
 
 function installPlugins(pluginNames, options) {
-    const displayPluginNames = pluginNames[0] + (pluginNames.length > 1 ? ` and ${pluginNames.length - 1} more plugins` : '');
+    const displayPluginNames = displayNames(pluginNames);
     const {
         isAdd = true,
-        isLocally = false
+        isLocally = false,
     } = options || {};
 
-    console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package...`);
+    console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s)...`);
 
     const installCmd = spawn(
         'npm',
@@ -28,16 +28,16 @@ function installPlugins(pluginNames, options) {
 
     installCmd.on('exit', code => {
         if (code) {
-            console.log(`\n> ${displayPluginNames} package ${isAdd ? '' : 'un'}install failed with code ${code}`);
+            console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install failed with code ${code}`);
         }
         else {
-            console.log(`\n> ${displayPluginNames} package ${isAdd ? '' : 'un'}install completed`);
+            console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install completed`);
             if (!isLocally) {
-                syncInnerConfig(pluginNames, isAdd);
+                syncInnerConfig(pluginNames, options);
             }
+            console.log(`🎉  Plugin ${displayPluginNames} ${isAdd ? '' : 'un'}installed successfully!\n`);
         }
 
-        console.log(`\n🎉  Plugin ${displayPluginNames} ${isAdd ? '' : 'un'}installed successfully!`);
         installCmd.kill();
         process.exit(0);
     });
@@ -48,15 +48,46 @@ function installPlugins(pluginNames, options) {
     });
 }
 
-// sync plugins to inner config file
-function syncInnerConfig(pluginNames, isAdd) {
-    const baseConfigFilePath = path.join(__dirname, '../../config/index.js');
-    const config = require(baseConfigFilePath)
-    if (isAdd) {
-        config.plugins = [...new Set([config.plugins, ...pluginNames])];
+function displayNames(names) {
+    if (names.length > 3) {
+        return '[' + names.slice(0, 3).join('], [') + ']' + ` and ${names.length - 3} more plugin`;
     }
     else {
-        config.plugins = config.plugins.filter(it => it !== pluginName);
+        return '[' + names.join('], [') + '] plugin';
+    }
+}
+
+// sync plugins to inner config file
+function syncInnerConfig(pluginNames, { isAdd, before, after }) {
+    const baseConfigFilePath = path.join(__dirname, '../../../../config/index.js');
+    const config = require(baseConfigFilePath);
+    const pluginList = config.plugins;
+    const isExsit = plugin => pluginList.indexOf(plugin) !== -1;
+
+    if (isAdd) {
+        if (before && isExsit(before)) {
+            // need insert before the given plugin
+            pluginNames.forEach(plugin => {
+                if (isExsit(plugin)) {
+                    pluginList.splice(pluginList.indexOf(plugin), 1);
+                }
+                pluginList.splice(pluginList.indexOf(before), 0, plugin);
+            });
+        }
+        else if (after && isExsit(after)) {
+            pluginNames.forEach(plugin => {
+                if (isExsit(plugin)) {
+                    pluginList.splice(pluginList.indexOf(plugin), 1);
+                }
+                pluginList.splice(pluginList.indexOf(after) + 1, 0, plugin);
+            });
+        }
+        else {
+            config.plugins = [...new Set([...config.plugins, ...pluginNames])];
+        }
+    }
+    else {
+        config.plugins = config.plugins.filter(it => !pluginNames.some(name => name === it));
     }
 
     const tpl = `const config = ${JSON.stringify(config, null, 4)};\nmodule.exports = config;`;
@@ -65,11 +96,11 @@ function syncInnerConfig(pluginNames, isAdd) {
 }
 
 module.exports = {
-    install: function (pluginNames, isLocally) {
-        installPlugins(pluginNames, { isAdd: true, isLocally });
+    install: function (pluginNames, options) {
+        installPlugins(pluginNames, { isAdd: true, ...options });
     },
 
-    uninstall: function (pluginNames, isLocally) {
-        installPlugins(pluginNames, { isAdd: false, isLocally });
+    uninstall: function (pluginNames, options) {
+        installPlugins(pluginNames, { isAdd: false, ...options });
     }
 }
