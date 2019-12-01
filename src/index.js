@@ -73,14 +73,11 @@ Command.prototype.forwardSubcommands = function () {
         unknown = parsed.unknown;
 
         // Output help if necessary
-        if ((unknown.includes('--help') || unknown.includes('-h')) && (!args || !self.listeners('command:' + args[0]))) {
+        if (!args.length || (unknown.includes('--help') || unknown.includes('-h')) && (!args || !self.listeners('command:' + args[0]))) {
             self.outputHelp();
             process.exit(0);
         }
 
-        if (!args.length) {
-            this.help();
-        }
         self.parseArgs(args, unknown);
     };
 
@@ -92,6 +89,10 @@ Command.prototype.forwardSubcommands = function () {
     var name = parent === this ? '*' : this._name;
     parent.on('command:' + name, listener);
     if (this._alias) parent.on('command:' + this._alias, listener);
+
+    this.on('command:*', function() {
+        this.help();
+    });
     return this;
 };
 
