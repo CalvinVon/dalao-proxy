@@ -30,4 +30,13 @@ exports.pluginInstallCommand = function pluginInstallCommand(pluginCommand) {
                 isLocally: global ? false : local,
             });
         });
+
+    pluginCommand
+        .command('list')
+        .description('list all installed plugins')
+        .option('--global', 'show globally installed plugin only')
+        .action(function () {
+            console.log(this.context.plugins);
+            process.exit(0);
+        });
 };

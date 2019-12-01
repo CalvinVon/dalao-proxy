@@ -110,10 +110,13 @@ const configure = Register.prototype.configure;
 
 /**
  * @class Plugin
- * @member id plugin id
- * @member middleware core proxy middleware
- * @member commander register commands
- * @member context program context
+ * @member {String} id plugin id
+ * @member {Object} middleware middlewares for core proxy
+ * @member {Function} commander exported function to register commands
+ * @member {Object} context program context
+ * @member {Object} meta plugin package meta info
+ * @member {Boolean} meta.enabled plugin is enabled
+ * @member {Boolean} meta.error plugin runtime error
  */
 class Plugin {
     /**
@@ -124,11 +127,12 @@ class Plugin {
         this.meta = {};
         this.context = program.context;
         this.middleware = {};
-        this.commander = {};
+        this.commander = null;
         this.id = pluginName;
 
         try {
             let match;
+            // If buildin plugin
             if (match = pluginName.match(/^BuildIn\:plugin\/(.+)$/i)) {
                 const buildInPluginPath = path.resolve(__dirname, match[1]);
                 const buildInCommanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
@@ -170,6 +174,7 @@ class Plugin {
                     }
                 }
             }
+            this.meta.enabled = true;
         } catch (error) {
             let pluginErrResult;
             if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
@@ -178,6 +183,8 @@ class Plugin {
             else {
                 console.error(error);
             }
+            this.meta.enabled = false;
+            this.meta.error = error;
         }
 
         this.extends(program);
