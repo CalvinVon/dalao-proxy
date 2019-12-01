@@ -10,7 +10,6 @@ module.exports = function startCommand(program) {
         .version(baseConfig.version)
         .command('start')
         .description('start proxy server')
-        // .option('-C, --config <filepath>', 'use custom config file')
         .option('-w, --watch', 'reload when config file changes')
         .option('-P, --port <port>', 'custom proxy server listening port')
         .option('-H, --host <hostname>', 'custom proxy server hostname')

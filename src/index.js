@@ -61,9 +61,9 @@ Command.prototype.option = function optionWrapper(flags, description, fn, defaul
     return this;
 };
 
-Command.prototype.forwardSubcommands = function() {
+Command.prototype.forwardSubcommands = function () {
     var self = this;
-    var listener = function(args, unknown) {
+    var listener = function (args, unknown) {
         // Parse any so-far unknown options
         args = args || [];
         unknown = unknown || [];
@@ -73,11 +73,14 @@ Command.prototype.forwardSubcommands = function() {
         unknown = parsed.unknown;
 
         // Output help if necessary
-        if (unknown.includes('--help') || unknown.includes('-h')) {
+        if ((unknown.includes('--help') || unknown.includes('-h')) && (!args || !self.listeners('command:' + args[0]))) {
             self.outputHelp();
             process.exit(0);
         }
 
+        if (!args.length) {
+            this.help();
+        }
         self.parseArgs(args, unknown);
     };
 
