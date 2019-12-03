@@ -254,5 +254,6 @@ class PluginInterrupt {
 module.exports = {
     Plugin,
     PluginInterrupt,
+    Register,
     register,
 }

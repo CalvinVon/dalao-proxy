@@ -1,6 +1,6 @@
 const { install, uninstall } = require('./install-plugin');
 
-exports.pluginInstallCommand = function pluginInstallCommand(pluginCommand) {
+module.exports = function pluginInstallCommand(pluginCommand) {
     pluginCommand
         .command('install <name> [names...]')
         .alias('add', 'update')
@@ -29,14 +29,5 @@ exports.pluginInstallCommand = function pluginInstallCommand(pluginCommand) {
             uninstall([name, ...names], {
                 isLocally: global ? false : local,
             });
-        });
-
-    pluginCommand
-        .command('list')
-        .description('list all installed plugins')
-        .option('--global', 'show globally installed plugin only')
-        .action(function () {
-            console.log(this.context.plugins);
-            process.exit(0);
         });
 };

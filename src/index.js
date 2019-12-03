@@ -1,5 +1,5 @@
 const chalk = require('chalk');
-const { Command, Option } = require('commander');
+const { Command, Option } = require('commander');;
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, register } = require('./plugin');
 
@@ -90,7 +90,7 @@ Command.prototype.forwardSubcommands = function () {
     parent.on('command:' + name, listener);
     if (this._alias) parent.on('command:' + this._alias, listener);
 
-    this.on('command:*', function() {
+    this.on('command:*', function () {
         this.help();
     });
     return this;
