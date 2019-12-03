@@ -4,12 +4,13 @@ const EventEmitter = require('events');
 const { version } = require('../../config');
 const { isDebugMode, getType } = require('../utils');
 const PATH_COMMANDER = './commander';
+const PATH_CONFIGURE = './configure';
 const PATH_PACKAGE = './package.json';
 
 function noop() { }
 function nonCallback(next) { next && next(false); }
-function isNoCommanderError(error) {
-    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/(?:\/|\\)commander'/);
+function isNoOptionFileError(error) {
+    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/(?:\/|\\)(?:commander|configure)'/);
 }
 
 class Register extends EventEmitter {
@@ -111,8 +112,10 @@ const configure = Register.prototype.configure;
 /**
  * @class Plugin
  * @member {String} id plugin id
+ * @member {Object} setting plugin universal setting
  * @member {Object} middleware middlewares for core proxy
- * @member {Function} commander exported function to register commands
+ * @member {Function} configure exported function to configure plugin behavior
+ * @member {Function} commander exported function to extends commands
  * @member {Object} context program context
  * @member {Object} meta plugin package meta info
  * @member {Boolean} meta.enabled plugin is enabled
@@ -120,61 +123,27 @@ const configure = Register.prototype.configure;
  */
 class Plugin {
     /**
-     * @param {String} name
-     * @param {String} pluginName
+     * @param {String|Array} pluginName
+     * @param {Command} program
      */
     constructor(pluginName, program) {
+        this.id = '';
         this.meta = {};
-        this.context = program.context;
+        this.setting = {};
+        this.configure = null;
         this.middleware = {};
         this.commander = null;
-        this.id = pluginName;
+        this.context = program.context;
 
         try {
-            let match;
-            // If buildin plugin
-            if (match = pluginName.match(/^BuildIn\:plugin\/(.+)$/i)) {
-                const buildInPluginPath = path.resolve(__dirname, match[1]);
-                const buildInCommanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
-                this.middleware = require(buildInPluginPath);
-                this.meta = { isBuildIn: true, version };
+            const { id, setting } = Plugin.resolve(pluginName);
+            this.id = id;
+            const { enable = true } = this.setting = setting;
 
-                try {
-                    this.commander = require(buildInCommanderPath);
-                } catch (error) {
-                    if (!isNoCommanderError(error)) {
-                        console.error(error);
-                    }
-                }
+            if (enable) {
+                this.load();
             }
-            else {
-                if (isDebugMode()) {
-                    const pluginPath = path.resolve(__dirname, '../../packages/', pluginName);
-                    const pluginCommanderPath = path.resolve(pluginPath, PATH_COMMANDER);
-                    this.middleware = require(pluginPath);
-                    this.meta = require(path.resolve(pluginPath, PATH_PACKAGE));
-                    this.meta.isDebug = true;
-                    try {
-                        this.commander = require(pluginCommanderPath);
-                    } catch (error) {
-                        if (!isNoCommanderError(error)) {
-                            console.error(error);
-                        }
-                    }
-                }
-                else {
-                    this.middleware = require(pluginName);
-                    this.meta = require(path.join(pluginName, PATH_PACKAGE));
-                    try {
-                        this.commander = require(path.join(pluginName, PATH_COMMANDER));
-                    } catch (error) {
-                        if (!isNoCommanderError(error)) {
-                            console.error(error);
-                        }
-                    }
-                }
-            }
-            this.meta.enabled = true;
+
         } catch (error) {
             let pluginErrResult;
             if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
@@ -187,9 +156,119 @@ class Plugin {
             this.meta.error = error;
         }
 
-        this.extends(program);
+
     }
 
+
+    load() {
+        let match;
+        // If buildin plugin
+        if (match = this.id.match(/^BuildIn\:plugin\/(.+)$/i)) {
+            const buildInPluginPath = path.resolve(__dirname, match[1]);
+            const buildInCommanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
+            const buildInConfigurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
+            this.middleware = require(buildInPluginPath);
+            this.meta = { isBuildIn: true, version };
+            
+            try {
+                this.commander = require(buildInCommanderPath);
+                this.configure = require(buildInConfigurePath);
+            } catch (error) {
+                if (!isNoOptionFileError(error)) {
+                    console.error(error);
+                }
+            }
+        }
+        else {
+            if (isDebugMode()) {
+                const pluginPath = path.resolve(__dirname, '../../packages/', this.id);
+                const pluginCommanderPath = path.resolve(pluginPath, PATH_COMMANDER);
+                const pluginConfigurePath = path.resolve(pluginPath, PATH_CONFIGURE);
+                this.middleware = require(pluginPath);
+                this.meta = require(path.resolve(pluginPath, PATH_PACKAGE));
+                this.meta.isDebug = true;
+                try {
+                    this.commander = require(pluginCommanderPath);
+                    this.configure = require(pluginConfigurePath);
+                } catch (error) {
+                    if (!isNoOptionFileError(error)) {
+                        console.error(error);
+                    }
+                }
+            }
+            else {
+                this.middleware = require(this.id);
+                this.meta = require(path.join(this.id, PATH_PACKAGE));
+                try {
+                    this.commander = require(path.join(this.id, PATH_COMMANDER));
+                    this.configure = require(path.join(this.id, PATH_CONFIGURE));
+                } catch (error) {
+                    if (!isNoOptionFileError(error)) {
+                        console.error(error);
+                    }
+                }
+            }
+        }
+
+        this._extendCmds();
+    }
+
+    static resolve(value) {
+        const resolveData = {
+            id: '',
+            setting: {}
+        };
+        if (typeof value === 'string') {
+            resolveData.id = value;
+        }
+        else if (Array.isArray(value)) {
+            const [name, setting] = value;
+            if (typeof name === 'string') {
+                resolveData.id = value[0];
+            }
+            else {
+                throw new Error('Plugin name format error');
+            }
+            if (typeof setting === 'object') {
+                resolveData.setting = setting;
+            }
+            else {
+                throw new Error('Plugin setting format error');
+            }
+        }
+        else {
+            throw new Error('Plugin name format error');
+        }
+
+        return resolveData;
+    }
+
+
+
+    /**
+     * @private
+     * Register commanders or listeners
+     */
+    _extendCmds() {
+        if (this.commander && typeof (this.commander) === 'function') {
+
+            const plugin = this;
+            // why? binding the corresponding plugin to the setter method
+            Register.prototype.configure = function configureWrapper(field, registerSetter) {
+                registerSetter.plugin = plugin;
+                configure.call(this, field, registerSetter);
+            };
+            this.commander.call(this, this.context.program, register);
+        }
+    }
+
+
+    /**
+     * @private
+     * @param {String} method method name
+     * @param {Function} replacement default backup function
+     * @param  {...any} args 
+     */
     _methodWrapper(method, replacement, ...args) {
         const definedHook = this.middleware[method];
         if (definedHook && typeof (definedHook === 'function')) {
@@ -197,24 +276,6 @@ class Plugin {
         }
         else {
             replacement(args[1]);
-        }
-    }
-
-    /**
-     * @private
-     * Register commanders or listeners
-     * @param {Commander.Program} program 
-     */
-    extends(program) {
-        if (this.commander && typeof (this.commander) === 'function') {
-            
-            const plugin = this;
-            // why? binding the corresponding plugin to the setter method
-            Register.prototype.configure = function configureWrapper(field, registerSetter) {
-                registerSetter.plugin = plugin;
-                configure.call(this, field, registerSetter);
-            };
-            this.commander.call(this, program, register);
         }
     }
 

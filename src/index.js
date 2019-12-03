@@ -17,6 +17,7 @@ const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
 // Expose states so plugins can access
 Command.prototype.context = {
+    program: null,          // entry command
     command: null,          // current (sub)command
     commandName: null,      // current (sub)command name
     options: {},            // parsed option values
@@ -113,7 +114,9 @@ Command.prototype.enableInput = function () {
     this._enableInput = true;
 };
 
-exports.program = new Command();
+const entryProgram = new Command();
+entryProgram.context.program = entryProgram;
+exports.program = entryProgram;
 
 exports.usePlugins = function usePlugins(program, pluginsNames) {
     program.context.plugins = [];
