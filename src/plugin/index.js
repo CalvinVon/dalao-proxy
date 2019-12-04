@@ -129,7 +129,7 @@ class Plugin {
     constructor(pluginName, program) {
         this.id = '';
         this.meta = {};
-        this.setting = {};
+        this.setting = { enable: true };
         this.configure = null;
         this.middleware = {};
         this.commander = null;
@@ -138,10 +138,11 @@ class Plugin {
         try {
             const { id, setting } = Plugin.resolve(pluginName);
             this.id = id;
-            const { enable = true } = this.setting = setting;
+            this.setting = setting;
 
-            if (enable) {
+            if (setting.enable) {
                 this.load();
+                this.meta.enabled = true;
             }
 
         } catch (error) {
@@ -160,6 +161,10 @@ class Plugin {
     }
 
 
+    /**
+     * @public
+     * Try to load plugin middleware, commander, configure file
+     */
     load() {
         let match;
         // If buildin plugin
@@ -169,7 +174,7 @@ class Plugin {
             const buildInConfigurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
             this.middleware = require(buildInPluginPath);
             this.meta = { isBuildIn: true, version };
-            
+
             try {
                 this.commander = require(buildInCommanderPath);
                 this.configure = require(buildInConfigurePath);
@@ -216,7 +221,7 @@ class Plugin {
     static resolve(value) {
         const resolveData = {
             id: '',
-            setting: {}
+            setting: { enable: true }
         };
         if (typeof value === 'string') {
             resolveData.id = value;
@@ -242,7 +247,6 @@ class Plugin {
 
         return resolveData;
     }
-
 
 
     /**

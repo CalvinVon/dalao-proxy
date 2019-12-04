@@ -1,12 +1,69 @@
 const chalk = require('chalk');
 const Table = require('cli-table');
-const findExtendedCommand = require('./find-extended-command');
+const { Plugin } = require('../../../plugin');
+const findExtendedCommand = require('../find-extended-command');
 
-exports.listPlugins = function (runtimePlugins, options) {
+
+/**
+ * Analysis single plugin detail
+ * @param {Plugin} plugin 
+ * @returns {PluginDetail}
+ */
+function analysisPlugin(plugin) {
+    return {
+        instance: plugin,
+        id: isBuildIn(plugin) ? plugin.id.replace('BuildIn:plugin/', '') : plugin.id,
+        version: plugin.meta.version,
+        description: isBuildIn(plugin) ? '📦  Build-in plugin' : plugin.meta.description,
+        middlewares: Object.keys(plugin.middleware),
+        commands: plugin.commander ? findExtendedCommand(plugin.commander) : null,
+        // TODO
+        configure: plugin.configure,
+        enabled: plugin.meta.enabled
+    }
+}
+
+/**
+ * Analysis plugins list
+ * @param {Array<Plugin>} runtimePlugins
+ * @param {Object} options
+ * @returns {Array<PluginDetail>}
+ */
+function analysisPluginList(runtimePlugins, options) {
+    const { isGlobal } = options || {};
+
+    let plugins = runtimePlugins;
+
+    if (isGlobal) {
+        const baseConfigFilePath = require('path').join(__dirname, '../../../../config/index.js');
+        const config = require(baseConfigFilePath);
+        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.id === Plugin.resolve(name).id));
+    }
+
+
+    const analyzedPluginList = [];
+    plugins.forEach(plugin => {
+        analyzedPluginList.push(analysisPlugin(plugin));
+    });
+
+    return analyzedPluginList;
+};
+
+
+/**
+ * Display analysis plugins list for CLI
+ * @param {Array<Plugin>} runtimePlugins
+ * @param {Object} options
+ */
+function displayPluginTable(runtimePlugins, options) {
+    const analyzedPluginList = analysisPluginList(runtimePlugins, options);
+    // console.log(analyzedPluginList);
+
     const {
-        isGlobal, showDescription, showMiddleware, showCommand, showConfigure
+        showDescription, showMiddleware, showCommand, showConfigure
     } = options || {};
 
+    const displayEmpty = '-';
     const enabledEmoji = '✔️';
     const disabledEmoji = '❌';
 
@@ -24,20 +81,11 @@ exports.listPlugins = function (runtimePlugins, options) {
             .filter(Boolean)
     });
 
-    let plugins = runtimePlugins;
 
-    if (isGlobal) {
-        const baseConfigFilePath = require('path').join(__dirname, '../../../../config/index.js');
-        const config = require(baseConfigFilePath);
-        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.id === name));
-    }
-
-    // console.log(runtimePlugins);
-
-    plugins.forEach(plugin => {
+    analyzedPluginList.forEach(analyzedPlugin => {
         function wrapper([flag, output = '-']) {
             if (flag) {
-                if (plugin.meta.error) {
+                if (analyzedPlugin.instance.meta.error) {
                     return disabledEmoji + '  ' + plugin.meta.error.code
                 }
                 else {
@@ -49,40 +97,29 @@ exports.listPlugins = function (runtimePlugins, options) {
             }
         }
 
-
-        const data = [
+        table.push([
+            // ID
+            [true, analyzedPlugin.id],
             // version
-            [true, plugin.meta.version],
-
-
+            [true, analyzedPlugin.version],
             // Description
-            [showDescription, isBuildIn(plugin) ? '📦  Build-in plugin' : plugin.meta.description],
-
+            [showDescription, analyzedPlugin.description || displayEmpty],
             // Middlewares implemented
-            [showMiddleware, Object.keys(plugin.middleware).join('\n')],
-
+            [showMiddleware, analyzedPlugin.middlewares.join('\n') || displayEmpty],
             // Commands extended
-            [showCommand, displayCommands(plugin)],
-
+            [showCommand, displayCommands(analyzedPlugin) || displayEmpty],
             // Config options
-            [showConfigure, (plugin.config || {}).toString()],
-
+            [showConfigure, analyzedPlugin.configure || displayEmpty],
             // Enabled
-            [true, plugin.meta.enabled ? enabledEmoji : disabledEmoji]
+            [true, analyzedPlugin.enabled ? enabledEmoji : disabledEmoji]
         ]
             .map(wrapper)
-            .filter(Boolean);
-
-        data.unshift(
-            // Plugin ID
-            isBuildIn(plugin) ? plugin.id.replace('BuildIn:plugin/', '') : plugin.id,
-        );
-        table.push(data)
+            .filter(Boolean))
     });
 
     console.log(table.toString());
     process.exit(0);
-}
+};
 
 
 
@@ -90,9 +127,9 @@ function isBuildIn(plugin) {
     return plugin.meta.isBuildIn;
 }
 
-function displayCommands(plugin) {
-    if (plugin.commander) {
-        const { commands, configure, on } = findExtendedCommand(plugin.commander);
+function displayCommands(pluginDetail) {
+    if (pluginDetail.commands) {
+        const { commands, configure, on } = pluginDetail.commands || {};
         let output = '';
         if (commands.length) {
             output += chalk.yellow('Commands: ') + commands.join(', ') + '\n';
@@ -106,4 +143,11 @@ function displayCommands(plugin) {
 
         return output;
     }
+}
+
+
+module.exports = {
+    analysisPlugin,
+    analysisPluginList,
+    displayPluginTable
 }

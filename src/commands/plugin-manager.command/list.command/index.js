@@ -1,4 +1,4 @@
-const { listPlugins } = require('./list-plugin');
+const { displayPluginTable } = require('./list-plugin');
 
 module.exports = function pluginListCommand(pluginCommand) {
     pluginCommand
@@ -21,7 +21,7 @@ module.exports = function pluginListCommand(pluginCommand) {
                 conf: showConfigure
             } = this.context.options;
 
-            listPlugins(plugins, {
+            displayPluginTable(plugins, {
                 isGlobal,
                 showDescription: showDescription || showAll,
                 showMiddleware: showMiddleware || showAll,

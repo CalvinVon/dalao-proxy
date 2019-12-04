@@ -1,5 +1,6 @@
 const installCommand = require('./install.command');
 const listCommand = require('./list.command');
+const viewCommand = require('./view.command');
 
 module.exports = function pluginManagerCommand(program) {
     program
@@ -8,4 +9,5 @@ module.exports = function pluginManagerCommand(program) {
         .forwardSubcommands()
         .use(installCommand)
         .use(listCommand)
+        .use(viewCommand)
 };

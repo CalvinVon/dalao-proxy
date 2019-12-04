@@ -1,5 +1,5 @@
 const { Command } = require('commander');
-const { Register } = require('../../../plugin');
+const { Register } = require('../../plugin');
 
 module.exports = function findExtendedCommand(loadFunc) {
     const testProgram = new Command();
