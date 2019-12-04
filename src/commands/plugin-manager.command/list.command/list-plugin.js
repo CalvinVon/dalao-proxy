@@ -15,7 +15,7 @@ function analysisPlugin(plugin) {
         id: isBuildIn(plugin) ? plugin.id.replace('BuildIn:plugin/', '') : plugin.id,
         version: plugin.meta.version,
         description: isBuildIn(plugin) ? '📦  Build-in plugin' : plugin.meta.description,
-        middlewares: Object.keys(plugin.middleware),
+        middlewares: Object.keys(plugin.middleware).filter(it => Plugin.AllMiddlewares.some(m => m === it)),
         commands: plugin.commander ? findExtendedCommand(plugin.commander) : null,
         // TODO
         configure: plugin.configure,

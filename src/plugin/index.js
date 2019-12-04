@@ -304,6 +304,8 @@ class Plugin {
     }
 }
 
+Plugin.AllMiddlewares = ['beforeCreate', 'onRequest', 'onRouteMatch', 'beforeProxy', 'afterProxy'];
+
 class PluginInterrupt {
     constructor(plugin, lifehook, message) {
         this.plugin = plugin;

@@ -31,5 +31,9 @@
     "npm": "^6.13.0",
     "request": "^2.88.0",
     "rimraf": "^3.0.0"
+  },
+  "devDependencies": {
+    "@calvin_von/proxy-plugin-monitor": "^1.2.1",
+    "cli-spinner": "^0.2.10"
   }
 }
