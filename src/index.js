@@ -21,11 +21,12 @@ Command.prototype.context = {
     command: null,          // current (sub)command
     commandName: null,      // current (sub)command name
     options: {},            // parsed option values
-    config: null,           // plugin configurable
+    config: null,           // parsed config for core command <plugin configurable>
+    rawConfig: {},          // raw config object
     configPath: null,
-    server: null,           // plugin configurable
+    server: null,           // <plugin configurable>
     plugins: [],
-    output: {},             // plugin configurable
+    output: {},             // <plugin configurable>
 };
 
 /**

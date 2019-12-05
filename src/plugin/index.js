@@ -116,13 +116,13 @@ class Register extends EventEmitter {
 const register = new Register();
 const configure = Register.prototype.configure;
 
-
 /**
  * @class Plugin
  * @member {String} id plugin id
  * @member {Object} setting plugin universal setting
  * @member {Object} middleware middlewares for core proxy
  * @member {Function} configure exported function to configure plugin behavior
+ * @member {Object} config parsed plugin config object
  * @member {Function} commander exported function to extends commands
  * @member {Object} context program context
  * @member {Object} meta plugin package meta info
@@ -139,15 +139,18 @@ class Plugin {
         this.meta = {};
         this.setting;
         this.configure = null;
+        this.config = {};
         this.middleware = {};
         this.commander = null;
         this.context = program.context;
+
         this._indexPath = '';
         this._configurePath;
         this._commanderPath;
 
         try {
             const setting = this.setting = this.loadSetting();
+            this.config = this.loadPluginConfig();
 
             if (setting.enable) {
                 this.load();
@@ -216,57 +219,68 @@ class Plugin {
         try {
             // try load `configure.js` file
             this.configure = require(this._configurePath);
-            if (typeof this.configure === 'object') {
-                const configureSetting = this.configure.configureSetting;
-                if (typeof configureSetting === 'function') {
-                    return configureSetting.call(null);
-                }
-                else {
-                    return {
-                        enable: true,
-                        configField: this.id
-                    }
-                }
-            }
+            return Plugin.resolveSetting(this);
         } catch (error) {
             if (!isNoOptionFileError(error)) {
                 console.error(error);
             }
-            return {
-                enable: true,
-                configField: this.id
-            }
+            return Plugin.defaultSetting(this);
         }
     }
 
-    static resolve(value) {
-        const resolveData = {
-            id: '',
-            setting: { enable: true }
+
+    /**
+     * Resolve plugin config from `setting.configField`
+     */
+    loadPluginConfig() {
+        const rawPluginConfig = this.context.rawConfig[this.setting.configField] || {};
+        const parser = Plugin.resolveConfigParser(this);
+        return parser.call(this, rawPluginConfig, this.context.rawConfig) || {};
+    }
+
+    static defaultSetting(plugin) {
+        return {
+            enable: true,
+            configField: plugin.id
         };
-        if (typeof value === 'string') {
-            resolveData.id = value;
-        }
-        else if (Array.isArray(value)) {
-            const [name, setting] = value;
-            if (typeof name === 'string') {
-                resolveData.id = value[0];
+    }
+
+    static defaultConfigParser() {
+        return config => config;
+    }
+
+    static resolveSetting(plugin) {
+        const defaultSetting = Plugin.defaultSetting(plugin);
+        const configure = plugin.configure;
+        if (configure && typeof configure === 'object') {
+            const configureSetting = configure.configureSetting;
+            if (typeof configureSetting === 'function') {
+                return configureSetting.call(plugin);
             }
             else {
-                throw new Error('Plugin name format error');
-            }
-            if (typeof setting === 'object') {
-                resolveData.setting = setting;
-            }
-            else {
-                throw new Error('Plugin setting format error');
+                return defaultSetting;
             }
         }
         else {
-            throw new Error('Plugin name format error');
+            return defaultSetting;
         }
+    }
 
-        return resolveData;
+    static resolveConfigParser(plugin) {
+        const defaultConfigParser = Plugin.defaultConfigParser();
+        const configure = plugin.configure;
+        if (configure && typeof configure === 'object') {
+            const parser = configure.parser;
+            if (typeof parser === 'function') {
+                return parser;
+            }
+            else {
+                return defaultConfigParser;
+            }
+        }
+        else {
+            return defaultConfigParser;
+        }
     }
 
 

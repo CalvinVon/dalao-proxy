@@ -3,7 +3,6 @@ const Table = require('cli-table');
 const { Plugin } = require('../../../plugin');
 const findExtendedCommand = require('../find-extended-command');
 
-
 /**
  * Analysis single plugin detail
  * @param {Plugin} plugin 
@@ -17,8 +16,7 @@ function analysisPlugin(plugin) {
         description: isBuildIn(plugin) ? '📦  Build-in plugin' : plugin.meta.description,
         middlewares: Object.keys(plugin.middleware).filter(it => Plugin.AllMiddlewares.some(m => m === it)),
         commands: plugin.commander ? findExtendedCommand(plugin.commander) : null,
-        // TODO
-        configure: plugin.configure,
+        configure: Plugin.resolveSetting(plugin),
         enabled: plugin.meta.enabled
     }
 }
@@ -57,7 +55,6 @@ function analysisPluginList(runtimePlugins, options) {
  */
 function displayPluginTable(runtimePlugins, options) {
     const analyzedPluginList = analysisPluginList(runtimePlugins, options);
-    // console.log(analyzedPluginList);
 
     const {
         showMiddleware, showCommand, showConfigure
@@ -78,15 +75,19 @@ function displayPluginTable(runtimePlugins, options) {
             [true, chalk.yellow('Enabled')]
         ]
             .map(([flag, text]) => flag && text)
-            .filter(Boolean)
+            .filter(Boolean),
+        style: {
+            compact: true
+        }
     });
 
 
     analyzedPluginList.forEach(analyzedPlugin => {
         function wrapper([flag, output = '-']) {
             if (flag) {
-                if (analyzedPlugin.instance.meta.error) {
-                    return disabledEmoji + '  ' + plugin.meta.error.code
+                const error = analyzedPlugin.instance.meta.error;
+                if (error) {
+                    return disabledEmoji + '  ' + error.code
                 }
                 else {
                     return output;
@@ -109,7 +110,7 @@ function displayPluginTable(runtimePlugins, options) {
             // Commands extended
             [showCommand, displayCommands(analyzedPlugin) || displayEmpty],
             // Config options
-            [showConfigure, analyzedPlugin.configure || displayEmpty],
+            [showConfigure, displayConfigure(analyzedPlugin) || displayEmpty],
             // Enabled
             [true, analyzedPlugin.enabled ? enabledEmoji : disabledEmoji]
         ]
@@ -143,6 +144,14 @@ function displayCommands(pluginDetail) {
 
         return output;
     }
+}
+
+function displayConfigure({ configure }) {
+    let output = '';
+    Object.keys(configure || {}).forEach(key => {
+        output += chalk.yellow(key + ': ') + configure[key] + '\n';
+    });
+    return output;
 }
 
 

@@ -52,7 +52,7 @@ program
 
     // Register commands from plugins
     .use(function registerPlugins() {
-        usePlugins(program, ConfigParser.parsePlugins());
+        usePlugins(program, ConfigParser.parsePlugins(program));
     })
     
     // Parse command and options

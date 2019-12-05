@@ -10,9 +10,20 @@ function configureSetting() {
     };
 }
 
+
+/**
+ * Parser raw config
+ * @description The first parameter passed in depends on the field configureSetting.configField,
+ *              the second parameter is the whole raw config object.
+ */
+function parser(isCache, rawConfig) {
+    return {
+        cache: isCache,
+        appendField: 'configurable'
+    }
+}
+
 module.exports = {
     configureSetting,
-    mergeConfig() {
-
-    }
+    parser
 };

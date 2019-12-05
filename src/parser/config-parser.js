@@ -348,7 +348,8 @@ exports.parse = function parse(command) {
  * Parse plugins from config and installed
  * @returns {Array}
  */
-exports.parsePlugins = function parsePlugins() {
+exports.parsePlugins = function parsePlugins(command) {
     const fileConfig = parseFile(parsePathFromArgv()).config;
+    command.context.rawConfig = fileConfig;
     return fileConfig.plugins;
 }
