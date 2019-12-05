@@ -60,7 +60,7 @@ function displayPluginTable(runtimePlugins, options) {
     // console.log(analyzedPluginList);
 
     const {
-        showDescription, showMiddleware, showCommand, showConfigure
+        showMiddleware, showCommand, showConfigure
     } = options || {};
 
     const displayEmpty = '-';
@@ -71,7 +71,7 @@ function displayPluginTable(runtimePlugins, options) {
         head: [
             [true, chalk.yellow('Plugin ID')],
             [true, chalk.white('Version')],
-            [showDescription, chalk.white('Description')],
+            [true, chalk.white('Description')],
             [showMiddleware, chalk.yellow('Middlewares\nimplemented')],
             [showCommand, chalk.yellow('Commands\nextended')],
             [showConfigure, chalk.white('Config options')],
@@ -103,7 +103,7 @@ function displayPluginTable(runtimePlugins, options) {
             // version
             [true, analyzedPlugin.version],
             // Description
-            [showDescription, analyzedPlugin.description || displayEmpty],
+            [true, analyzedPlugin.description || displayEmpty],
             // Middlewares implemented
             [showMiddleware, analyzedPlugin.middlewares.join('\n') || displayEmpty],
             // Commands extended

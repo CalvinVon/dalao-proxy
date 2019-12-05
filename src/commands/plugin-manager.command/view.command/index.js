@@ -1,4 +1,4 @@
-const { viewPlugin } = require('./view-package');
+const { displayViewPlugin } = require('./view-package');
 
 module.exports = function pluginViewCommand(pluginCommand) {
     pluginCommand
@@ -6,6 +6,6 @@ module.exports = function pluginViewCommand(pluginCommand) {
         .description('view package and check plugin detail')
         .option('--registry <url>', 'override configuration registry')
         .action(function (package) {
-            viewPlugin(package, this.context.options);
+            displayViewPlugin(package, this.context.options);
         });
 };
