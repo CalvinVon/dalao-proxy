@@ -37,7 +37,7 @@ function analysisPluginList(runtimePlugins, options) {
     if (isGlobal) {
         const baseConfigFilePath = require('path').join(__dirname, '../../../../config/index.js');
         const config = require(baseConfigFilePath);
-        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.id === Plugin.resolve(name).id));
+        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.id === name));
     }
 
 

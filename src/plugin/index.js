@@ -12,6 +12,14 @@ function nonCallback(next) { next && next(false); }
 function isNoOptionFileError(error) {
     return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/(?:\/|\\)(?:commander|configure)'/);
 }
+/**
+ * Judge the plugin is build-in or not and return plugin name
+ * @param {String} id
+ * @returns {String} plugin name
+ */
+function isBuildIn(id) {
+    return id.match(/^BuildIn\:plugin\/(.+)$/i);
+}
 
 class Register extends EventEmitter {
     constructor() {
@@ -127,18 +135,19 @@ class Plugin {
      * @param {Command} program
      */
     constructor(pluginName, program) {
-        this.id = '';
+        this.id = pluginName;
         this.meta = {};
-        this.setting = { enable: true };
+        this.setting;
         this.configure = null;
         this.middleware = {};
         this.commander = null;
         this.context = program.context;
+        this._indexPath = '';
+        this._configurePath;
+        this._commanderPath;
 
         try {
-            const { id, setting } = Plugin.resolve(pluginName);
-            this.id = id;
-            this.setting = setting;
+            const setting = this.setting = this.loadSetting();
 
             if (setting.enable) {
                 this.load();
@@ -156,66 +165,78 @@ class Plugin {
             this.meta.enabled = false;
             this.meta.error = error;
         }
-
-
     }
 
 
     /**
      * @public
-     * Try to load plugin middleware, commander, configure file
+     * Try to load plugin middleware, commander
      */
     load() {
-        let match;
-        // If buildin plugin
-        if (match = this.id.match(/^BuildIn\:plugin\/(.+)$/i)) {
-            const buildInPluginPath = path.resolve(__dirname, match[1]);
-            const buildInCommanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
-            const buildInConfigurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
-            this.middleware = require(buildInPluginPath);
-            this.meta = { isBuildIn: true, version };
+        this.middleware = require(this._indexPath);
+        this.meta = { isBuildIn: true, version };
 
-            try {
-                this.commander = require(buildInCommanderPath);
-                this.configure = require(buildInConfigurePath);
-            } catch (error) {
-                if (!isNoOptionFileError(error)) {
-                    console.error(error);
-                }
-            }
-        }
-        else {
-            if (isDebugMode()) {
-                const pluginPath = path.resolve(__dirname, '../../packages/', this.id);
-                const pluginCommanderPath = path.resolve(pluginPath, PATH_COMMANDER);
-                const pluginConfigurePath = path.resolve(pluginPath, PATH_CONFIGURE);
-                this.middleware = require(pluginPath);
-                this.meta = require(path.resolve(pluginPath, PATH_PACKAGE));
-                this.meta.isDebug = true;
-                try {
-                    this.commander = require(pluginCommanderPath);
-                    this.configure = require(pluginConfigurePath);
-                } catch (error) {
-                    if (!isNoOptionFileError(error)) {
-                        console.error(error);
-                    }
-                }
-            }
-            else {
-                this.middleware = require(this.id);
-                this.meta = require(path.join(this.id, PATH_PACKAGE));
-                try {
-                    this.commander = require(path.join(this.id, PATH_COMMANDER));
-                    this.configure = require(path.join(this.id, PATH_CONFIGURE));
-                } catch (error) {
-                    if (!isNoOptionFileError(error)) {
-                        console.error(error);
-                    }
-                }
+        try {
+            this.commander = require(this._commanderPath);
+        } catch (error) {
+            if (!isNoOptionFileError(error)) {
+                console.error(error);
             }
         }
 
         this._extendCmds();
+    }
+
+
+    /**
+     * @public
+     * load plugin setting, try to load configure file
+     */
+    loadSetting() {
+        let matched = isBuildIn(this.id);
+        if (matched) {
+            const buildInPluginPath = this._indexPath = path.resolve(__dirname, matched[1]);
+            this._configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
+            this._commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
+            this.meta = { isBuildIn: true, version };
+        }
+        else {
+            if (isDebugMode()) {
+                const devPath = this._indexPath = path.resolve(__dirname, '../../packages/', this.id);
+                this._configurePath = path.resolve(devPath, PATH_CONFIGURE);
+                this._commanderPath = path.resolve(devPath, PATH_COMMANDER);
+            }
+            else {
+                this._indexPath = this.id;
+                this._configurePath = path.join(this.id, PATH_CONFIGURE);
+                this._commanderPath = path.join(this.id, PATH_COMMANDER);
+            }
+        }
+
+        try {
+            // try load `configure.js` file
+            this.configure = require(this._configurePath);
+            if (typeof this.configure === 'object') {
+                const configureSetting = this.configure.configureSetting;
+                if (typeof configureSetting === 'function') {
+                    return configureSetting.call(null);
+                }
+                else {
+                    return {
+                        enable: true,
+                        configField: this.id
+                    }
+                }
+            }
+        } catch (error) {
+            if (!isNoOptionFileError(error)) {
+                console.error(error);
+            }
+            return {
+                enable: true,
+                configField: this.id
+            }
+        }
     }
 
     static resolve(value) {

@@ -60,7 +60,7 @@ program
 
 if (program.context.command) {
     // Start parsing config
-    ConfigParser.parse(program.context.command);
+    ConfigParser.parse(program);
 
     // Enable input
     if (program._enableInput) {
