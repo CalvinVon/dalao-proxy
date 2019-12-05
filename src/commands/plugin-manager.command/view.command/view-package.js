@@ -3,10 +3,17 @@ const { Command } = require('commander');
 const Table = require('cli-table');
 const chalk = require('chalk');
 const Spinner = require('cli-spinner').Spinner;
+const request = require('request');
 
 const { Plugin } = require('../../../plugin');
 const { analysisPlugin } = require('../list.command/list-plugin');
 
+/**
+ * Fetch package infomation though `npm`
+ * @param {String} packageName
+ * @param {Object} options
+ * @param {Function} callback
+ */
 function fetchPackageInfo(packageName, options, callback) {
 
     const npmOptions = [
@@ -45,6 +52,12 @@ function fetchPackageInfo(packageName, options, callback) {
     });
 };
 
+/**
+ * Install package locally but does not cause changes to the `package.json` or `package-lock.json` files
+ * @param {String} packageName
+ * @param {Object} options
+ * @param {Function} callback
+ */
 function installPkgTemporarily(packageName, options, callback) {
     const npmOptions = [
         'install',
@@ -76,6 +89,7 @@ function installPkgTemporarily(packageName, options, callback) {
     });
 };
 
+
 function removePkg(packageName) {
     execSync('npm uninstall ' + packageName, {
         cwd: process.cwd(),
@@ -83,6 +97,12 @@ function removePkg(packageName) {
     });
 }
 
+/**
+ * Run npm command wrapper function
+ * @param {Array} args npm command args
+ * @param {Object} options child_process options
+ * @param {Function} callback
+ */
 function runNpmCommand(args, options, callback) {
     let data = '', errorData = '';
 
@@ -99,36 +119,46 @@ function runNpmCommand(args, options, callback) {
     });
 
     cmd.on('exit', () => {
-        console.log('exit');
         cmd.kill();
     });
 }
 
 
+/**
+ * Request plugin information and ouput in a table in the CLI
+ * @param {String} packageName
+ * @param {Object} options
+ */
 function displayViewPlugin(packageName, options) {
     const spinner = new Spinner('Requesting from the npm package registry ... %s');
     spinner.start();
     fetchPackageInfo(packageName, options, (err, packageDetail) => {
-        spinner.stop(true);
         if (err) return exitProgram(err);
+        console.clear();
 
-        displayDetailTable({
-            package: packageDetail,
-        });
-
-        spinner.setSpinnerTitle('Analyze basic information for plugin installation ... %s');
-        spinner.start();
-        installPkgTemporarily(packageName, options, (err, pluginDetail) => {
+        fetchPkgMonthlyDownloadCount(packageName, (err, count) => {
             spinner.stop(true);
-            if (err) return exitProgram(err);
-
+            packageDetail.monthlyDownload = count;
             displayDetailTable({
-                plugin: pluginDetail
+                package: packageDetail,
             });
 
-            removePkg(packageName);
-            exitProgram();
+            spinner.setSpinnerTitle('Analyze basic information for plugin installation ... %s');
+            spinner.start();
+            installPkgTemporarily(packageName, options, (err, pluginDetail) => {
+                spinner.stop(true);
+                if (err) return exitProgram(err);
+
+                displayDetailTable({
+                    plugin: pluginDetail
+                });
+
+                removePkg(packageName);
+                exitProgram();
+            });
+
         });
+
     });
 }
 
@@ -196,9 +226,24 @@ function displayDetailTable({ package, plugin }) {
             return Object.keys(value || {}).join('\n') || '-';
         }
         else {
-            return '-';
+            return value || '-';
         }
     }
+}
+
+
+/**
+ * Fetch monthly download count
+ * @param {String} packageName
+ * @param {Function} callback
+ */
+function fetchPkgMonthlyDownloadCount(packageName, callback) {
+    request(`https://api.npmjs.org/downloads/point/last-month/${packageName}`, (err, res) => {
+        if (err) return callback(err);
+
+        const { error, downloads } = JSON.parse(res.body) || {};
+        callback(error, downloads);
+    })
 }
 
 module.exports = {
