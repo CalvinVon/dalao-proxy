@@ -149,10 +149,11 @@ class Plugin {
         this._commanderPath;
 
         try {
-            const setting = this.setting = this.loadSetting();
+            this.setting = this.loadSetting();
             this.config = this.loadPluginConfig();
+            const enable = Plugin.resolveEnable(this);
 
-            if (setting.enable) {
+            if (enable) {
                 this.load();
                 this.meta.enabled = true;
             }
@@ -233,15 +234,16 @@ class Plugin {
      * Resolve plugin config from `setting.configField`
      */
     loadPluginConfig() {
-        const rawPluginConfig = this.context.rawConfig[this.setting.configField] || {};
+        const rawPluginConfig = this.context.rawConfig[this.setting.userOptionsField] || {};
         const parser = Plugin.resolveConfigParser(this);
         return parser.call(this, rawPluginConfig, this.context.rawConfig) || {};
     }
 
     static defaultSetting(plugin) {
         return {
-            enable: true,
-            configField: plugin.id
+            defaultEnable: true,
+            userOptionsField: plugin.id,
+            configureEnableField: 'enable',
         };
     }
 
@@ -255,7 +257,7 @@ class Plugin {
         if (configure && typeof configure === 'object') {
             const configureSetting = configure.configureSetting;
             if (typeof configureSetting === 'function') {
-                return configureSetting.call(plugin);
+                return Object.assign({}, defaultSetting, configureSetting.call(plugin));
             }
             else {
                 return defaultSetting;
@@ -281,6 +283,16 @@ class Plugin {
         else {
             return defaultConfigParser;
         }
+    }
+
+    static resolveEnable(plugin) {
+        const { setting, config } = plugin;
+        let pluginEnable;
+        const userEnable = pluginEnable = config[setting.configureEnableField];
+        if (userEnable === undefined) {
+            pluginEnable = setting.defaultEnable;
+        }
+        return pluginEnable;
     }
 
 

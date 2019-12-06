@@ -71,7 +71,7 @@ function displayPluginTable(runtimePlugins, options) {
             [true, chalk.white('Description')],
             [showMiddleware, chalk.yellow('Middlewares\nimplemented')],
             [showCommand, chalk.yellow('Commands\nextended')],
-            [showConfigure, chalk.white('Config options')],
+            [showConfigure, chalk.white('Configure')],
             [true, chalk.yellow('Enabled')]
         ]
             .map(([flag, text]) => flag && text)
