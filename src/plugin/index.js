@@ -178,7 +178,12 @@ class Plugin {
      */
     load() {
         this.middleware = require(this._indexPath);
-        this.meta = { isBuildIn: true, version };
+        if (isBuildIn(this.id)) {
+            this.meta = { isBuildIn: true, version };
+        }
+        else {
+            this.meta = require(path.join(this._indexPath, PATH_PACKAGE));
+        }
 
         try {
             this.commander = require(this._commanderPath);
