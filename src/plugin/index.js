@@ -138,8 +138,8 @@ class Plugin {
         this.id = pluginName;
         this.meta = {};
         this.setting;
+        this.config;
         this.configure = null;
-        this.config = {};
         this.middleware = {};
         this.commander = null;
         this.context = program.context;
