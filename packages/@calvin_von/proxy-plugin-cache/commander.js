@@ -4,6 +4,7 @@ const rm = require('rimraf');
 const MockFileGenerator = require('./generate-mock');
 
 module.exports = function (program, register) {
+    const pluginConfig = this.config;
     program
         .command('mock <method>')
         .description('create a mock file in json format')
@@ -23,23 +24,22 @@ module.exports = function (program, register) {
     program
         .command('clean')
         .description('clean cache files')
-        .option('-C, --config <filepath>', 'use custom config file')
         .action(function () {
-            CleanCache(program.context.config);
-            console.log();
-            process.exit(0);
+            cleanCache(pluginConfig, () => {
+                process.exit(0);
+            });
         });
 
 
     register.on('input', input => {
         if (/\b(cacheclr|clean|cacheclean)\b/.test(input)) {
-            CleanCache(program.context.config);
+            cleanCache(pluginConfig);
         }
     });
 };
 
-function CleanCache(config) {
-    const cacheDir = path.join(process.cwd(), config.cacheDirname || '.dalao-cache', './*.js**');
+function cleanCache(config, callback) {
+    const cacheDir = path.join(process.cwd(), config.dirname, './*.js**');
     rm(cacheDir, err => {
         if (err) {
             console.log(chalk.red('  [error] something wrong happened during clean cache'), err);
@@ -47,5 +47,6 @@ function CleanCache(config) {
         else {
             console.log(chalk.green('  [plugin-cache] dalao cache has been cleaned!'));
         }
+        callback && callback(err);
     })
 };

@@ -4,13 +4,12 @@ const defaultOptions = {
         "application/json"
     ],
     "maxAge": [
-        "second",
-        0
+        0,
+        "second"
     ],
     "filters": [
         {
-            "when": "response",
-            "by": "header",
+            "where": "header",
             "field": "code",
             "value": 200
         }
