@@ -136,6 +136,7 @@ function runNpmCommand(args, options, callback) {
 /**
  * Request plugin information and ouput in a table in the CLI
  * @param {String} packageName
+ * @param {Array<Plugin>} installedPlugins
  * @param {Object} options
  */
 function displayViewPlugin(packageName, installedPlugins, options) {
@@ -258,7 +259,7 @@ function displayDetailTable({ package, plugin }) {
             return value.join('\n') || '-';
         }
         else if (typeof value === 'object') {
-            return Object.keys(value || {}).join('\n') || '-';
+            return Object.keys(value || {}).map(key => `${key}: ${format(value[key])}`).join('\n') + '\n' || '-';
         }
         else {
             return value || '-';
