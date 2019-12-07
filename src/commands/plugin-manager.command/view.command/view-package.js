@@ -4,9 +4,11 @@ const Table = require('cli-table');
 const chalk = require('chalk');
 const Spinner = require('cli-spinner').Spinner;
 const request = require('request');
+const path = require('path');
 
 const { Plugin } = require('../../../plugin');
 const { analysisPlugin } = require('../list.command/list-plugin');
+const { isDebugMode } = require('../../../utils');
 
 /**
  * Fetch package infomation though `npm`
@@ -16,40 +18,46 @@ const { analysisPlugin } = require('../list.command/list-plugin');
  */
 function fetchPackageInfo(packageName, options, callback) {
 
-    const npmOptions = [
-        'view',
-        packageName,
-        'name', 'keywords', 'maintainers', 'versions', 'time', 'dist.unpackedSize',
-        '--json',
-    ];
-
-    if (options.registry) {
-        npmOptions.push('--registry', options.registry);
+    if (isDebugMode()) {
+        const { indexPath } = Plugin.resolvePluginPaths(packageName);
+        callback(null, require(path.join(indexPath, 'package.json')));
     }
+    else {
+        const npmOptions = [
+            'view',
+            packageName,
+            'name', 'keywords', 'maintainers', 'versions', 'time', 'dist.unpackedSize',
+            '--json',
+        ];
 
-    runNpmCommand(npmOptions, {
-        stdio: 'pipe',
-        shell: true,
-        env: process.env
-    }, (err, data) => {
-        if (err) return callback(err);
-
-        const detail = JSON.parse(data);
-        if (detail.error) {
-            return callback(detail.error);
+        if (options.registry) {
+            npmOptions.push('--registry', options.registry);
         }
 
-        const latestVersion = detail.versions.pop();
-        const size = detail['dist.unpackedSize'];
-        callback(null, {
-            id: detail.name,
-            keywords: detail.keywords,
-            latestVersion,
-            latestPublish: detail.time[latestVersion],
-            size: size ? Number(size / 1000).toFixed(2) + 'kB' : null,
-            maintainers: detail.maintainers
+        runNpmCommand(npmOptions, {
+            stdio: 'pipe',
+            shell: true,
+            env: process.env
+        }, (err, data) => {
+            if (err) return callback(err);
+
+            const detail = JSON.parse(data);
+            if (detail.error) {
+                return callback(detail.error);
+            }
+
+            const latestVersion = detail.versions.pop();
+            const size = detail['dist.unpackedSize'];
+            callback(null, {
+                id: detail.name,
+                keywords: detail.keywords,
+                latestVersion,
+                latestPublish: detail.time[latestVersion],
+                size: size ? Number(size / 1000).toFixed(2) + 'kB' : null,
+                maintainers: detail.maintainers
+            });
         });
-    });
+    }
 };
 
 /**
@@ -97,6 +105,7 @@ function removePkg(packageName) {
     });
 }
 
+
 /**
  * Run npm command wrapper function
  * @param {Array} args npm command args
@@ -129,7 +138,8 @@ function runNpmCommand(args, options, callback) {
  * @param {String} packageName
  * @param {Object} options
  */
-function displayViewPlugin(packageName, options) {
+function displayViewPlugin(packageName, installedPlugins, options) {
+    const isInstalled = installedPlugins.filter(plugin => plugin.id === packageName)[0];
     const spinner = new Spinner('Requesting from the npm package registry ... %s');
     spinner.start();
     fetchPackageInfo(packageName, options, (err, packageDetail) => {
@@ -138,24 +148,42 @@ function displayViewPlugin(packageName, options) {
 
         fetchPkgMonthlyDownloadCount(packageName, (err, count) => {
             spinner.stop(true);
-            packageDetail.monthlyDownload = count;
+            packageDetail.lastMonDownload = count;
+
+            if (isInstalled) {
+                packageDetail.installed = true;
+                packageDetail.currentVersion = isInstalled.meta.version;
+            }
+
             displayDetailTable({
                 package: packageDetail,
             });
 
             spinner.setSpinnerTitle('Analyze basic information for plugin installation ... %s');
             spinner.start();
-            installPkgTemporarily(packageName, options, (err, pluginDetail) => {
+
+            if (isInstalled) {
                 spinner.stop(true);
-                if (err) return exitProgram(err);
 
                 displayDetailTable({
-                    plugin: pluginDetail
+                    plugin: analysisPlugin(isInstalled)
                 });
-
-                removePkg(packageName);
                 exitProgram();
-            });
+            }
+            else {
+                installPkgTemporarily(packageName, options, (err, pluginDetail) => {
+                    spinner.stop(true);
+                    if (err) return exitProgram(err);
+
+
+                    displayDetailTable({
+                        plugin: pluginDetail
+                    });
+
+                    removePkg(packageName);
+                    exitProgram();
+                });
+            }
 
         });
 
@@ -205,8 +233,15 @@ function displayDetailTable({ package, plugin }) {
             const packInfoTable = new Table(tableStyle);
 
             Object.keys(data).forEach(key => {
+                let displayString;
+                if (key === 'defaultConfig') {
+                    displayString = JSON.stringify(data[key], null, 4) || '-';
+                }
+                else {
+                    displayString = format(data[key]);
+                }
                 packInfoTable.push({
-                    [key]: format(data[key])
+                    [key]: displayString
                 });
             });
 

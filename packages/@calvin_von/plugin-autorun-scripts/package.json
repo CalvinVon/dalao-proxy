@@ -1,14 +1,12 @@
 {
   "name": "plugin-autorun-script",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A dalao-proxy plugin for auto run multiple commands in parallel",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "dalao-proxy",
     "plugin",
+    "run",
     "run concurrency"
   ],
   "author": "Calvin",

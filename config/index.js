@@ -15,28 +15,9 @@ const config = {
             "path": "/"
         }
     },
-    "cache": {
-        "enable": true,
-        "dirname": ".dalao-cache",
-        "contentType": [
-            "application/json"
-        ],
-        "maxAge": [
-            "second",
-            0
-        ],
-        "filters": [
-            {
-                "when": "response",
-                "by": "header",
-                "field": "code",
-                "value": 200
-            }
-        ],
-    },
     "plugins": [
         "BuildIn:plugin/check-version",
-        "BuildIn:plugin/proxy-cache",
+        "@calvin_von/proxy-plugin-cache",
     ]
 };
 module.exports = config;

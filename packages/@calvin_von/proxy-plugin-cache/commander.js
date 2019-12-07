@@ -11,7 +11,6 @@ module.exports = function (program, register) {
         .option('-C, --config <filepath>', 'use custom config file')
         .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
         .action(function (method) {
-            // only one stdin listener allowed to be attached at same time
 
             if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
                 console.error(chalk.red(method) + ' is NOT a valid HTTP method');
@@ -46,7 +45,7 @@ function CleanCache(config) {
             console.log(chalk.red('  [error] something wrong happened during clean cache'), err);
         }
         else {
-            console.log(chalk.green('  [info] dalao cache has been cleaned!'));
+            console.log(chalk.green('  [plugin-cache] dalao cache has been cleaned!'));
         }
     })
 };

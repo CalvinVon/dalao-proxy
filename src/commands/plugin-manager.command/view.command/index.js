@@ -6,6 +6,6 @@ module.exports = function pluginViewCommand(pluginCommand) {
         .description('view package and check plugin detail')
         .option('--registry <url>', 'override configuration registry')
         .action(function (package) {
-            displayViewPlugin(package, this.context.options);
+            displayViewPlugin(package, this.context.plugins, this.context.options);
         });
 };

@@ -17,6 +17,7 @@ function analysisPlugin(plugin) {
         middlewares: Object.keys(plugin.middleware).filter(it => Plugin.AllMiddlewares.some(m => m === it)),
         commands: plugin.commander ? findExtendedCommand(plugin.commander) : null,
         configure: Plugin.resolveSetting(plugin),
+        defaultConfig: plugin.parser(),
         enabled: plugin.meta.enabled
     }
 }
@@ -87,7 +88,7 @@ function displayPluginTable(runtimePlugins, options) {
             if (flag) {
                 const error = analyzedPlugin.instance.meta.error;
                 if (error && output !== analyzedPlugin.id) {
-                    return disabledEmoji + '  ' + error.code
+                    return disabledEmoji + '  ' + error.code;
                 }
                 else {
                     return output;

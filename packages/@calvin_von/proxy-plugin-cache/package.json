@@ -1,0 +1,19 @@
+{
+  "name": "proxy-plugin-cache",
+  "version": "1.0.0",
+  "description": "A dalao-proxy plugin for cache response",
+  "main": "index.js",
+  "keywords": [
+    "dalao-proxy",
+    "plugin",
+    "request-cache",
+    "mock"
+  ],
+  "author": "Calvin",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "moment": "^2.24.0",
+    "rimraf": "^3.0.0"
+  }
+}

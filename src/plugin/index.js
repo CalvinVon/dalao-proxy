@@ -123,6 +123,7 @@ const configure = Register.prototype.configure;
  * @member {Object} middleware middlewares for core proxy
  * @member {Function} configure exported function to configure plugin behavior
  * @member {Object} config parsed plugin config object
+ * @member {Object} parser plugin config parser
  * @member {Function} commander exported function to extends commands
  * @member {Object} context program context
  * @member {Object} meta plugin package meta info
@@ -139,6 +140,7 @@ class Plugin {
         this.meta = {};
         this.setting;
         this.config;
+        this.parser;
         this.configure = null;
         this.middleware = {};
         this.commander = null;
@@ -149,6 +151,11 @@ class Plugin {
         this._commanderPath;
 
         try {
+            const { indexPath, commanderPath, configurePath } = Plugin.resolvePluginPaths(this.id);
+            this._indexPath = indexPath;
+            this._commanderPath = commanderPath;
+            this._configurePath = configurePath;
+
             this.setting = this.loadSetting();
             this.config = this.loadPluginConfig();
             const enable = Plugin.resolveEnable(this);
@@ -202,26 +209,6 @@ class Plugin {
      * load plugin setting, try to load configure file
      */
     loadSetting() {
-        let matched = isBuildIn(this.id);
-        if (matched) {
-            const buildInPluginPath = this._indexPath = path.resolve(__dirname, matched[1]);
-            this._configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
-            this._commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
-            this.meta = { isBuildIn: true, version };
-        }
-        else {
-            if (isDebugMode()) {
-                const devPath = this._indexPath = path.resolve(__dirname, '../../packages/', this.id);
-                this._configurePath = path.resolve(devPath, PATH_CONFIGURE);
-                this._commanderPath = path.resolve(devPath, PATH_COMMANDER);
-            }
-            else {
-                this._indexPath = this.id;
-                this._configurePath = path.join(this.id, PATH_CONFIGURE);
-                this._commanderPath = path.join(this.id, PATH_COMMANDER);
-            }
-        }
-
         try {
             // try load `configure.js` file
             this.configure = require(this._configurePath);
@@ -239,9 +226,9 @@ class Plugin {
      * Resolve plugin config from `setting.configField`
      */
     loadPluginConfig() {
-        const rawPluginConfig = this.context.rawConfig[this.setting.userOptionsField] || {};
-        const parser = Plugin.resolveConfigParser(this);
-        return parser.call(this, rawPluginConfig, this.context.rawConfig) || {};
+        const rawPluginConfig = this.context.rawConfig[this.setting.userOptionsField];
+        const parser = this.parser = Plugin.resolveConfigParser(this);
+        return parser.call(this, rawPluginConfig) || {};
     }
 
     static defaultSetting(plugin) {
@@ -254,6 +241,38 @@ class Plugin {
 
     static defaultConfigParser() {
         return config => config;
+    }
+
+    /**
+     * Resolve Plugin Paths
+     * @param {String} pluginName 
+     */
+    static resolvePluginPaths(pluginName) {
+        const resolvedPaths = {
+            indexPath: null,
+            commanderPath: null,
+            configurePath: null,
+        };
+        let matched = isBuildIn(pluginName);
+        if (matched) {
+            const buildInPluginPath = resolvedPaths.indexPath = path.resolve(__dirname, matched[1]);
+            resolvedPaths.configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
+            resolvedPaths.commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
+            this.meta = { isBuildIn: true, version };
+        }
+        else {
+            if (isDebugMode()) {
+                const devPath = resolvedPaths.indexPath = path.resolve(__dirname, '../../packages/', pluginName);
+                resolvedPaths.configurePath = path.resolve(devPath, PATH_CONFIGURE);
+                resolvedPaths.commanderPath = path.resolve(devPath, PATH_COMMANDER);
+            }
+            else {
+                resolvedPaths.indexPath = pluginName;
+                resolvedPaths.configurePath = path.join(pluginName, PATH_CONFIGURE);
+                resolvedPaths.commanderPath = path.join(pluginName, PATH_COMMANDER);
+            }
+        }
+        return resolvedPaths;
     }
 
     static resolveSetting(plugin) {

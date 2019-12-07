@@ -2,7 +2,6 @@ const chalk = require('chalk');
 const path = require('path');
 const moment = require('moment');
 const fs = require('fs');
-const _ = require('lodash');
 const {
     checkAndCreateCacheFolder,
     url2filename
@@ -175,7 +174,7 @@ module.exports = {
                 if (contentTypeReg.test(response.headers['content-type'])) {
                     const resJson = Object.assign({}, context.data.response.data);
 
-                    if (_.get(resJson, responseFilter[0]) === responseFilter[1]) {
+                    if (resJson[responseFilter[0]] === responseFilter[1]) {
                         resJson.CACHE_INFO = 'Cached from Dalao Proxy';
                         resJson.CACHE_TIME = Date.now();
                         resJson.CACHE_TIME_TXT = moment().format('YYYY-MM-DD HH:mm:ss');

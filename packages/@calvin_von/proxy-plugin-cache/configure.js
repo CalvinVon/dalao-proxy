@@ -1,5 +1,20 @@
 const defaultOptions = {
-    enable: true,
+    "dirname": ".dalao-cache",
+    "contentType": [
+        "application/json"
+    ],
+    "maxAge": [
+        "second",
+        0
+    ],
+    "filters": [
+        {
+            "when": "response",
+            "by": "header",
+            "field": "code",
+            "value": 200
+        }
+    ],
 };
 
 
@@ -22,12 +37,9 @@ function configureSetting() {
  * @description The first parameter passed in depends on the field configureSetting.configField,
  *              the second parameter is the whole raw config object.
  */
-function parser(cacheOptions, rawConfig) {
+function parser(cacheOptions) {
     if (cacheOptions && typeof cacheOptions === 'object') {
-        return {
-            ...cacheOptions,
-            appendField: 'configurable'
-        }
+        return Object.assign({}, defaultOptions, cacheOptions);
     }
     else {
         return defaultOptions;

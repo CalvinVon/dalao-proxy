@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { checkAndCreateCacheFolder, url2filename } = require('./utils');
 const moment = require('moment');
-const baseConfig = require('../../../config');
+// const baseConfig = require('../../../config');
+const baseConfig = {};
 
 let resolvedConfig = baseConfig;
 let resolvedCacheFolder = baseConfig.cacheDirname;
