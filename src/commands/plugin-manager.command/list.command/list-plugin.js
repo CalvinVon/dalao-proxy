@@ -86,7 +86,7 @@ function displayPluginTable(runtimePlugins, options) {
         function wrapper([flag, output = '-']) {
             if (flag) {
                 const error = analyzedPlugin.instance.meta.error;
-                if (error) {
+                if (error && output !== analyzedPlugin.id) {
                     return disabledEmoji + '  ' + error.code
                 }
                 else {
