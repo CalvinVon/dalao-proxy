@@ -1,4 +1,5 @@
 const chalk = require('chalk');
+const clone = require('clone');
 const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
@@ -36,6 +37,7 @@ class Register extends EventEmitter {
      * @param {Function} callback return the value after `configure`
      */
     _trigger(field, value, callback) {
+        this.emit('context:' + field, value);
         const registerSetters = this.registerMapper[field] || [];
 
         let index = 0, total = registerSetters.length;
@@ -226,9 +228,9 @@ class Plugin {
      * Resolve plugin config from `setting.configField`
      */
     loadPluginConfig() {
-        const rawPluginConfig = this.context.rawConfig[this.setting.userOptionsField];
+        const rawPluginConfig = this.context.config[this.setting.userOptionsField];
         const parser = this.parser = Plugin.resolveConfigParser(this);
-        return parser.call(this, rawPluginConfig) || {};
+        return parser.call(this, clone(rawPluginConfig)) || {};
     }
 
     static defaultSetting(plugin) {
@@ -240,7 +242,9 @@ class Plugin {
     }
 
     static defaultConfigParser() {
-        return config => config;
+        return function defaultParser(config) {
+            return config;
+        };
     }
 
     /**
@@ -333,7 +337,7 @@ class Plugin {
                 registerSetter.plugin = plugin;
                 configure.call(this, field, registerSetter);
             };
-            this.commander.call(this, this.context.program, register);
+            this.commander.call(this, this.context.program, register, this.config);
         }
     }
 

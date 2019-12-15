@@ -1,5 +1,6 @@
 const chalk = require('chalk');
-const { Command, Option } = require('commander');;
+const { Command, Option } = require('commander');
+const defaultConfig = require('../config');
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, register } = require('./plugin');
 
@@ -17,16 +18,61 @@ const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
 // Expose states so plugins can access
 Command.prototype.context = {
-    program: null,          // entry command
-    command: null,          // current (sub)command
-    commandName: null,      // current (sub)command name
-    options: {},            // parsed option values
-    config: null,           // parsed config for core command <plugin configurable>
-    rawConfig: {},          // raw config object
+    /**
+     * the entry command
+     */
+    program: null,
+    /**
+     * the current (sub)command
+     */
+    command: null,
+    /**
+     * the current (sub)command name
+     */
+    commandName: null,
+    /**
+     * parsed options values
+     */
+    options: {},
+    /**
+     * user's raw config
+     * @description Notice that it may not exist
+     */
+    rawConfig: null,
+    /**
+     * *configurable*
+     * 
+     * parsed core config
+     * 
+     * @description the config is **not parsed immediately** in **`command#action()`** method,
+     *  at the meantime, the config value is only the result of simply merged user's config with the default
+     *  config, you need to use **`register`** object to **configure/access** the value after parsed.
+     */
+    config: {},
+    /**
+     * user's config file path
+     */
     configPath: null,
-    server: null,           // <plugin configurable>
+    /**
+     * default config
+     */
+    defaultConfig,
+    /**
+     * *configurable*
+     * 
+     * Core proxy server
+     */
+    server: null,
+    /**
+     * runtime plugins list
+     */
     plugins: [],
-    output: {},             // <plugin configurable>
+    /**
+     * *configurable*
+     * 
+     * program output
+     */
+    output: {},
 };
 
 /**

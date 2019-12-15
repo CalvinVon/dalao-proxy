@@ -3,8 +3,7 @@ const path = require('path');
 const rm = require('rimraf');
 const MockFileGenerator = require('./generate-mock');
 
-module.exports = function (program, register) {
-    const pluginConfig = this.config;
+module.exports = function (program, register, config) {
     program
         .command('mock <method>')
         .description('create a mock file in json format')
@@ -12,20 +11,18 @@ module.exports = function (program, register) {
         .option('-C, --config <filepath>', 'use custom config file')
         .option('-d, --dir <cacheDirname>', 'use custom cache dirname')
         .action(function (method) {
-
             if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
                 console.error(chalk.red(method) + ' is NOT a valid HTTP method');
                 process.exit(-1);
-                return;
             }
-            MockFileGenerator(program, method, program.context.config);
+            MockFileGenerator(method, this.context.options, config);
         });
 
     program
         .command('clean')
         .description('clean cache files')
         .action(function () {
-            cleanCache(pluginConfig, () => {
+            cleanCache(config, () => {
                 process.exit(0);
             });
         });
@@ -33,7 +30,7 @@ module.exports = function (program, register) {
 
     register.on('input', input => {
         if (/\b(cacheclr|clean|cacheclean)\b/.test(input)) {
-            cleanCache(pluginConfig);
+            cleanCache(config);
         }
     });
 };

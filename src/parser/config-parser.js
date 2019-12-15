@@ -72,12 +72,14 @@ function parseFile(filePath) {
             const fileConfig = require(resolvedPath);
             return {
                 path: resolvedPath,
+                rawConfig: fileConfig,
                 config: mergeConfig(defaultConfig, fileConfig)
             };
         }
         else {
             return {
                 path: null,
+                rawConfig: null,
                 config: defaultConfig
             };
         }
@@ -85,6 +87,7 @@ function parseFile(filePath) {
         console.error(chalk.red(` > An error occurred (${error.message}) while parsing config file.`))
         return {
             path: resolvedPath,
+            rawConfig: null,
             config: defaultConfig
         };
     }
@@ -348,8 +351,6 @@ exports.parse = function parse(command) {
  * Parse plugins from config and installed
  * @returns {Array}
  */
-exports.parsePlugins = function parsePlugins(command) {
-    const fileConfig = parseFile(parsePathFromArgv()).config;
-    command.context.rawConfig = fileConfig;
-    return fileConfig.plugins;
+exports.parsePlugins = function parsePlugins() {
+    return parseFile(parsePathFromArgv());
 }

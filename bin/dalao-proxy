@@ -19,9 +19,8 @@ printWelcome(baseConfig.version);
 
 // On config parsed
 parserEmitter.on('config:parsed', function (configObject) {
-    const { path: configPath, config } = configObject;
-    program.context.configPath = configPath;
-    program.config = configPath;
+    const { config } = configObject;
+    program.context.config = config;
 
     // trigger field `config`
     register._trigger('config', config, value => {
@@ -52,9 +51,13 @@ program
 
     // Register commands from plugins
     .use(function registerPlugins() {
-        usePlugins(program, ConfigParser.parsePlugins(program));
+        const { rawConfig, config, path } = ConfigParser.parsePlugins();
+        program.context.rawConfig = rawConfig;
+        program.context.config = config;
+        program.context.configPath = path;
+        usePlugins(program, config.plugins);
     })
-    
+
     // Parse command and options
     .parse(process.argv);
 

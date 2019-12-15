@@ -4,24 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { checkAndCreateCacheFolder, url2filename } = require('./utils');
 const moment = require('moment');
-// const baseConfig = require('../../../config');
-const baseConfig = {};
 
-let resolvedConfig = baseConfig;
-let resolvedCacheFolder = baseConfig.cacheDirname;
-function questionUrl(program, method, { cacheDirname, configFileName }) {
-    // used custom config file
-    if (configFileName !== baseConfig.configFileName) {
-        try {
-            resolvedConfig = JSON.parse(fs.readFileSync(configFileName));
-            resolvedCacheFolder = resolvedConfig.cacheDirname;
-        } catch (error) {
-            console.error(' Parse config file failed with ' + error.message);
-        }
-    }
-    if (cacheDirname !== resolvedConfig.cacheDirname) {
-        resolvedCacheFolder = cacheDirname;
-    }
+function questionUrl(method, options, config) {
 
     function question() {
         const rl = readline.createInterface({
@@ -34,8 +18,8 @@ function questionUrl(program, method, { cacheDirname, configFileName }) {
                 rl.close();
                 return question();
             }
-            const isInJsFile = program.js;
-            const mockFileName = path.resolve(process.cwd(), `./${resolvedCacheFolder}/${url2filename(method, url)}`) + (isInJsFile ? '.js' : '.json');
+            const isInJsFile = options.js;
+            const mockFileName = path.resolve(process.cwd(), `./${config.dirname}/${url2filename(method, url)}`) + (isInJsFile ? '.js' : '.json');
             const json = {
                 CACHE_INFO: 'Mocked by Dalao Proxy',
                 CACHE_TIME_TXT: moment().format('llll'),
@@ -45,7 +29,7 @@ function questionUrl(program, method, { cacheDirname, configFileName }) {
                 },
                 data: {}
             };
-            json[resolvedConfig.responseFilter[0] || 'code'] = resolvedConfig.responseFilter[1] || 200;
+            json[config.responseFilter[0] || 'code'] = config.responseFilter[1] || 200;
             checkAndCreateCacheFolder(resolvedCacheFolder);
 
             let fileContent = JSON.stringify(json, null, 4);
@@ -75,14 +59,6 @@ function questionUrl(program, method, { cacheDirname, configFileName }) {
 }
 
 
-module.exports = function MockFileGenerator(program, method, runtimeConfig) {
-    if (runtimeConfig) {
-        return questionUrl(program, method, runtimeConfig);
-    }
-    else {
-        return questionUrl(program, method, {
-            cacheDirname: program.dir || baseConfig.cacheDirname,
-            configFileName: program.config || baseConfig.configFileName
-        });
-    }
+module.exports = function MockFileGenerator(method, options, config) {
+    return questionUrl(method, options, config);
 }
