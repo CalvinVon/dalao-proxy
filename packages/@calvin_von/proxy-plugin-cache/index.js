@@ -31,9 +31,6 @@ function cleanRequireCache(fileName) {
 }
 
 module.exports = {
-    beforeCreate() {
-
-    },
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { config, response, request } = context;

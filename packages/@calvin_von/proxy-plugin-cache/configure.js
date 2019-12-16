@@ -11,7 +11,7 @@ const defaultOptions = {
     ],
     "filters": [
         {
-            "where": "header",
+            "where": "body",
             "field": "code",
             "value": 200
         }
@@ -91,12 +91,22 @@ function parserFilters(value) {
     let filters;
     if (isType(value, 'Array')) {
         filters = value
-            .map(item => {
+            .map((item, index) => {
                 if (!/^(header|body)$/.test(item.where)) {
-                    configWarn('value of `cache.filters.where` should be `header` or `body`');
+                    configWarn(`value of \`cache.filters[${index}].where\` should be \`header\` or \`body\``);
                     item._disabled = true;
                 }
-                return item;
+                if (item.when) {
+                    if (!isType(item.when, 'Function')) {
+                        configWarn(`type of \`cache.filters[${index}].when\` should be \`Function\``);
+                        item.when = null;
+                    }
+                }
+                return Object.assign({
+                    field: null,
+                    value: null,
+                    when: null
+                }, item);
             })
             .filter(item => !item._disabled)
     }

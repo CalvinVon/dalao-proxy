@@ -27,7 +27,8 @@ function questionUrl(method, options, config) {
                     url,
                     method
                 },
-                data: {}
+                data: {},
+                _headers: {},
             };
             json[config.responseFilter[0] || 'code'] = config.responseFilter[1] || 200;
             checkAndCreateCacheFolder(resolvedCacheFolder);
