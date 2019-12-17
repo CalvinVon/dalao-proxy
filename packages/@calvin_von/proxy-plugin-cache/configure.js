@@ -16,6 +16,7 @@ const defaultOptions = {
             "value": 200
         }
     ],
+    "prefix": ""
 };
 
 
@@ -40,11 +41,13 @@ function configureSetting() {
  */
 function parser(cacheOptions) {
     if (isType(cacheOptions, 'Object')) {
-        return Object.assign({}, defaultOptions, cacheOptions, {
+        return {
             contentType: parseContentType(cacheOptions.contentType),
             maxAge: parseMaxAge(cacheOptions.maxAge),
-            filters: parserFilters(cacheOptions.filters)
-        });
+            filters: parseFilters(cacheOptions.filters),
+            prefix: parsePrefix(cacheOptions.prefix),
+            dirname: parseDirname(cacheOptions.dirname),
+        };
     }
     else {
         return defaultOptions;
@@ -52,13 +55,9 @@ function parser(cacheOptions) {
 }
 
 function parseContentType(value) {
-    if (isType(value, 'Array')) {
+    return makeSureFieldType('contentType', 'Array', value, () => {
         return cacheOptions.contentType;
-    }
-    else {
-        configWarn('type of field `cache.contentType` should be Array');
-        return defaultOptions.contentType;
-    }
+    });
 }
 
 function parseMaxAge(value) {
@@ -81,13 +80,15 @@ function parseMaxAge(value) {
         }
     }
     else {
-        configWarn('type of field `cache.maxAge` should be Array');
+        if (value) {
+            configWarn('type of field `cache.maxAge` should be Array');
+        }
         maxAge = defaultOptions.maxAge;
     }
     return maxAge;
 }
 
-function parserFilters(value) {
+function parseFilters(value) {
     let filters;
     if (isType(value, 'Array')) {
         filters = value
@@ -111,7 +112,9 @@ function parserFilters(value) {
             .filter(item => !item._disabled)
     }
     else {
-        configWarn('type of field `cache.filters` should be Array');
+        if (value) {
+            configWarn('type of field `cache.filters` should be Array');
+        }
         filters = defaultOptions.filters;
     }
 
@@ -119,9 +122,41 @@ function parserFilters(value) {
     return filters;
 }
 
+function parsePrefix(value) {
+    return makeSureFieldType('prefix', 'String', value, () => {
+        if (value && value[0] !== '/') {
+            configWarn('`cache.prefix` must start with `/`');
+            return defaultOptions.prefix;
+        }
+        return value;
+    });
+}
+
+function parseDirname(value) {
+    return makeSureFieldType('dirname', 'String', value);
+}
+
 
 function isType(value, type) {
     return Object.prototype.toString.call(value) === `[object ${type}]`;
+}
+
+
+function makeSureFieldType(field, type, value, callback) {
+    if (isType(value, type)) {
+        if (callback) {
+            return callback();
+        }
+        else {
+            return value;
+        }
+    }
+    else {
+        if (value) {
+            configWarn(`type of field \`cache.${field}\` should be ${type}`)
+        }
+        return defaultOptions[field];
+    }
 }
 
 function configWarn(message) {
