@@ -1,5 +1,4 @@
 const chalk = require('chalk');
-const clone = require('clone');
 const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
@@ -229,8 +228,13 @@ class Plugin {
      */
     loadPluginConfig() {
         const rawPluginConfig = this.context.config[this.setting.userOptionsField];
+        const rawEnable = rawPluginConfig && rawPluginConfig[this.setting.configureEnableField];
         const parser = this.parser = Plugin.resolveConfigParser(this);
-        return parser.call(this, clone(rawPluginConfig)) || {};
+        const parsedConfig = parser.call(this, rawPluginConfig) || {};
+        if (rawEnable !== undefined && rawEnable !== null) {
+            parsedConfig[this.setting.configureEnableField] = rawEnable;
+        }
+        return parsedConfig;
     }
 
     static defaultSetting(plugin) {

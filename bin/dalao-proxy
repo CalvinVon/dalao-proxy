@@ -20,6 +20,7 @@ printWelcome(baseConfig.version);
 // On config parsed
 parserEmitter.on('config:parsed', function (configObject) {
     const { config } = configObject;
+    config['[[parsed]]'] = true;
     program.context.config = config;
 
     // trigger field `config`
@@ -52,6 +53,7 @@ program
     // Register commands from plugins
     .use(function registerPlugins() {
         const { rawConfig, config, path } = ConfigParser.parsePlugins();
+        config['[[parsed]]'] = false;
         program.context.rawConfig = rawConfig;
         program.context.config = config;
         program.context.configPath = path;
