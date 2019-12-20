@@ -92,7 +92,7 @@ function joinUrl(...urls) {
 function fixJson(value) {
     return value
         .replace(/,\s*,/g, '')
-        .replace(/",:/g, '":')
+        .replace(/":,/g, '":')
         .replace(/([{\[])\s*,/g, function (matched) {
             return matched[1];
         })

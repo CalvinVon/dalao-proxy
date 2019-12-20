@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const path = require('path');
 const moment = require('moment');
 const fs = require('fs');
+const { FOREVER_VALID_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./generate-mock');
 const {
     checkAndCreateCacheFolder,
     url2filename
@@ -33,99 +34,100 @@ function cleanRequireCache(fileName) {
 module.exports = {
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
-        const { config, response, request } = context;
-        const { cacheDirname, info } = config;
-        const { cache, cacheMaxAge } = context.matched.route;
+        const { response, request } = context;
+        const {
+            dirname: cacheDirname,
+            maxAge: cacheMaxAge,
+            logger,
+        } = this.config;
+
         const { method, url } = request;
 
         // Try to read cache
-        // Cache Read Strategy(Updated at v0.9.0):
-        //      - `cache` option is `true`
-        //      - the `cache file` DO NOT contains `CACHE_TIME` field
         try {
-            if (cache) {
-                checkAndCreateCacheFolder(cacheDirname);
-                const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
-                const [cacheUnit = 'second', cacheDigit = 0] = cacheMaxAge;
+            checkAndCreateCacheFolder(cacheDirname);
+            const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
+            const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
-                let targetFileName;
-                const hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
-                    if (fs.existsSync(cacheSearchName + ext)) {
-                        targetFileName = cacheSearchName + ext;
-                        return true;
+            let targetFileName;
+            const hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
+                if (fs.existsSync(cacheSearchName + ext)) {
+                    targetFileName = cacheSearchName + ext;
+                    return true;
+                }
+                return false;
+            })
+
+            if (hasCacheFile) {
+                const jsonContent = require(targetFileName);
+                const fileContent = JSON.stringify(jsonContent, null, 4);
+
+                const cachedTimeStamp = jsonContent['CACHE_TIME'];
+
+                // need validate expire time
+                if (jsonContent[FOREVER_VALID_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
+                    const headers = jsonContent[HEADERS_FIELD_TEXT];
+                    for (const header in headers) {
+                        response.setHeader(header, headers[header]);
                     }
-                    return false;
-                })
+                    response.setHeader('X-Cache-Response', 'true');
+                    response.setHeader('X-Cache-Expire-Time', 'permanently valid');
+                    response.setHeader('X-Cache-Rest-Time', 'forever');
 
-                if (hasCacheFile) {
-                    const jsonContent = require(targetFileName);
-                    const fileContent = JSON.stringify(jsonContent, null, 4);
+                    response.writeHead(200, {
+                        'Content-Type': 'application/json'
+                    });
+                    response.end(fileContent);
+                    context.cache = {
+                        data: jsonContent,
+                        rawData: fileContent,
+                        type: 'application/json',
+                        size: fileContent.length
+                    };
 
-                    const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                    logger && logMatchedPath(targetFileName);
 
-                    // need validate expire time
-                    if (!cachedTimeStamp || cacheDigit === '*') {
-                        response.setHeader('X-Cache-Request', 'true');
-                        response.setHeader('X-Cache-Expire-Time', 'permanently valid');
-                        response.setHeader('X-Cache-Rest-Time', 'forever');
+                    // 中断代理请求
+                    next('Hit cache');
+                }
+                // permanently valid
+                else {
+                    const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
+                    // valid cache file
+                    if (moment().isBefore(deadlineMoment)) {
+                        response.setHeader('X-Cache-Response', 'true');
+                        // calculate rest cache time
+                        response.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
+                        response.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
 
                         response.writeHead(200, {
                             'Content-Type': 'application/json'
                         });
                         response.end(fileContent);
-                        context.cache = {
-                            data: jsonContent,
-                            rawData: fileContent,
-                            type: 'application/json',
-                            size: fileContent.length
-                        };
+                        context.cache = jsonContent;
 
-                        info && logMatchedPath(targetFileName);
+                        logger && logMatchedPath(targetFileName);
 
                         // 中断代理请求
                         next('Hit cache');
                     }
-                    // permanently valid
                     else {
-                        const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
-                        // valid cache file
-                        if (moment().isBefore(deadlineMoment)) {
-                            response.setHeader('X-Cache-Request', 'true');
-                            // calculate rest cache time
-                            response.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
-                            response.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
+                        // Do not delete expired cache automatically
+                        // V0.6.4 2019.4.17
+                        // fs.unlinkSync(cacheSearchName);
 
-                            response.writeHead(200, {
-                                'Content-Type': 'application/json'
-                            });
-                            response.end(fileContent);
-                            context.cache = jsonContent;
-
-                            info && logMatchedPath(targetFileName);
-
-                            // 中断代理请求
-                            next('Hit cache');
-                        }
-                        else {
-                            // Do not delete expired cache automatically
-                            // V0.6.4 2019.4.17
-                            // fs.unlinkSync(cacheSearchName);
-
-                            // 继续代理请求
-                            next();
-                        }
+                        // 继续代理请求
+                        next();
                     }
-
-                    cleanRequireCache(targetFileName);
-
                 }
-                else {
-                    next();
-                }
+
+                cleanRequireCache(targetFileName);
+
             }
             else {
                 next();
             }
+
         } catch (error) {
             console.error(error);
             next();
@@ -140,19 +142,19 @@ module.exports = {
         }
     },
     afterProxy(context) {
-        const { cacheDirname } = context.config;
+        const {
+            dirname: cacheDirname,
+            contentType: cacheContentType,
+            filters
+        } = this.config;
         const { method, url } = context.request;
         const { response: proxyResponse } = context.proxy;
-        const { route: matchedRouter } = context.matched;
 
-        const {
-            cache,
-            cacheContentType,
-            responseFilter
-        } = matchedRouter;
+        const route = context.matched.route;
+        const cacheFilters = filters.filter(filter => (filter.applyRoute === '*' || filter.applyRoute === route.path));
 
         // cache the response data
-        if (cache && !context.data.error) {
+        if (!context.data.error) {
             try {
                 const response = proxyResponse.response;
                 const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
@@ -171,7 +173,7 @@ module.exports = {
                 if (contentTypeReg.test(response.headers['content-type'])) {
                     const resJson = Object.assign({}, context.data.response.data);
 
-                    if (resJson[responseFilter[0]] === responseFilter[1]) {
+                    if (isMeetFiltering()) {
                         resJson.CACHE_INFO = 'Cached from Dalao Proxy';
                         resJson.CACHE_TIME = Date.now();
                         resJson.CACHE_TIME_TXT = moment().format('YYYY-MM-DD HH:mm:ss');
@@ -180,6 +182,8 @@ module.exports = {
                             method,
                             ...context.data.request
                         };
+                        resJson[FOREVER_VALID_FIELD_TEXT] = false;
+                        resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
                         fs.writeFileSync(
                             cacheSearchName,
                             JSON.stringify(resJson, null, 4),
@@ -190,6 +194,34 @@ module.exports = {
                         );
 
                         console.log(chalk.grey('> 📥   Cached into [') + chalk.grey(cacheSearchName) + chalk.grey(']'));
+                    }
+
+                    function isMeetFiltering() {
+                        if (!cacheFilters.length) return true;
+
+                        let isMeetList = [];
+                        for (const filter of cacheFilters) {
+                            let isMeet;
+                            if (filter.custom) {
+                                isMeet = filter.custom.call(this, content, context);
+                            }
+                            else {
+                                const filterContext = {
+                                    query: context.data.request.query,
+                                    body: context.data.request.body,
+                                    data: resJson,
+                                    headers: context.proxy[filter.when].headers
+                                };
+                                isMeet = filterContext[filter.where][filter.field] === filter.value;
+                            }
+
+                            isMeetList.push(isMeet);
+                            if (!isMeet) {
+                                break;
+                            }
+                        }
+
+                        return isMeetList.every(Boolean);
                     }
 
                 }

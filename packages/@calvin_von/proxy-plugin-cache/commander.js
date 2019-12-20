@@ -1,7 +1,7 @@
 const chalk = require('chalk');
 const path = require('path');
 const rm = require('rimraf');
-const MockFileGenerator = require('./generate-mock');
+const { MockFileGenerator } = require('./generate-mock');
 
 module.exports = function (program, register, config) {
     program

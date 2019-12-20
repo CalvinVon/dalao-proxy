@@ -11,12 +11,35 @@ const defaultOptions = {
     ],
     "filters": [
         {
-            "where": "body",
-            "field": "code",
-            "value": 200
+            /**
+             * filter when request or response
+             */
+            when: "response",
+            /**
+             * filter by response body or header
+             */
+            where: "data",
+            /**
+             * filter field
+             */
+            field: "code",
+            /**
+             * filter field value
+             */
+            value: 200,
+            /**
+             * custom filter function
+             * @return Boolean
+             */
+            custom: null,
+            /**
+             * filter applied to specific route
+             */
+            applyRoute: "*"
         }
     ],
-    "prefix": ""
+    "prefix": "",
+    "logger": false
 };
 
 
@@ -42,6 +65,7 @@ function configureSetting() {
 function parser(cacheOptions) {
     if (isType(cacheOptions, 'Object')) {
         return {
+            ...cacheOptions,
             contentType: parseContentType(cacheOptions.contentType),
             maxAge: parseMaxAge(cacheOptions.maxAge),
             filters: parseFilters(cacheOptions.filters),
@@ -63,7 +87,7 @@ function parseContentType(value) {
 function parseMaxAge(value) {
     let maxAge = [];
     if (isType(value, 'Array')) {
-        if (Number.isNaN(Number(value[0]))) {
+        if (value[0] !== '*' && Number.isNaN(Number(value[0]))) {
             configWarn('type of field `cache.maxAge[0]` should be Number');
             maxAge[0] = defaultOptions.maxAge[0];
         }
@@ -93,20 +117,40 @@ function parseFilters(value) {
     if (isType(value, 'Array')) {
         filters = value
             .map((item, index) => {
-                if (!/^(header|body)$/.test(item.where)) {
-                    configWarn(`value of \`cache.filters[${index}].where\` should be \`header\` or \`body\``);
+                if (item.when === 'request') {
+                    if (!/^(header|body|query)$/.test(item.where)) {
+                        configWarn(`value of \`cache.filters[${index}].where\` should be \`header\`, \`body\` or \`query\` when \`filter.when\` is \`request\``);
+                        item._disabled = true;
+                    }
+                }
+                else if (item.when === 'response') {
+                    if (!/^(header|data)$/.test(item.where)) {
+                        configWarn(`value of \`cache.filters[${index}].where\` should be \`header\` or \`data\` when \`filter.when\` is \`response\``);
+                        item._disabled = true;
+                    }
+                }
+                else {
+                    configWarn(`value of \`cache.filters[${index}].when\` should be \`request\` or \`response\``);
                     item._disabled = true;
                 }
-                if (item.when) {
-                    if (!isType(item.when, 'Function')) {
-                        configWarn(`type of \`cache.filters[${index}].when\` should be \`Function\``);
-                        item.when = null;
+
+                if (item.custom) {
+                    if (!isType(item.custom, 'Function')) {
+                        configWarn(`type of \`cache.filters[${index}].custom\` should be \`Function\``);
+                        item.custom = null;
+                    }
+                }
+                if (item.applyRoute) {
+                    if (!isType(item.applyRoute, 'String')) {
+                        configWarn(`type of \`cache.filters[${index}].applyRoute\` should be \`String\``);
+                        item.applyRoute = '*';
                     }
                 }
                 return Object.assign({
                     field: null,
                     value: null,
-                    when: null
+                    custom: null,
+                    applyRoute: '*'
                 }, item);
             })
             .filter(item => !item._disabled)

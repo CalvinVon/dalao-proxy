@@ -157,15 +157,7 @@ class Plugin {
             this._commanderPath = commanderPath;
             this._configurePath = configurePath;
 
-            this.setting = this.loadSetting();
-            this.config = this.loadPluginConfig();
-            const enable = Plugin.resolveEnable(this);
-
-            if (enable) {
-                this.load();
-                this.meta.enabled = true;
-            }
-
+            this.load();
         } catch (error) {
             let pluginErrResult;
             if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
@@ -185,23 +177,30 @@ class Plugin {
      * Try to load plugin middleware, commander
      */
     load() {
-        this.middleware = require(this._indexPath);
-        if (isBuildIn(this.id)) {
-            this.meta = { isBuildIn: true, version };
-        }
-        else {
-            this.meta = require(path.join(this._indexPath, PATH_PACKAGE));
-        }
+        this.setting = this.loadSetting();
+        this.config = this.loadPluginConfig();
+        const enable = Plugin.resolveEnable(this);
 
-        try {
-            this.commander = require(this._commanderPath);
-        } catch (error) {
-            if (!isNoOptionFileError(error)) {
-                console.error(error);
+        if (enable && !this.meta.enabled) {
+            this.meta.enabled = true;
+            this.middleware = require(this._indexPath);
+            if (isBuildIn(this.id)) {
+                this.meta = { isBuildIn: true, version };
             }
+            else {
+                this.meta = require(path.join(this._indexPath, PATH_PACKAGE));
+            }
+
+            try {
+                this.commander = require(this._commanderPath);
+            } catch (error) {
+                if (!isNoOptionFileError(error)) {
+                    console.error(error);
+                }
+            }
+            this._extendCmds();
         }
 
-        this._extendCmds();
     }
 
 
@@ -334,7 +333,6 @@ class Plugin {
      */
     _extendCmds() {
         if (this.commander && typeof (this.commander) === 'function') {
-
             const plugin = this;
             // why? binding the corresponding plugin to the setter method
             Register.prototype.configure = function configureWrapper(field, registerSetter) {

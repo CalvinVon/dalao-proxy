@@ -16,6 +16,10 @@ const {
 
 printWelcome(baseConfig.version);
 
+parserEmitter.on('config:triggerParse:fileChange', () => {
+    // reload plugins
+    registerPlugins();
+});
 
 // On config parsed
 parserEmitter.on('config:parsed', function (configObject) {
@@ -51,14 +55,7 @@ program
     .use(Commands.pluginManager)
 
     // Register commands from plugins
-    .use(function registerPlugins() {
-        const { rawConfig, config, path } = ConfigParser.parsePlugins();
-        config['[[parsed]]'] = false;
-        program.context.rawConfig = rawConfig;
-        program.context.config = config;
-        program.context.configPath = path;
-        usePlugins(program, config.plugins);
-    })
+    .use(registerPlugins)
 
     // Parse command and options
     .parse(process.argv);
@@ -113,3 +110,13 @@ process.on('uncaughtException', function (err) {
         );
     }
 });
+
+
+function registerPlugins() {
+    const { rawConfig, config, path } = ConfigParser.parsePlugins();
+    config['[[parsed]]'] = false;
+    program.context.rawConfig = rawConfig;
+    program.context.config = config;
+    program.context.configPath = path;
+    usePlugins(program, config.plugins);
+}

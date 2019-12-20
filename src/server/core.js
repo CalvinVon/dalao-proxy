@@ -1,9 +1,10 @@
 const chalk = require('chalk');
-const { PluginInterrupt } = require('../plugin');
 const request = require('request');
 const zlib = require('zlib');
 const querystring = require('querystring');
 const _ = require('lodash');
+const { PluginInterrupt } = require('../plugin');
+const { version } = require('../../config/index');
 
 const {
     joinUrl,
@@ -412,7 +413,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for response
         function setResponseHeaders() {
-            res.setHeader('Via', 'HTTP/1.1 dalao-proxy');
+            res.setHeader('Via', 'dalao-proxy/' + version);
             res.setHeader('Access-Control-Allow-Origin', requestHost);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
             res.setHeader('Access-Control-Allow-Credentials', true);
@@ -433,7 +434,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for proxy request
         function setProxyRequestHeaders(proxyRequest) {
-            if (typeof(headers.request) === 'object') {
+            if (typeof (headers.request) === 'object') {
                 setHeadersFor(proxyRequest, headers.request);
             }
         }
