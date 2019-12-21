@@ -108,7 +108,7 @@ module.exports = {
 
                         logger && logMatchedPath(targetFileName);
 
-                        // 中断代理请求
+                        // do interrupter
                         next('Hit cache');
                     }
                     else {
@@ -116,7 +116,7 @@ module.exports = {
                         // V0.6.4 2019.4.17
                         // fs.unlinkSync(cacheSearchName);
 
-                        // 继续代理请求
+                        // continue
                         next();
                     }
                 }

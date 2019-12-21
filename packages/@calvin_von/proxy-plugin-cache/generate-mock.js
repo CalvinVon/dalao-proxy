@@ -25,7 +25,7 @@ function questionUrl(method, options, config) {
         rl.question(
             chalk.yellow('> Request url path: ') + config.prefix,
             function (url) {
-                url += config.prefix;
+                url = config.prefix + url;
                 if (!/^\/([\w-_]+\/?)*$/.test(url)) {
                     console.log('Please input a valid path');
                     rl.close();

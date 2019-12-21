@@ -128,7 +128,7 @@ function getIPv4Address() {
             break;
         }
     }
-    return ipv4;
+    return ipv4 || 'unavailable';
 }
 
 function getType(value, type) {

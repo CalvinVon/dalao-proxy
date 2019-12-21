@@ -11,6 +11,7 @@ const {
     parserEmitter,
     printWelcome,
     usePlugins,
+    reloadPlugins,
     commands: Commands,
 } = require('../src');
 
@@ -79,6 +80,8 @@ if (program.context.command) {
                     console.clear();
                     console.log(chalk.green('\n> dalao is reloading...'));
 
+                    registerPlugins();
+
                     program.context.server.close(function () {
                         ConfigParser.parse(program);
                     });
@@ -118,5 +121,8 @@ function registerPlugins() {
     program.context.rawConfig = rawConfig;
     program.context.config = config;
     program.context.configPath = path;
-    usePlugins(program, config.plugins);
+
+    const loadedPlugins = program.context.plugins;
+    usePlugins(program, config.plugins.filter(name => !loadedPlugins.some(plugin => plugin.id === name)));
+    reloadPlugins(loadedPlugins);
 }

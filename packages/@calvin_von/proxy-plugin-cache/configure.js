@@ -39,7 +39,7 @@ const defaultOptions = {
         }
     ],
     "prefix": "",
-    "logger": false
+    "logger": true
 };
 
 
@@ -65,6 +65,7 @@ function configureSetting() {
 function parser(cacheOptions) {
     if (isType(cacheOptions, 'Object')) {
         return {
+            ...defaultOptions,
             ...cacheOptions,
             contentType: parseContentType(cacheOptions.contentType),
             maxAge: parseMaxAge(cacheOptions.maxAge),

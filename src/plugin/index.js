@@ -8,7 +8,7 @@ const PATH_CONFIGURE = './configure';
 const PATH_PACKAGE = './package.json';
 
 function noop() { }
-function nonCallback(next) { next && next(false); }
+function nonCallback(context, next) { next && next(false); }
 function isNoOptionFileError(error) {
     return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/(?:\/|\\)(?:commander|configure)'/);
 }
@@ -182,7 +182,6 @@ class Plugin {
         const enable = Plugin.resolveEnable(this);
 
         if (enable && !this.meta.enabled) {
-            this.meta.enabled = true;
             this.middleware = require(this._indexPath);
             if (isBuildIn(this.id)) {
                 this.meta = { isBuildIn: true, version };
@@ -193,12 +192,13 @@ class Plugin {
 
             try {
                 this.commander = require(this._commanderPath);
+                this._extendCmds();
             } catch (error) {
                 if (!isNoOptionFileError(error)) {
                     console.error(error);
                 }
             }
-            this._extendCmds();
+            this.meta.enabled = true;
         }
 
     }
@@ -352,11 +352,11 @@ class Plugin {
      */
     _methodWrapper(method, replacement, ...args) {
         const definedHook = this.middleware[method];
-        if (definedHook && typeof (definedHook === 'function')) {
+        if (definedHook && typeof (definedHook) === 'function') {
             definedHook.call(this, ...args);
         }
         else {
-            replacement(args[1]);
+            replacement(...args);
         }
     }
 
