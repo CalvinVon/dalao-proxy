@@ -168,6 +168,16 @@ function mergeConfig(baseConfig, fileConfig) {
     return mergedFileConfig;
 }
 
+
+function mergePluginsConfig(targetConfig, plugins) {
+    plugins.forEach(plugin => {
+        const userOptionsField = plugin.setting.userOptionsField;
+        if (userOptionsField) {
+            targetConfig[userOptionsField] = plugin.config;
+        }
+    });
+}
+
 /**
  * Parse each router in Route Table
  * @param {Object} config
@@ -301,6 +311,7 @@ exports.parse = function parse(command) {
     const { path: filePath, config: fileConfig } = parseFile(argsConfig.configFileName);
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
+    mergePluginsConfig(runtimeConfig, command.context.plugins);
 
     const output = {
         routeTable: parseRouter(runtimeConfig)
@@ -323,7 +334,8 @@ exports.parse = function parse(command) {
             const changedFileConfig = parseFile(filePath).config;
             // replace fileConfig by argsConfig
             runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
-
+            mergePluginsConfig(runtimeConfig, command.context.plugins);
+            
             const routeTable = parseRouter(runtimeConfig);
             register._trigger('output', { routeTable }, value => {
                 command.context.output = value;

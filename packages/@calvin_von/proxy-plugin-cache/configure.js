@@ -80,9 +80,7 @@ function parser(cacheOptions) {
 }
 
 function parseContentType(value) {
-    return makeSureFieldType('contentType', 'Array', value, () => {
-        return cacheOptions.contentType;
-    });
+    return makeSureFieldType('contentType', 'Array', value);
 }
 
 function parseMaxAge(value) {

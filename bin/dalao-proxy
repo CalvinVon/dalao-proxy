@@ -123,6 +123,6 @@ function registerPlugins() {
     program.context.configPath = path;
 
     const loadedPlugins = program.context.plugins;
-    usePlugins(program, config.plugins.filter(name => !loadedPlugins.some(plugin => plugin.id === name)));
     reloadPlugins(loadedPlugins);
+    usePlugins(program, config.plugins.filter(name => !loadedPlugins.some(plugin => plugin.id === name)));
 }
