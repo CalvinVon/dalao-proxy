@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const { RC_FILE_PATH } = require('./scripts-config');
+const { RC_FILE_PATH } = require('../config/script');
 const { plugins } = require('../config');
 
 const fileContent = JSON.stringify(

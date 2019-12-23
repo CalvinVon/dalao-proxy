@@ -23,4 +23,4 @@ module.exports = {
     RC_FILE_NAME,
     RC_FILE_PATH,
     presetPlugins
-}
+};

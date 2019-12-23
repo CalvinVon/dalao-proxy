@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const { RC_FILE_PATH, presetPlugins } = require('./scripts-config');
+const { RC_FILE_PATH, presetPlugins } = require('../config/script');
 const { install } = require('../src/commands/plugin-manager.command/install.command/install-plugin');
 
 const pluginsToInstall = [...presetPlugins];
