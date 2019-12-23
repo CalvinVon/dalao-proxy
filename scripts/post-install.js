@@ -20,7 +20,12 @@ if (fs.existsSync(RC_FILE_PATH)) {
     });
 }
 
-install(pluginsToInstall, { isAdd: true });
+install(pluginsToInstall, {
+    isAdd: true,
+    callback(code) {
+        process.exit(code || 0);
+    }
+});
 
 function isBuildIn(id) {
     return id.match(/^BuildIn\:plugin\/(.+)$/i);

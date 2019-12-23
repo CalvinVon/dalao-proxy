@@ -15,6 +15,9 @@ module.exports = function pluginInstallCommand(pluginCommand) {
                 isLocally: global ? false : local,
                 before,
                 after,
+                callback(errCode) {
+                    process.exit(errCode || 0);
+                }
             });
         });
 
@@ -28,6 +31,9 @@ module.exports = function pluginInstallCommand(pluginCommand) {
             const { local, global } = this.context.options;
             uninstall([name, ...names], {
                 isLocally: global ? false : local,
+                callback(errCode) {
+                    process.exit(errCode || 0);
+                }
             });
         });
 };

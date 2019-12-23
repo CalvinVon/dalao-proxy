@@ -7,6 +7,7 @@ function installPlugins(pluginNames, options) {
     const {
         isAdd = true,
         isLocally = false,
+        callback = new Function()
     } = options || {};
 
     console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s)...`);
@@ -39,12 +40,13 @@ function installPlugins(pluginNames, options) {
         }
 
         installCmd.kill();
-        process.exit(0);
+        callback();
     });
     installCmd.on('error', (code, signal) => {
         console.log(code, signal)
         console.log(`> ${displayPluginNames} ${isAdd ? '' : 'un'}install failed with code ${code}`);
         installCmd.kill();
+        callback(code);
     });
 }
 
