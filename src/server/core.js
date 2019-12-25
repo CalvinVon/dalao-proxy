@@ -24,7 +24,14 @@ let shouldCleanUpAllConnections;
 let connections = [];
 let plugins = [];
 
-// Calling Plugin instance method (not middleware defined method)
+/**
+ * Calling single plugin instance method (not middleware defined method)
+ * @private
+ * @param {Plugin} plugin
+ * @param {String} method method name
+ * @param {Object} context
+ * @returns {Promise}
+ */
 function _invokePluginMiddleware(plugin, method, context) {
     return new Promise((resolve, reject) => {
         if (!plugin) return resolve();
@@ -46,7 +53,13 @@ function _invokePluginMiddleware(plugin, method, context) {
     });
 }
 
-// base function for invoke all middlewares
+
+/**
+ * Base function to invoke all middlewares
+ * @param {String} hookName
+ * @param {Object} context
+ * @param {Function} next
+ */
 function _invokeAllPluginsMiddlewares(hookName, context, next) {
     const allPluginPromises = plugins.map(plugin => {
         return _invokePluginMiddleware(plugin, hookName, context);
@@ -66,6 +79,15 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
 }
 
 
+/**
+ * Invoke all plugins. Used for `onPipeRequest`, `onPipeResponse`
+ * @private
+ * @param {String} hookName
+ * @param {Object} context
+ * @param {Buffer} chunk
+ * @param {String} enc
+ * @param {Function} callback
+ */
 function _invokePipeAllPlugin(hookName, context, chunk, enc, callback) {
 
     let total = plugins.length;
