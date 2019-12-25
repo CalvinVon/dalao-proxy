@@ -1,5 +1,6 @@
 const chalk = require('chalk');
 const request = require('request');
+const through = require('through2');
 const zlib = require('zlib');
 const querystring = require('querystring');
 const _ = require('lodash');
@@ -24,16 +25,16 @@ let connections = [];
 let plugins = [];
 
 // Calling Plugin instance method (not middleware defined method)
-function _invokeMethod(target, method, context) {
+function _invokePluginMiddleware(plugin, method, context) {
     return new Promise((resolve, reject) => {
-        if (!target) return resolve();
-        const targetMethod = target[method];
+        if (!plugin) return resolve();
+        const targetMethod = plugin[method];
         if (typeof targetMethod === 'function') {
-            targetMethod.call(target, context, err => {
-                if (err) {
+            targetMethod.call(plugin, context, error => {
+                if (error) {
                     reject({
-                        error: err,
-                        plugin: target,
+                        error,
+                        plugin,
                         method
                     });
                 }
@@ -46,9 +47,9 @@ function _invokeMethod(target, method, context) {
 }
 
 // base function for invoke all middlewares
-function _invokeAllPlugins(functionName, context, next) {
+function _invokeAllPluginsMiddlewares(hookName, context, next) {
     const allPluginPromises = plugins.map(plugin => {
-        return _invokeMethod(plugin, functionName, context);
+        return _invokePluginMiddleware(plugin, hookName, context);
     });
     Promise.all(allPluginPromises)
         .then(() => {
@@ -56,23 +57,76 @@ function _invokeAllPlugins(functionName, context, next) {
         })
         .catch(ctx => {
             if (next) {
-                next.call(null, ctx.error, ctx.plugin, functionName);
+                next.call(null, ctx.error, ctx.plugin, hookName);
             }
             else {
-                console.error(functionName, ctx)
+                console.error(hookName, ctx)
             }
         })
 }
 
+
+function _invokePipeAllPlugin(hookName, context, chunk, enc, callback) {
+
+    let total = plugins.length;
+    if (!total) {
+        callback(null, chunk);
+    }
+
+    let index = 0,
+        currentPlugin = plugins[index],
+        lastValue = chunk;
+
+
+    actuator(currentPlugin, () => {
+        callback(null, lastValue);
+    });
+
+    function actuator(plugin, cb) {
+        if (plugin.middleware) {
+            const hook = plugin.middleware[hookName];
+            if (typeof (hook) === 'function') {
+                hook.call(plugin, {
+                    ...context,
+                    chunk,
+                    enc
+                }, (err, returnValue) => {
+                    if (!err) {
+                        lastValue = returnValue;
+                    }
+                    next();
+                })
+            }
+            else {
+                next();
+            }
+        }
+        else {
+            next();
+        }
+
+        function next() {
+            if (index < total - 1) {
+                currentPlugin = plugins[++index];
+                actuator(currentPlugin, cb);
+            }
+            else {
+                cb();
+            }
+        }
+    }
+
+}
+
 // plugin interrupter handler
 function interrupter(context, resolve, reject) {
-    return function (reason, plugin, functionName) {
+    return function (reason, plugin, hookName) {
         if (reason) {
             if (reason instanceof Error) {
                 reject(reason);
             }
             else {
-                reject(new PluginInterrupt(plugin, functionName, reason));
+                reject(new PluginInterrupt(plugin, hookName, reason));
             }
         }
         else resolve(context);
@@ -282,8 +336,45 @@ function proxyRequestWrapper(config, corePlugins) {
 
                 setProxyRequestHeaders(x);
 
-                const proxyStream = req.pipe(x);
-                proxyStream.pipe(res);
+                const proxyStream = req
+                    .pipe(
+                        through(function (chunk, enc, callback) {
+
+                            /**
+                             * Middleware: on request pipe proxy request
+                             * @lifecycle onPipeRequest
+                             * @param {Object} context
+                             * @param {Buffer} chunk
+                             * @param {String} enc
+                             * @param {Function} next
+                             */
+                            _invokePipeAllPlugin('onPipeRequest', context, chunk, enc, (err, value) => {
+                                this.push(err ? chunk : value);
+                                callback();
+                            });
+
+                        })
+                    )
+                    .pipe(x)
+                    .pipe(
+                        through(function (chunk, enc, callback) {
+
+
+                            /**
+                             * Middleware: on proxy response pipe response
+                             * @lifecycle onPipeResponse
+                             * @param {Object} context
+                             * @param {Buffer} chunk
+                             * @param {String} enc
+                             * @param {Function} next
+                             */
+                            _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, (err, value) => {
+                                this.push(err ? chunk : value);
+                                callback();
+                            });
+                        })
+                    )
+                    .pipe(res);
 
                 info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
@@ -470,30 +561,30 @@ function proxyRequestWrapper(config, corePlugins) {
         // after request data resolved
         function Middleware_onRequest(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('onRequest', context, interrupter(context, resolve, reject));
+                _invokeAllPluginsMiddlewares('onRequest', context, interrupter(context, resolve, reject));
             });
         }
 
         // on route match
         function Middleware_onRouteMatch(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('onRouteMatch', context, interrupter(context, resolve, reject));
+                _invokeAllPluginsMiddlewares('onRouteMatch', context, interrupter(context, resolve, reject));
             });
         }
 
         function Middleware_beforeProxy(context) {
             return new Promise((resolve, reject) => {
-                _invokeAllPlugins('beforeProxy', context, interrupter(context, resolve, reject));
+                _invokeAllPluginsMiddlewares('beforeProxy', context, interrupter(context, resolve, reject));
             });
         }
 
         function Middleware_afterProxy(context) {
-            _invokeAllPlugins('afterProxy', context);
+            _invokeAllPluginsMiddlewares('afterProxy', context);
         }
     }
 
     (function Middleware_beforeCreate() {
-        _invokeAllPlugins('beforeCreate', { config }, new Function);
+        _invokeAllPluginsMiddlewares('beforeCreate', { config }, new Function);
     })();
     return proxyRequest;
 }
