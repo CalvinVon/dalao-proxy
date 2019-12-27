@@ -1,9 +1,8 @@
 const chalk = require('chalk');
 const request = require('request');
 const through = require('through2');
-const zlib = require('zlib');
+const concat = require('concat-stream');
 const querystring = require('querystring');
-const _ = require('lodash');
 const { PluginInterrupt } = require('../plugin');
 const { version } = require('../../config/index');
 
@@ -354,11 +353,10 @@ function proxyRequestWrapper(config, corePlugins) {
                 const { uri: proxyUrl } = context.proxy;
                 const { path: matchedPath, redirectMeta = {} } = context.matched;
 
-                const x = _request(proxyUrl);
-
+                const x = _request(proxyUrl, { gzip: true });
                 setProxyRequestHeaders(x);
 
-                const proxyStream = req
+                const xRes = req
                     .pipe(
                         through(function (chunk, enc, callback) {
 
@@ -381,7 +379,6 @@ function proxyRequestWrapper(config, corePlugins) {
                     .pipe(
                         through(function (chunk, enc, callback) {
 
-
                             /**
                              * Middleware: on proxy response pipe response
                              * @lifecycle onPipeResponse
@@ -398,22 +395,18 @@ function proxyRequestWrapper(config, corePlugins) {
                     )
                     .pipe(res);
 
+
+
+
                 info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
-                context.proxy.response = proxyStream;
+                context.proxy.response = xRes;
                 context.proxy.request = x;
-                return context;
-            })
 
-            /**
-             * Collect request/proxy-response data received
-             * @desc collect raw data
-             * @param {Object} context
-             * @resolve context.data
-             * @returns {Object} context
-             */
-            .then(context => collectRequestData(context))
-            .then(context => collectProxyResponseData(context))
+                collectRequestData(context);
+                return collectProxyResponseData(context);
+                // return context;
+            })
 
             /**
              * Middleware: after proxy request
@@ -436,11 +429,13 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // Collect request data
         function collectRequestData(context) {
-            return new Promise((resolve, reject) => {
-                const reqContentType = req.headers['content-type'];
 
+            const reqContentType = req.headers['content-type'];
+            req.pipe(concat(buffer => {
+                console.log(buffer.toString())
                 const data = {
-                    rawBody: '',
+                    rawBuffer: buffer,
+                    rawBody: buffer.toString(),
                     body: '',
                     query: querystring.parse(context.request.URL.query),
                     type: reqContentType
@@ -450,68 +445,50 @@ function proxyRequestWrapper(config, corePlugins) {
                     request: data,
                     response: null
                 };
-                req.on('data', chunk => data.rawBody += chunk);
-                req.on('end', onRequestData);
 
-                function onRequestData() {
-                    if (!data.rawBody || !reqContentType) return resolve(context);
+                if (!data.rawBody || !reqContentType) return resolve(context);
 
-                    try {
-                        if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
-                            data.body = querystring.parse(data.rawBody);
-                        } else if (/application\/json/.test(reqContentType)) {
-                            data.body = JSON.parse(data.rawBody);
-                        } else if (/multipart\/form-data/.test(reqContentType)) {
-                            data.body = data.rawBody;
-                        }
-                        resolve(context);
-                    } catch (error) {
-                        resolve(context);
-                        info && console.log(' > Error: can\'t parse requset body. ' + error.message);
+                try {
+                    if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
+                        data.body = querystring.parse(data.rawBody);
+                    } else if (/application\/json/.test(reqContentType)) {
+                        data.body = JSON.parse(data.rawBody);
+                    } else if (/multipart\/form-data/.test(reqContentType)) {
+                        data.body = data.rawBody;
                     }
+                } catch (error) {
+                    info && console.log(' > Error: can\'t parse requset body. ' + error.message);
                 }
-            });
+            }));
         }
 
         // Collect response data
         function collectProxyResponseData(context) {
-            const { response: proxyResponse, request: proxyRequest } = context.proxy;
+            const { request: proxyRequest } = context.proxy;
 
             return new Promise((resolve) => {
-                let responseData = [];
-                const data = {
-                    rawData: '',
-                    data: '',
-                    type: null,
-                    size: 0,
-                    encode: null
-                };
-                context.data.response = data;
-                proxyRequest.on('error', err => {
-                    context.data.error = err;
-                    res.writeHead(503, 'Service Unavailable');
-                    res.end('Connect to server failed with code ' + err.code);
-                    resolve(context);
-                })
-                proxyResponse.on('data', chunk => {
-                    responseData.push(chunk);
-                });
+                proxyRequest.pipe(concat(buffer => {
+                    console.log(buffer.toString())
+                    const data = {
+                        rawBuffer: buffer,
+                        rawData: buffer.toString(),
+                        data: '',
+                        type: null,
+                        size: 0,
+                        encode: null
+                    };
+                    context.data.response = data;
+                    proxyRequest.on('error', err => {
+                        context.data.error = err;
+                        res.writeHead(503, 'Service Unavailable');
+                        res.end('Connect to server failed with code ' + err.code);
+                        resolve(context);
+                    })
 
-                proxyResponse.on('end', onResponseData);
-
-                function onResponseData() {
-                    const buffer = Buffer.concat(responseData);
-                    const response = proxyResponse.response;
                     data.size = Buffer.byteLength(buffer);
 
-                    // gunzip first
-                    if (/gzip/.test(data.encode = response.headers['content-encoding'])) {
-                        responseData = zlib.gunzipSync(buffer);
-                    }
-
                     try {
-                        data.rawData = responseData.toString();
-                        if (/json/.test(data.type = response.headers['content-type'])) {
+                        if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
                             data.data = JSON.parse(fixJson(data.rawData));
                         }
                         resolve(context);
@@ -519,7 +496,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
                         resolve(context);
                     }
-                }
+                }))
             });
         }
 
@@ -547,14 +524,19 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for proxy request
         function setProxyRequestHeaders(proxyRequest) {
+            let headers = req.headers;
             if (typeof (headers.request) === 'object') {
-                setHeadersFor(proxyRequest, headers.request);
+                headers = {
+                    ...headers,
+                    ...headers.request
+                };
             }
+            setHeadersFor(proxyRequest, headers);
         }
 
         function setHeadersFor(target, headers) {
             for (const header in headers) {
-                target.setHeader(header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-'), headers[header]);
+                target.setHeader(header, headers[header]);
             }
         }
 
