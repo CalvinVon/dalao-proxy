@@ -1,5 +1,12 @@
 module.exports = {
     onPipeResponse(context, next) {
-        next(null, context.chunk);
+        if (context.request.url === '/') {
+            const script = '<script>alert(\'lifenmgwei shabi\')</script>';
+            const chunk = context.chunk.toString().replace('</body>', script + '</body>');
+            next(null, chunk);
+        }
+        else {
+            next(null, context.chunk);
+        }
     }
 };
