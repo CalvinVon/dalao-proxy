@@ -356,7 +356,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 const x = _request(proxyUrl, { gzip: true });
                 setProxyRequestHeaders(x);
 
-                const xRes = req
+                req
                     .pipe(
                         through(function (chunk, enc, callback) {
 
@@ -400,12 +400,26 @@ function proxyRequestWrapper(config, corePlugins) {
 
                 info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
-                context.proxy.response = xRes;
+                /**
+                 * Instance of request.Request
+                 */
                 context.proxy.request = x;
 
                 collectRequestData(context);
-                return collectProxyResponseData(context);
-                // return context;
+                return collectProxyResponseData(context)
+                    .then(() => {
+                        /**
+                        * Real proxy request
+                        * Instance of http.ClientRequest
+                        */
+                        context.proxy.req = x.req;
+                        /**
+                         * Real proxy response
+                         * Instance of http.IncomingMessage
+                         */
+                        context.proxy.response = x.response;
+                        return context;
+                    });
             })
 
             /**
@@ -432,7 +446,6 @@ function proxyRequestWrapper(config, corePlugins) {
 
             const reqContentType = req.headers['content-type'];
             req.pipe(concat(buffer => {
-                console.log(buffer.toString())
                 const data = {
                     rawBuffer: buffer,
                     rawBody: buffer.toString(),
@@ -446,7 +459,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     response: null
                 };
 
-                if (!data.rawBody || !reqContentType) return resolve(context);
+                if (!data.rawBody || !reqContentType) return;
 
                 try {
                     if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
@@ -468,7 +481,6 @@ function proxyRequestWrapper(config, corePlugins) {
 
             return new Promise((resolve) => {
                 proxyRequest.pipe(concat(buffer => {
-                    console.log(buffer.toString())
                     const data = {
                         rawBuffer: buffer,
                         rawData: buffer.toString(),
@@ -485,7 +497,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         resolve(context);
                     })
 
-                    data.size = Buffer.byteLength(buffer);
+                    data.size = Buffer.byteLength(data.rawData);
 
                     try {
                         if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {

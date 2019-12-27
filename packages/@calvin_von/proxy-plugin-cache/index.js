@@ -148,7 +148,7 @@ module.exports = {
             filters
         } = this.config;
         const { method, url } = context.request;
-        const { response: proxyResponse } = context.proxy;
+        const { request: proxyResponse } = context.proxy;
 
         const route = context.matched.route;
         const cacheFilters = filters.filter(filter => (filter.applyRoute === '*' || filter.applyRoute === route.path));
