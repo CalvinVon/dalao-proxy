@@ -1,6 +1,7 @@
 const chalk = require('chalk');
 const request = require('request');
 const through = require('through2');
+const _ = require('lodash');
 const concat = require('concat-stream');
 const querystring = require('querystring');
 const { PluginInterrupt } = require('../plugin');
@@ -190,9 +191,6 @@ function proxyRequestWrapper(config, corePlugins) {
             collectConnections();
         }
 
-        // set response CORS
-        setResponseHeaders();
-
         Promise.resolve()
             .then(() => {
                 const context = {
@@ -356,58 +354,9 @@ function proxyRequestWrapper(config, corePlugins) {
                 const x = _request(proxyUrl, { gzip: true });
                 setProxyRequestHeaders(x);
 
-                req
-                    .pipe(
-                        through(function (chunk, enc, callback) {
-
-                            /**
-                             * Middleware: on request pipe proxy request
-                             * @lifecycle onPipeRequest
-                             * @param {Object} context
-                             * @param {Buffer} chunk
-                             * @param {String} enc
-                             * @param {Function} next
-                             */
-                            _invokePipeAllPlugin('onPipeRequest', context, chunk, enc, (err, value) => {
-                                this.push(err ? chunk : value);
-                                callback();
-                            });
-
-                        })
-                    )
-                    .pipe(x)
-                    .pipe(
-                        through(function (chunk, enc, callback) {
-
-                            /**
-                             * Middleware: on proxy response pipe response
-                             * @lifecycle onPipeResponse
-                             * @param {Object} context
-                             * @param {Buffer} chunk
-                             * @param {String} enc
-                             * @param {Function} next
-                             */
-                            _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, (err, value) => {
-                                this.push(err ? chunk : value);
-                                callback();
-                            });
-                        })
-                    )
-                    .pipe(res);
-
-
-
-
-                info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
-
-                /**
-                 * Instance of request.Request
-                 */
-                context.proxy.request = x;
-
-                collectRequestData(context);
-                return collectProxyResponseData(context)
-                    .then(() => {
+                return new Promise(resolve => {
+                    x.on('response', response => {
+                        collectProxyResponseData(context)
                         /**
                         * Real proxy request
                         * Instance of http.ClientRequest
@@ -417,9 +366,68 @@ function proxyRequestWrapper(config, corePlugins) {
                          * Real proxy response
                          * Instance of http.IncomingMessage
                          */
-                        context.proxy.response = x.response;
-                        return context;
+                        context.proxy.response = response;
+                        setResponseHeaders(response.headers);
                     });
+
+                    x.on('end', () => {
+                        resolve(context);
+                    })
+
+                    const xReqStream = req
+                        .pipe(
+                            through(function (chunk, enc, callback) {
+
+                                /**
+                                 * Middleware: on request pipe proxy request
+                                 * @lifecycle onPipeRequest
+                                 * @param {Object} context
+                                 * @param {Buffer} chunk
+                                 * @param {String} enc
+                                 * @param {Function} next
+                                 */
+                                _invokePipeAllPlugin('onPipeRequest', context, chunk, enc, (err, value) => {
+                                    this.push(err ? chunk : value);
+                                    callback();
+                                });
+
+                            })
+                        );
+
+                    const xResStream = xReqStream
+                        .pipe(x)
+                        .pipe(
+                            through(function (chunk, enc, callback) {
+
+                                /**
+                                 * Middleware: on proxy response pipe response
+                                 * @lifecycle onPipeResponse
+                                 * @param {Object} context
+                                 * @param {Buffer} chunk
+                                 * @param {String} enc
+                                 * @param {Function} next
+                                 */
+                                _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, (err, value) => {
+                                    this.push(err ? chunk : value);
+                                    callback();
+                                });
+                            })
+                        );
+
+                    xResStream.pipe(res);
+
+
+                    info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
+
+                    /**
+                     * Instance of request.Request
+                     */
+                    context.proxy.request = x;
+                    context.proxy.requestStream = xReqStream;
+                    context.proxy.responseStream = xResStream;
+
+                    collectRequestData(context);
+                });
             })
 
             /**
@@ -445,7 +453,7 @@ function proxyRequestWrapper(config, corePlugins) {
         function collectRequestData(context) {
 
             const reqContentType = req.headers['content-type'];
-            req.pipe(concat(buffer => {
+            context.proxy.requestStream.pipe(concat(buffer => {
                 const data = {
                     rawBuffer: buffer,
                     rawBody: buffer.toString(),
@@ -477,61 +485,65 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // Collect response data
         function collectProxyResponseData(context) {
-            const { request: proxyRequest } = context.proxy;
+            const { request: proxyRequest, responseStream } = context.proxy;
 
-            return new Promise((resolve) => {
-                proxyRequest.pipe(concat(buffer => {
-                    const data = {
-                        rawBuffer: buffer,
-                        rawData: buffer.toString(),
-                        data: '',
-                        type: null,
-                        size: 0,
-                        encode: null
-                    };
-                    context.data.response = data;
-                    proxyRequest.on('error', err => {
-                        context.data.error = err;
-                        res.writeHead(503, 'Service Unavailable');
-                        res.end('Connect to server failed with code ' + err.code);
-                        resolve(context);
-                    })
+            responseStream.pipe(concat(buffer => {
+                const data = {
+                    rawBuffer: buffer,
+                    rawData: buffer.toString(),
+                    data: '',
+                    type: null,
+                    size: 0,
+                    encode: null
+                };
+                context.data.response = data;
+                proxyRequest.on('error', err => {
+                    context.data.error = err;
+                    res.writeHead(503, 'Service Unavailable');
+                    res.end('Connect to server failed with code ' + err.code);
+                });
 
-                    data.size = Buffer.byteLength(data.rawData);
+                data.size = Buffer.byteLength(data.rawData);
 
-                    try {
-                        if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
-                            data.data = JSON.parse(fixJson(data.rawData));
-                        }
-                        resolve(context);
-                    } catch (error) {
-                        console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
-                        resolve(context);
+                try {
+                    if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
+                        data.data = JSON.parse(fixJson(data.rawData));
                     }
-                }))
-            });
+                } catch (error) {
+                    console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
+                }
+            }))
         }
 
 
         // set headers for response
-        function setResponseHeaders() {
+        function setResponseHeaders(proxyResponseHeaders) {
             res.setHeader('Via', 'dalao-proxy/' + version);
             res.setHeader('Access-Control-Allow-Origin', requestHost);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
             res.setHeader('Access-Control-Allow-Credentials', true);
             res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
 
-            let _headers;
+            let _headers = headers;
 
             if (typeof (headers.response) === 'object') {
                 _headers = headers.response;
             }
-            // backward compatible
-            else {
-                _headers = headers;
-            }
 
-            setHeadersFor(res, _headers);
+            _headers = {
+                ...proxyResponseHeaders,
+                ..._headers,
+            };
+
+            const formattedHeaders = {};
+            Object.keys(_headers).forEach(key => {
+                const header = key.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
+                formattedHeaders[header] = _headers[key];
+            });
+
+            // response has been decoded
+            delete formattedHeaders['Content-Encoding'];
+            setHeadersFor(res, formattedHeaders);
         }
 
         // set headers for proxy request
