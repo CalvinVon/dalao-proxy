@@ -45,7 +45,7 @@ module.exports = {
         if (rawOptions && typeof rawOptions === 'object') {
             const presets = {
                 ...defaultOptions.presets,
-                ...(rawOptions.preset || {})
+                ...(rawOptions.presets || {})
             };
             return {
                 ...defaultOptions,
