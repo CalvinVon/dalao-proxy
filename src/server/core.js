@@ -186,6 +186,12 @@ function proxyRequestWrapper(config, corePlugins) {
         const _request = request[method.toLowerCase()];
         let matched;
 
+        res.setHeader('Via', 'dalao-proxy/' + version);
+        res.setHeader('Access-Control-Allow-Origin', requestHost);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+        res.setHeader('Access-Control-Allow-Credentials', true);
+        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
+
         if (!isStaticResouce(url)) {
             cleanUpConnections();
             collectConnections();
@@ -417,7 +423,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     xResStream.pipe(res);
 
 
-                    info && console.log(chalk.green(`> 🎯   Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
+                    info && console.log(chalk.green(`> Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
                     /**
                      * Instance of request.Request
@@ -516,14 +522,23 @@ function proxyRequestWrapper(config, corePlugins) {
         }
 
 
+        // set headers for proxy request
+        function setProxyRequestHeaders(proxyRequest) {
+            let headers = req.headers;
+            if (typeof (headers.request) === 'object') {
+                headers = {
+                    ...headers,
+                    ...headers.request
+                };
+            }
+
+            const formattedHeaders = formatHeaders(headers);
+            delete formattedHeaders['Host'];
+            setHeadersFor(proxyRequest, formattedHeaders);
+        }
+
         // set headers for response
         function setResponseHeaders(proxyResponseHeaders) {
-            res.setHeader('Via', 'dalao-proxy/' + version);
-            res.setHeader('Access-Control-Allow-Origin', requestHost);
-            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-            res.setHeader('Access-Control-Allow-Credentials', true);
-            res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
-
             let _headers = headers;
 
             if (typeof (headers.response) === 'object') {
@@ -535,33 +550,28 @@ function proxyRequestWrapper(config, corePlugins) {
                 ..._headers,
             };
 
-            const formattedHeaders = {};
-            Object.keys(_headers).forEach(key => {
-                const header = key.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
-                formattedHeaders[header] = _headers[key];
-            });
+            const formattedHeaders = formatHeaders(_headers);
 
             // response has been decoded
             delete formattedHeaders['Content-Encoding'];
             setHeadersFor(res, formattedHeaders);
         }
 
-        // set headers for proxy request
-        function setProxyRequestHeaders(proxyRequest) {
-            let headers = req.headers;
-            if (typeof (headers.request) === 'object') {
-                headers = {
-                    ...headers,
-                    ...headers.request
-                };
-            }
-            setHeadersFor(proxyRequest, headers);
-        }
+
 
         function setHeadersFor(target, headers) {
             for (const header in headers) {
                 target.setHeader(header, headers[header]);
             }
+        }
+
+        function formatHeaders(headers) {
+            const formattedHeaders = {};
+            Object.keys(headers).forEach(key => {
+                const header = key.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
+                formattedHeaders[header] = headers[key];
+            });
+            return formattedHeaders;
         }
 
         // collect socket connection
