@@ -362,7 +362,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
                 return new Promise(resolve => {
                     x.on('response', response => {
-                        collectProxyResponseData(context)
+                        collectProxyResponseData(context);
                         /**
                         * Real proxy request
                         * Instance of http.ClientRequest
@@ -421,7 +421,6 @@ function proxyRequestWrapper(config, corePlugins) {
                         );
 
                     xResStream.pipe(res);
-
 
                     info && console.log(chalk.green(`> Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
@@ -548,12 +547,14 @@ function proxyRequestWrapper(config, corePlugins) {
             _headers = {
                 ...proxyResponseHeaders,
                 ..._headers,
+                'Transfer-Encoding': 'chunked'
             };
 
             const formattedHeaders = formatHeaders(_headers);
 
             // response has been decoded
             delete formattedHeaders['Content-Encoding'];
+            delete formattedHeaders['Content-Length'];
             setHeadersFor(res, formattedHeaders);
         }
 
