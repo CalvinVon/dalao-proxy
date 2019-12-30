@@ -1,7 +1,7 @@
 {
   "name": "proxy-plugin-inject",
   "version": "1.0.0",
-  "description": "A dalao-proxy plugin for inject scripts or code",
+  "description": "A dalao-proxy plugin for inject scripts into html",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,7 +9,8 @@
   "keywords": [
     "dalao-proxy",
     "plugin",
-    "inject"
+    "inject",
+    "debug"
   ],
   "author": "",
   "license": "ISC",

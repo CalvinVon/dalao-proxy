@@ -134,7 +134,7 @@ module.exports = {
         }
 
         function logMatchedPath(targetFileName) {
-            const message = chalk.green(`> ⚡   Hit! [${context.matched.path}]`)
+            const message = chalk.green(`> Hit! [${context.matched.path}]`)
                 + `   ${method.toUpperCase()}   ${url}`
                 + chalk.green('  >>>>  ')
                 + chalk.yellow(targetFileName);
@@ -193,7 +193,7 @@ module.exports = {
                             }
                         );
 
-                        console.log(chalk.grey('> 📥   Cached into [') + chalk.grey(cacheSearchName) + chalk.grey(']'));
+                        console.log(chalk.grey('> Cached into [') + chalk.grey(cacheSearchName) + chalk.grey(']'));
                     }
 
                     function isMeetFiltering() {
