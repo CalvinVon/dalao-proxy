@@ -50,7 +50,7 @@ module.exports = {
             return {
                 ...defaultOptions,
                 ...{
-                    rules: parseRules(rawOptions.rules, presets),
+                    rules: parseRules(rawOptions.rules || [], presets),
                     presets
                 }
             }
