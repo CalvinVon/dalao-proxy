@@ -47,7 +47,7 @@ module.exports = {
     onPipeResponse(context, next) {
         const { rules } = this.config;
 
-        if (/^image/.test(context.proxy.response.headers['content-type'])) {
+        if (!/(^text\/|^application\/(json|javascript|ecmascript|octet-stream))/.test(context.proxy.response.headers['content-type'])) {
             return next(null, context.chunk);
         }
 
