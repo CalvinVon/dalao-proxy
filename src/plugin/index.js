@@ -146,6 +146,7 @@ class Plugin {
         this.middleware = {};
         this.commander = null;
         this.context = program.context;
+        this.register = register;
 
         this._indexPath = '';
         this._configurePath;

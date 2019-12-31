@@ -2,12 +2,19 @@ const chalk = require('chalk');
 const http = require('http');
 const dalaoProxy = require('./core');
 const { getIPv4Address } = require('../utils');
+const register = require('../plugin').register;
 
 // attach server to port
-function attachServerListener(server, config) {
+function attachServerListener(program, server, config) {
     let { host, port } = config;
 
     server.on('listening', function () {
+
+        // trigger field `server`
+        register._trigger('server', server, value => {
+            program.context.server = value;
+        });
+
         config.port = port;
         console.log(chalk.green('\n> dalao has setup the Proxy for you 🚀\n'));
         console.log('> dalao is listening at: ');
@@ -45,7 +52,7 @@ function createProxyServer(program) {
     const server = http.createServer(dalaoProxy.httpCallback(config, plugins));
 
     // attach server to port
-    attachServerListener(server, config);
+    attachServerListener(program, server, config);
 
     return server;
 }

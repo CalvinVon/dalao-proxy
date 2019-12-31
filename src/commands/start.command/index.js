@@ -1,7 +1,6 @@
 const baseConfig = require('../../../config');
 const ProxyServer = require('../../server');
 const parserEmitter = require('../../parser/config-parser').emitter;
-const register = require('../../plugin/index').register;
 
 let proxyServer;
 
@@ -26,11 +25,6 @@ module.exports = function startCommand(program) {
                 }
                 
                 proxyServer = ProxyServer.createProxyServer(command);
-
-                // trigger field `server`
-                register._trigger('server', proxyServer, value => {
-                    program.context.server = value;
-                });
             });
         });
 };
