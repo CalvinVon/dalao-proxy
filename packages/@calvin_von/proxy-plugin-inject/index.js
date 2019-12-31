@@ -1,11 +1,26 @@
 const mime = require('mime');
 const fs = require('fs');
+const { attachWsServer, executeScript } = require('./presets/remote-console/server');
 
 
 // consts
 const URL_PREFIX = '/__plugin_inject__/';
 
 module.exports = {
+
+    beforeCreate() {
+        const { presets } = this.config;
+        if (presets.remoteConsole) {
+            this.register.once('context:server', server => {
+                attachWsServer(server);
+            });
+
+            this.register.on('input', data => {
+                executeScript(data);
+            })
+        }
+    },
+
     // serve static file
     onRequest(context, next) {
         const { request, response } = context;

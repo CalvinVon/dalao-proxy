@@ -15,7 +15,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chalk": "^3.0.0",
+    "console-probe": "^3.3.2",
     "eruda": "^1.10.3",
-    "mime": "^2.4.4"
+    "mime": "^2.4.4",
+    "ws": "^7.2.1"
   }
 }

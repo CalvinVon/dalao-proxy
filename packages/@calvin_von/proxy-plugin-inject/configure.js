@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 // presets
 const PresetConsole = require('./presets/mobile-console');
+const RemoteDebug = require('./presets/remote-console');
 
 /**
  * Config field
@@ -22,7 +23,7 @@ const PresetConsole = require('./presets/mobile-console');
  *      ],
  *      presets: {
  *          mobileConsole: true,
- *          remoteDebug: true,
+ *          remoteConsole: true,
  *      }
  *  }
  */
@@ -30,7 +31,7 @@ const defaultOptions = {
     rules: [],
     presets: {
         mobileConsole: true,
-        // remoteDebug: true
+        remoteConsole: true
     }
 };
 
@@ -69,6 +70,9 @@ function parseRules(rawRules, presets) {
     const rules = [];
     if (presets.mobileConsole) {
         rules.push(...PresetConsole.rules);
+    }
+    if (presets.remoteConsole) {
+        rules.push(...RemoteDebug.rules);
     }
 
     rules.push(
