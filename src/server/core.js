@@ -374,6 +374,7 @@ function proxyRequestWrapper(config, corePlugins) {
                          */
                         context.proxy.response = response;
                         setResponseHeaders(response.headers);
+                        res.writeHead(response.statusCode, response.statusMessage);
                     });
 
                     x.on('end', () => {
@@ -425,9 +426,10 @@ function proxyRequestWrapper(config, corePlugins) {
                     info && console.log(chalk.green(`> Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
                     /**
-                     * Instance of request.Request
+                     * x is an instance of request.Request
                      */
                     context.proxy.request = x;
+
                     context.proxy.requestStream = xReqStream;
                     context.proxy.responseStream = xResStream;
 
@@ -523,29 +525,27 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for proxy request
         function setProxyRequestHeaders(proxyRequest) {
-            let headers = req.headers;
+            let _headers = req.headers;
             if (typeof (headers.request) === 'object') {
-                headers = {
-                    ...headers,
+                _headers = {
+                    ..._headers,
                     ...headers.request
                 };
             }
 
-            const formattedHeaders = formatHeaders(headers);
-            delete formattedHeaders['Host'];
+            const formattedHeaders = formatHeaders(_headers);
             setHeadersFor(proxyRequest, formattedHeaders);
         }
 
         // set headers for response
         function setResponseHeaders(proxyResponseHeaders) {
-            let _headers = headers;
+            let _headers = proxyResponseHeaders;
 
             if (typeof (headers.response) === 'object') {
                 _headers = headers.response;
             }
 
             _headers = {
-                ...proxyResponseHeaders,
                 ..._headers,
                 'Transfer-Encoding': 'chunked'
             };
@@ -559,13 +559,25 @@ function proxyRequestWrapper(config, corePlugins) {
         }
 
 
-
         function setHeadersFor(target, headers) {
             for (const header in headers) {
-                target.setHeader(header, headers[header]);
+                const value = headers[header];
+                if (value) {
+                    if (typeof (value) === 'string') {
+                        target.setHeader(header, value);
+                    }
+                }
+                else {
+                    target.removeHeader(header);
+                }
             }
         }
 
+
+        /**
+         * format headers to upper case word
+         * @param {Object} headers
+         */
         function formatHeaders(headers) {
             const formattedHeaders = {};
             Object.keys(headers).forEach(key => {
