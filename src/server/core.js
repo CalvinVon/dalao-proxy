@@ -10,18 +10,12 @@ const { version } = require('../../config/index');
 const {
     joinUrl,
     addHttpProtocol,
-    isStaticResouce,
     splitTargetAndPath,
     transformPath,
     fixJson
 } = require('../utils');
 
-let shouldCleanUpAllConnections;
-// * Why collect connections?
-// When switch cache option(or config options), HTTP/1.1 will use `Connection: Keep-Alive` by default,
-// which will cause client former TCP socket conection still work, or in short, it makes hot reload did
-// not work immediately.
-let connections = [];
+
 let plugins = [];
 
 /**
@@ -169,7 +163,6 @@ function interrupter(context, resolve, reject) {
  * - Middleware: after proxy request                  [life-cycle:afterProxy]
  */
 function proxyRequestWrapper(config, corePlugins) {
-    shouldCleanUpAllConnections = true;
     plugins = corePlugins;
 
     function proxyRequest(req, res) {
@@ -186,16 +179,12 @@ function proxyRequestWrapper(config, corePlugins) {
         const _request = request[method.toLowerCase()];
         let matched;
 
-        res.setHeader('Via', 'dalao-proxy/' + version);
-        res.setHeader('Access-Control-Allow-Origin', requestHost);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-        res.setHeader('Access-Control-Allow-Credentials', true);
-        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
-
-        if (!isStaticResouce(url)) {
-            cleanUpConnections();
-            collectConnections();
-        }
+        // res.setHeader('Connection', 'close');
+        // res.setHeader('Via', 'dalao-proxy/' + version);
+        // res.setHeader('Access-Control-Allow-Origin', requestHost);
+        // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+        // res.setHeader('Access-Control-Allow-Credentials', true);
+        // res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
 
         Promise.resolve()
             .then(() => {
@@ -539,15 +528,23 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for response
         function setResponseHeaders(proxyResponseHeaders) {
-            let _headers = proxyResponseHeaders;
+            let _headers = proxyResponseHeaders,
+                userHeaders = {};
 
             if (typeof (headers.response) === 'object') {
-                _headers = headers.response;
+                userHeaders = headers.response;
             }
 
             _headers = {
                 ..._headers,
-                'Transfer-Encoding': 'chunked'
+                ...userHeaders,
+                'Transfer-Encoding': 'chunked',
+                'Connection': 'close',
+                'Via': 'dalao-proxy/' + version,
+                'Access-Control-Allow-Origin': requestHost,
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
+                'Access-Control-Allow-Credentials': true,
+                'Access-Control-Allow-Headers': 'Authorization, Token'
             };
 
             const formattedHeaders = formatHeaders(_headers);
@@ -585,23 +582,6 @@ function proxyRequestWrapper(config, corePlugins) {
                 formattedHeaders[header] = headers[key];
             });
             return formattedHeaders;
-        }
-
-        // collect socket connection
-        function collectConnections() {
-            const connection = req.connection;
-            if (connections.indexOf(connection) === -1) {
-                connections.push(connection);
-            }
-        }
-
-        // destroy all tcp connections
-        function cleanUpConnections() {
-            if (shouldCleanUpAllConnections) {
-                connections.forEach(connection => connection.destroy());
-                connections = [];
-                shouldCleanUpAllConnections = false;
-            }
         }
 
 
