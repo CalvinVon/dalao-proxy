@@ -170,7 +170,7 @@ function proxyRequestWrapper(config, corePlugins) {
             info,
             host,
             port,
-            headers,
+            headers: userHeaders,
             proxyTable,
         } = config;
 
@@ -179,12 +179,12 @@ function proxyRequestWrapper(config, corePlugins) {
         const _request = request[method.toLowerCase()];
         let matched;
 
-        // res.setHeader('Connection', 'close');
-        // res.setHeader('Via', 'dalao-proxy/' + version);
-        // res.setHeader('Access-Control-Allow-Origin', requestHost);
-        // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-        // res.setHeader('Access-Control-Allow-Credentials', true);
-        // res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
+        res.setHeader('Via', 'dalao-proxy/' + version);
+        res.setHeader('Access-Control-Allow-Origin', requestHost);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+        res.setHeader('Access-Control-Allow-Credentials', true);
+        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
+        res.setHeader('Connection', 'close');
 
         Promise.resolve()
             .then(() => {
@@ -514,13 +514,22 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for proxy request
         function setProxyRequestHeaders(proxyRequest) {
+            const mergeList = [];
+            const rewriteHeaders = {
+                'Connection': 'close',
+            };
             let _headers = req.headers;
-            if (typeof (headers.request) === 'object') {
-                _headers = {
-                    ..._headers,
-                    ...headers.request
-                };
+
+            // originalHeaders < rewriteHeaders < userHeaders
+            mergeList.push(rewriteHeaders);
+            if (typeof (userHeaders.request) === 'object') {
+                mergeList.push(userHeaders.request);
             }
+            else if (typeof (userHeaders) === 'object') {
+                mergeList.push(userHeaders);
+            }
+
+            _headers = Object.assign(_headers, ...mergeList);
 
             const formattedHeaders = formatHeaders(_headers);
             setHeadersFor(proxyRequest, formattedHeaders);
@@ -528,25 +537,29 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for response
         function setResponseHeaders(proxyResponseHeaders) {
-            let _headers = proxyResponseHeaders,
-                userHeaders = {};
-
-            if (typeof (headers.response) === 'object') {
-                userHeaders = headers.response;
-            }
-
-            _headers = {
-                ..._headers,
-                ...userHeaders,
+            const mergeList = [];
+            const rewriteHeaders = {
                 'Transfer-Encoding': 'chunked',
                 'Connection': 'close',
                 'Via': 'dalao-proxy/' + version,
                 'Access-Control-Allow-Origin': requestHost,
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
                 'Access-Control-Allow-Credentials': true,
-                'Access-Control-Allow-Headers': 'Authorization, Token'
+                'Access-Control-Allow-Headers': 'Authorization, Token',
             };
 
+            let _headers = proxyResponseHeaders;
+
+            // originalHeaders < rewriteHeaders < userHeaders
+            mergeList.push(rewriteHeaders);
+            if (typeof (userHeaders.response) === 'object') {
+                mergeList.push(userHeaders.response);
+            }
+            else if (typeof (userHeaders) === 'object') {
+                mergeList.push(userHeaders);
+            }
+
+            _headers = Object.assign(_headers, ...mergeList);
             const formattedHeaders = formatHeaders(_headers);
 
             // response has been decoded

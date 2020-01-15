@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
-const _ = require('lodash')
+const _ = require('lodash');
 
 const pwd = process.cwd();
 const defaultConfig = require('../../config');
@@ -136,23 +136,24 @@ function mergeConfig(baseConfig, fileConfig) {
     };
     const EXTRA_FIELDS_ALL = [...EXTRA_FIELDS.obj, ...EXTRA_FIELDS.arr];
 
-    // extra fields need to be merged
-    const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
-    const baseConfig_extra_arr = _.pick(baseConfig, EXTRA_FIELDS.arr);
+    // merge plain fields
     const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS_ALL);
-
-    const fileConfig_extra_obj = _.pick(fileConfig, EXTRA_FIELDS.obj);
-    const fileConfig_extra_arr = _.pick(fileConfig, EXTRA_FIELDS.arr);
     const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS_ALL);
-
     const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
-
-    // Check config value
+    
     Object.keys(mergedConfig_plain).forEach(config => {
         const checkFn = CheckFunctions[config];
         checkFn && checkFn(mergedConfig_plain[config]);
     });
+    
+    // merge extra fields
+    const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
+    const baseConfig_extra_arr = _.pick(baseConfig, EXTRA_FIELDS.arr);
+    const fileConfig_extra_obj = _.pick(fileConfig, EXTRA_FIELDS.obj);
+    const fileConfig_extra_arr = _.pick(fileConfig, EXTRA_FIELDS.arr);
 
+    Object.keys(fileConfig_extra_obj).forEach(key => fileConfig_extra_obj[key] = fileConfig_extra_obj[key] || {});
+    Object.keys(fileConfig_extra_arr).forEach(key => fileConfig_extra_arr[key] = fileConfig_extra_arr[key] || []);
     const mergedConfig_extra_obj = _.merge({}, baseConfig_extra_obj, fileConfig_extra_obj);
 
     const mergedConfig_extra_arr = {};
@@ -309,6 +310,7 @@ exports.parse = function parse(command) {
     delete argsConfig.config;
 
     const { path: filePath, config: fileConfig } = parseFile(argsConfig.configFileName);
+    
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
     mergePluginsConfig(runtimeConfig, command.context.plugins);
