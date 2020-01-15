@@ -1,7 +1,10 @@
 const chalk = require('chalk');
 const path = require('path');
+const querystring = require('querystring');
+const concat = require('concat-stream');
 const moment = require('moment');
 const fs = require('fs');
+
 const { FOREVER_VALID_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./generate-mock');
 const {
     checkAndCreateCacheFolder,
@@ -63,21 +66,28 @@ module.exports = {
                 const fileContent = JSON.stringify(jsonContent, null, 4);
 
                 const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
+                const userConfigHeaders = context.config.headers;
 
                 // need validate expire time
                 if (jsonContent[FOREVER_VALID_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
-                    const headers = jsonContent[HEADERS_FIELD_TEXT];
+                    const presetHeaders = {
+                        'X-Cache-Response': 'true',
+                        'X-Cache-Expire-Time': 'permanently valid',
+                        'X-Cache-Rest-Time': 'forever',
+                    };
+
+                    const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
                     for (const header in headers) {
                         response.setHeader(header, headers[header]);
                     }
-                    response.setHeader('X-Cache-Response', 'true');
-                    response.setHeader('X-Cache-Expire-Time', 'permanently valid');
-                    response.setHeader('X-Cache-Rest-Time', 'forever');
 
                     response.writeHead(200, {
                         'Content-Type': 'application/json'
                     });
-                    response.end(fileContent);
+
+
+                    collectRealRequestDataAndRespond();
                     context.cache = {
                         data: jsonContent,
                         rawData: fileContent,
@@ -95,17 +105,23 @@ module.exports = {
                     const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
                     // valid cache file
                     if (moment().isBefore(deadlineMoment)) {
-                        response.setHeader('X-Cache-Response', 'true');
-                        // calculate rest cache time
-                        response.setHeader('X-Cache-Expire-Time', moment(deadlineMoment).format('llll'));
-                        response.setHeader('X-Cache-Rest-Time', moment.duration(moment().diff(deadlineMoment)).humanize());
+                        const presetHeaders = {
+                            'X-Cache-Response': 'true',
+                            'X-Cache-Expire-Time': moment(deadlineMoment).format('llll'),
+                            'X-Cache-Rest-Time': moment.duration(moment().diff(deadlineMoment)).humanize(),
+                        };
+                        const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
+                        for (const header in headers) {
+                            response.setHeader(header, headers[header]);
+                        }
 
-                        response.writeHead(200, {
-                            'Content-Type': 'application/json'
-                        });
-                        response.end(fileContent);
-                        context.cache = jsonContent;
-
+                        collectRealRequestDataAndRespond();
+                        context.cache = {
+                            data: jsonContent,
+                            rawData: fileContent,
+                            type: 'application/json',
+                            size: fileContent.length
+                        };
                         logger && logMatchedPath(targetFileName);
 
                         // do interrupter
@@ -122,6 +138,36 @@ module.exports = {
                 }
 
                 cleanRequireCache(targetFileName);
+
+                function collectRealRequestDataAndRespond() {
+                    request.pipe(concat(buffer => {
+                        const contentType = request.headers['content-type'];
+                        const data = {
+                            rawBody: buffer.toString(),
+                            body: '',
+                            query: querystring.parse(request.URL.query),
+                            type: contentType
+                        };
+
+                        if (data.rawBody && contentType) {
+                            try {
+                                if (/application\/x-www-form-urlencoded/.test(contentType)) {
+                                    data.body = querystring.parse(data.rawBody);
+                                } else if (/application\/json/.test(contentType)) {
+                                    data.body = JSON.parse(data.rawBody);
+                                } else if (/multipart\/form-data/.test(contentType)) {
+                                    data.body = data.rawBody;
+                                }
+                            } catch (error) {
+                                info && console.log(' > Error: can\'t parse requset body. ' + error.message);
+                            }
+                        }
+
+                        jsonContent.REAL_REQUEST_DATA = data;
+                        const fileContent = JSON.stringify(jsonContent, null, 4);
+                        response.end(fileContent);
+                    }));
+                }
 
             }
             else {
@@ -182,6 +228,7 @@ module.exports = {
                             method,
                             ...context.data.request
                         };
+                        delete resJson.CACHE_REQUEST_DATA.rawBuffer;
                         resJson[FOREVER_VALID_FIELD_TEXT] = false;
                         resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
                         fs.writeFileSync(
@@ -212,7 +259,7 @@ module.exports = {
                                     data: resJson,
                                     headers: context.proxy[filter.when].headers
                                 };
-                                isMeet = filterContext[filter.where][filter.field] === filter.value;
+                                isMeet = filterContext[filter.where][filter.field] == filter.value;
                             }
 
                             isMeetList.push(isMeet);
@@ -232,4 +279,20 @@ module.exports = {
             }
         }
     }
+}
+
+
+
+function mergeHeaders(userConfigHeaders, ...headers) {
+    const headerMergeList = [];
+    if (typeof (userConfigHeaders) === 'object') {
+        if (typeof (userConfigHeaders.response) === 'object') {
+            headerMergeList.push(userConfigHeaders.response);
+        }
+        else {
+            headerMergeList.push(userConfigHeaders);
+        }
+    }
+    headerMergeList.push(...headers);
+    return Object.assign(...headerMergeList);
 }

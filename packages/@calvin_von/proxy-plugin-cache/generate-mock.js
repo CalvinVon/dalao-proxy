@@ -34,13 +34,12 @@ function questionUrl(method, options, config) {
                 const isInJsFile = options.js;
                 const mockFileName = path.resolve(process.cwd(), `./${config.dirname}/${url2filename(method, url)}`) + (isInJsFile ? '.js' : '.json');
                 const json = {
-                    CACHE_INFO: 'Mocked by Dalao Proxy',
+                    CACHE_INFO: 'Mocked by Dalao-Proxy Plugin Cache',
                     CACHE_TIME_TXT: moment().format('llll'),
                     CACHE_REQUEST_DATA: {
                         url,
                         method
                     },
-                    data: {},
                     [HEADERS_FIELD_TEXT]: {},
                     [FOREVER_VALID_FIELD_TEXT]: true
                 };
@@ -78,16 +77,20 @@ function questionUrl(method, options, config) {
 
 function applyFilter(filters, data) {
     filters.forEach(filter => {
-        if (filter.when) return;
+        // find matched route filter
+        if (filter.custom) return;
+        if (filter.when === 'request') return;
+        if (filter.applyRoute !== '*' && data.CACHE_REQUEST_DATA.url.indexOf(filter.applyRoute) === -1) return;
 
-        if (filter.where === 'body') {
-            if (filter.field) {
+        if (filter.field) {
+            if (filter.where === 'headers') {
+                data[HEADERS_FIELD_TEXT][filter.field] = filter.value;
+            }
+            else if (filter.where === 'data') {
                 data[filter.field] = filter.value;
             }
-        }
-        else {
-            if (filter.field) {
-                data[HEADERS_FIELD_TEXT][filter.field] = filter.value;
+            else if (filter.where === 'body') {
+                data[filter.field] = filter.value;
             }
         }
     });

@@ -13,10 +13,13 @@ const defaultOptions = {
         {
             /**
              * filter when request or response
+             * Options: `response`, `request`
              */
             when: "response",
             /**
              * filter by response body or header
+             * Options: `data`, `header` for `response`
+             * Options: `body`, `query`, `header` for `request`
              */
             where: "data",
             /**
