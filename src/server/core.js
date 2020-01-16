@@ -60,7 +60,7 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
     });
     Promise.all(allPluginPromises)
         .then(() => {
-            next.call(null);
+            next.call(null, null, null, hookName);
         })
         .catch(ctx => {
             if (next) {
@@ -145,7 +145,9 @@ function interrupter(context, resolve, reject) {
                 reject(new PluginInterrupt(plugin, hookName, reason));
             }
         }
-        else resolve(context);
+        else {
+            resolve(context);
+        }
     }
 }
 
@@ -350,6 +352,8 @@ function proxyRequestWrapper(config, corePlugins) {
                 setProxyRequestHeaders(x);
 
                 return new Promise(resolve => {
+                    let pluginOnProxyRespondPromise;
+
                     x.on('response', response => {
                         collectProxyResponseData(context);
                         /**
@@ -364,11 +368,14 @@ function proxyRequestWrapper(config, corePlugins) {
                         context.proxy.response = response;
                         setResponseHeaders(response.headers);
                         res.writeHead(response.statusCode, response.statusMessage);
+
+                        pluginOnProxyRespondPromise = Middleware_onProxyRespond(context);
+                        pluginOnProxyRespondPromise.catch(() => { });
                     });
 
                     x.on('end', () => {
-                        resolve(context);
-                    })
+                        resolve(pluginOnProxyRespondPromise);
+                    });
 
                     const xReqStream = req
                         .pipe(
@@ -432,7 +439,7 @@ function proxyRequestWrapper(config, corePlugins) {
              * @param {Object} context
              * @returns {Object} context
              */
-            .then(context => Middleware_afterProxy(context))
+            .then((context) => Middleware_afterProxy(context))
             .catch(error => {
                 if (!error instanceof PluginInterrupt || config.debug) {
                     console.error(error);
@@ -619,6 +626,12 @@ function proxyRequestWrapper(config, corePlugins) {
         function Middleware_beforeProxy(context) {
             return new Promise((resolve, reject) => {
                 _invokeAllPluginsMiddlewares('beforeProxy', context, interrupter(context, resolve, reject));
+            });
+        }
+
+        function Middleware_onProxyRespond(context) {
+            return new Promise((resolve, reject) => {
+                _invokeAllPluginsMiddlewares('onProxyRespond', context, interrupter(context, resolve, reject));
             });
         }
 

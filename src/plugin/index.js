@@ -347,6 +347,7 @@ class Plugin {
 
     /**
      * @private
+     * Call exposed hook functions defined in user plugins, if not exist use replacement function as fallback
      * @param {String} method method name
      * @param {Function} replacement default backup function
      * @param  {...any} args 
@@ -375,6 +376,10 @@ class Plugin {
 
     beforeProxy(context, next) {
         this._methodWrapper('beforeProxy', nonCallback, context, next);
+    }
+
+    onProxyRespond(context, next) {
+        this._methodWrapper('onProxyRespond', nonCallback, context, next);
     }
 
     afterProxy(context) {
