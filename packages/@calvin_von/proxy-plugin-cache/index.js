@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const path = require('path');
 const querystring = require('querystring');
 const concat = require('concat-stream');
+const mime = require('mime-types');
 const moment = require('moment');
 const fs = require('fs');
 
@@ -187,6 +188,7 @@ module.exports = {
             console.log(message);
         }
     },
+
     afterProxy(context) {
         const {
             dirname: cacheDirname,
@@ -194,91 +196,125 @@ module.exports = {
             filters
         } = this.config;
         const { method, url } = context.request;
-        const { request: proxyResponse } = context.proxy;
+        const { response } = context.proxy;
 
         const route = context.matched.route;
         const cacheFilters = filters.filter(filter => (filter.applyRoute === '*' || filter.applyRoute === route.path));
 
         // cache the response data
-        if (!context.data.error) {
-            try {
-                const response = proxyResponse.response;
-                const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}.json`)
+        try {
+            const cacheFileWithNoExt = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
 
-                // Only cache ajax request response
-                let contentTypeReg = /application\/json/;
+            let contentTypeReg;
+            if (cacheContentType.length) {
+                contentTypeReg = new RegExp(`${
+                    cacheContentType
+                        .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
+                        .join('|')
+                    }`);
+            }
+            const responseContentType = response.headers['content-type'] || response.headers['Content-Type'];
+            if (contentTypeReg.test(responseContentType)) {
 
-                // TODO: multiple type caching support
-                if (cacheContentType.length) {
-                    contentTypeReg = new RegExp(`(${
-                        cacheContentType
-                            .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
-                            .join('|')
-                        })`);
-                }
-                if (contentTypeReg.test(response.headers['content-type'])) {
-                    const resJson = Object.assign({}, context.data.response.data);
-
-                    if (isMeetFiltering()) {
-                        resJson.CACHE_INFO = 'Cached from Dalao Proxy';
-                        resJson.CACHE_TIME = Date.now();
-                        resJson.CACHE_TIME_TXT = moment().format('YYYY-MM-DD HH:mm:ss');
-                        resJson.CACHE_REQUEST_DATA = {
-                            url,
-                            method,
-                            ...context.data.request
-                        };
-                        delete resJson.CACHE_REQUEST_DATA.rawBuffer;
-                        resJson[FOREVER_VALID_FIELD_TEXT] = false;
-                        resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
-                        fs.writeFileSync(
-                            cacheSearchName,
-                            JSON.stringify(resJson, null, 4),
-                            {
-                                encoding: 'utf8',
-                                flag: 'w'
-                            }
-                        );
-
-                        console.log(chalk.grey('> Cached into [') + chalk.grey(cacheSearchName) + chalk.grey(']'));
+                if (isMeetFiltering()) {
+                    let cacheFileName;
+                    if (/json/.test(responseContentType)) {
+                        cacheFileName = cacheFileInJSON();
+                    }
+                    else {
+                        cacheFileName = cacheFileInOrignal();
                     }
 
-                    function isMeetFiltering() {
-                        if (!cacheFilters.length) return true;
+                    console.log(chalk.gray('> Cached into [') + chalk.grey(cacheFileName) + chalk.grey(']'));
+                }
 
-                        let isMeetList = [];
-                        for (const filter of cacheFilters) {
-                            let isMeet;
-                            if (filter.custom) {
-                                isMeet = filter.custom.call(this, content, context);
-                            }
-                            else {
-                                const filterContext = {
-                                    query: context.data.request.query,
-                                    body: context.data.request.body,
-                                    data: resJson,
-                                    headers: context.proxy[filter.when].headers
-                                };
-                                isMeet = filterContext[filter.where][filter.field] == filter.value;
-                            }
 
-                            isMeetList.push(isMeet);
-                            if (!isMeet) {
-                                break;
-                            }
+                /**
+                 * Determine whether meet the filter conditions
+                 * @returns {Boolean}
+                 */
+                function isMeetFiltering() {
+                    if (!cacheFilters.length) return true;
+
+                    let isMeetList = [];
+                    for (const filter of cacheFilters) {
+                        let isMeet;
+                        if (filter.custom) {
+                            isMeet = filter.custom.call(this, content, context);
+                        }
+                        else {
+                            const filterContext = {
+                                query: context.data.request.query,
+                                body: context.data.request.body,
+                                data: context.data.response.data,
+                                headers: context.proxy[filter.when].headers
+                            };
+                            isMeet = filterContext[filter.where][filter.field] == filter.value;
                         }
 
-                        return isMeetList.every(Boolean);
+                        isMeetList.push(isMeet);
+                        if (!isMeet) {
+                            break;
+                        }
                     }
 
+                    return isMeetList.every(Boolean);
                 }
 
-            } catch (error) {
-                console.error(error);
-                console.error(chalk.red(` > An error occurred (${error.message}) while caching response data.`));
+
+                /**
+                 * Cache file in JSON format
+                 */
+                function cacheFileInJSON() {
+                    const resJson = Object.assign({}, context.data.response.data);
+
+                    resJson.CACHE_INFO = 'Cached from Dalao Proxy';
+                    resJson.CACHE_TIME = Date.now();
+                    resJson.CACHE_TIME_TXT = moment().format('YYYY-MM-DD HH:mm:ss');
+                    resJson.CACHE_REQUEST_DATA = {
+                        url,
+                        method,
+                        ...context.data.request
+                    };
+                    delete resJson.CACHE_REQUEST_DATA.rawBuffer;
+                    resJson[FOREVER_VALID_FIELD_TEXT] = false;
+                    resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
+
+                    const cacheFileName = /\.json$/.test(cacheFileWithNoExt) ? cacheFileWithNoExt : (cacheFileWithNoExt + '.json');
+                    fs.writeFileSync(
+                        cacheFileName,
+                        JSON.stringify(resJson, null, 4),
+                        {
+                            encoding: 'utf8',
+                            flag: 'w'
+                        }
+                    );
+
+                    return cacheFileName;
+                }
+
+                /**
+                 * Cache file in original format
+                 */
+                function cacheFileInOrignal() {
+                    fs.writeFileSync(
+                        cacheFileWithNoExt,
+                        context.data.response.rawBuffer,
+                        {
+                            encoding: 'buffer',
+                            flag: 'w'
+                        }
+                    );
+                    return cacheFileWithNoExt;
+                }
+
             }
+
+        } catch (error) {
+            console.error(error);
+            console.error(chalk.red(` > An error occurred (${error.message}) while caching response data.`));
         }
-    }
+    },
 }
 
 

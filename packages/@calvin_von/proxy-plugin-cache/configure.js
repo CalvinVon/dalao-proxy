@@ -25,11 +25,11 @@ const defaultOptions = {
             /**
              * filter field
              */
-            field: "code",
+            field: "",
             /**
              * filter field value
              */
-            value: 200,
+            value: null,
             /**
              * custom filter function
              * @return Boolean
