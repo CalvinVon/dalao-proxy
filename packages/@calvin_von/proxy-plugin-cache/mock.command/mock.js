@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-const { checkAndCreateCacheFolder, url2filename } = require('./utils');
+const { checkAndCreateCacheFolder, url2filename } = require('../utils');
 const moment = require('moment');
 
 const HEADERS_FIELD_TEXT = '[[headers]]';

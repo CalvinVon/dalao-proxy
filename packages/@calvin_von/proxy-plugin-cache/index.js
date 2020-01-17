@@ -6,7 +6,7 @@ const mime = require('mime-types');
 const moment = require('moment');
 const fs = require('fs');
 
-const { FOREVER_VALID_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./generate-mock');
+const { FOREVER_VALID_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./mock.command/mock');
 const {
     checkAndCreateCacheFolder,
     url2filename
