@@ -25,11 +25,11 @@ const defaultOptions = {
             /**
              * filter field
              */
-            field: "",
+            field: "code",
             /**
              * filter field value
              */
-            value: null,
+            value: 200,
             /**
              * custom filter function
              * @return Boolean
@@ -119,6 +119,21 @@ function parseFilters(value) {
     if (isType(value, 'Array')) {
         filters = value
             .map((item, index) => {
+                if (item.custom) {
+                    if (!isType(item.custom, 'Function')) {
+                        configWarn(`type of \`cache.filters[${index}].custom\` should be \`Function\``);
+                        item.custom = null;
+                    }
+                    else {
+                        return Object.assign({
+                            field: null,
+                            value: null,
+                            custom: null,
+                            applyRoute: '*'
+                        }, item);
+                    }
+                }
+
                 if (item.when === 'request') {
                     if (!/^(header|body|query)$/.test(item.where)) {
                         configWarn(`value of \`cache.filters[${index}].where\` should be \`header\`, \`body\` or \`query\` when \`filter.when\` is \`request\``);
@@ -136,12 +151,6 @@ function parseFilters(value) {
                     item._disabled = true;
                 }
 
-                if (item.custom) {
-                    if (!isType(item.custom, 'Function')) {
-                        configWarn(`type of \`cache.filters[${index}].custom\` should be \`Function\``);
-                        item.custom = null;
-                    }
-                }
                 if (item.applyRoute) {
                     if (!isType(item.applyRoute, 'String')) {
                         configWarn(`type of \`cache.filters[${index}].applyRoute\` should be \`String\``);

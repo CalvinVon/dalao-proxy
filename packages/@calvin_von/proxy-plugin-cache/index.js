@@ -39,10 +39,10 @@ module.exports = {
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { response, request } = context;
+        const userConfigHeaders = context.config.headers;
         const {
             dirname: cacheDirname,
             maxAge: cacheMaxAge,
-            logger,
         } = this.config;
 
         const { method, url } = request;
@@ -53,68 +53,51 @@ module.exports = {
             const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
             const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
-            let targetFileName;
-            const hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
-                if (fs.existsSync(cacheSearchName + ext)) {
-                    targetFileName = cacheSearchName + ext;
-                    return true;
-                }
-                return false;
-            })
+            let targetFilePath,
+                hasCacheFile,
+                isInJsonFormat;
+
+            if (fs.existsSync(cacheSearchName)) {
+                targetFilePath = cacheSearchName;
+                hasCacheFile = true;
+                isInJsonFormat = path.extname(targetFilePath) === '.json';
+            }
+            else {
+                hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
+                    if (fs.existsSync(cacheSearchName + ext)) {
+                        targetFilePath = cacheSearchName + ext;
+                        isInJsonFormat = true;
+                        return true;
+                    }
+                    return false;
+                })
+            }
 
             if (hasCacheFile) {
-                const jsonContent = require(targetFileName);
-                const fileContent = JSON.stringify(jsonContent, null, 4);
 
-                const cachedTimeStamp = jsonContent['CACHE_TIME'];
-                const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
-                const userConfigHeaders = context.config.headers;
+                // in JSON format
+                if (isInJsonFormat) {
+                    const jsonContent = require(targetFilePath);
+                    const fileContent = JSON.stringify(jsonContent, null, 4);
 
-                // need validate expire time
-                if (jsonContent[FOREVER_VALID_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
-                    const presetHeaders = {
-                        'X-Cache-Response': 'true',
-                        'X-Cache-Expire-Time': 'permanently valid',
-                        'X-Cache-Rest-Time': 'forever',
-                    };
+                    const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                    const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
 
-                    const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
-                    for (const header in headers) {
-                        response.setHeader(header, headers[header]);
-                    }
-
-                    response.writeHead(200, {
-                        'Content-Type': 'application/json'
-                    });
-
-
-                    collectRealRequestDataAndRespond();
-                    context.cache = {
-                        data: jsonContent,
-                        rawData: fileContent,
-                        type: 'application/json',
-                        size: fileContent.length
-                    };
-
-                    logger && logMatchedPath(targetFileName);
-
-                    // 中断代理请求
-                    next('Hit cache');
-                }
-                // permanently valid
-                else {
-                    const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
-                    // valid cache file
-                    if (moment().isBefore(deadlineMoment)) {
+                    // need validate expire time
+                    if (jsonContent[FOREVER_VALID_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
                         const presetHeaders = {
                             'X-Cache-Response': 'true',
-                            'X-Cache-Expire-Time': moment(deadlineMoment).format('llll'),
-                            'X-Cache-Rest-Time': moment.duration(moment().diff(deadlineMoment)).humanize(),
+                            'X-Cache-Expire-Time': 'permanently valid',
+                            'X-Cache-Rest-Time': 'forever',
                         };
+
                         const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
-                        for (const header in headers) {
-                            response.setHeader(header, headers[header]);
-                        }
+                        setHeaders(response, headers);
+
+                        response.writeHead(200, {
+                            'Content-Type': 'application/json'
+                        });
+
 
                         collectRealRequestDataAndRespond();
                         context.cache = {
@@ -123,51 +106,95 @@ module.exports = {
                             type: 'application/json',
                             size: fileContent.length
                         };
-                        logger && logMatchedPath(targetFileName);
 
-                        // do interrupter
+                        logMatchedPath(targetFilePath);
+
+                        // 中断代理请求
                         next('Hit cache');
                     }
+                    // permanently valid
                     else {
-                        // Do not delete expired cache automatically
-                        // V0.6.4 2019.4.17
-                        // fs.unlinkSync(cacheSearchName);
+                        const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
+                        // valid cache file
+                        if (moment().isBefore(deadlineMoment)) {
+                            const presetHeaders = {
+                                'X-Cache-Response': 'true',
+                                'X-Cache-Expire-Time': moment(deadlineMoment).format('llll'),
+                                'X-Cache-Rest-Time': moment.duration(moment().diff(deadlineMoment)).humanize(),
+                            };
+                            const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
+                            setHeaders(response, headers);
 
-                        // continue
-                        next();
+                            collectRealRequestDataAndRespond();
+                            context.cache = {
+                                data: jsonContent,
+                                rawData: fileContent,
+                                type: 'application/json',
+                                size: fileContent.length
+                            };
+                            logMatchedPath(targetFilePath);
+
+                            // do interrupter
+                            next('Hit cache');
+                        }
+                        else {
+                            // Do not delete expired cache automatically
+                            // V0.6.4 2019.4.17
+                            // fs.unlinkSync(cacheSearchName);
+
+                            // continue
+                            next();
+                        }
+                    }
+
+                    cleanRequireCache(targetFilePath);
+
+                    function collectRealRequestDataAndRespond() {
+                        request.pipe(concat(buffer => {
+                            const contentType = request.headers['content-type'];
+                            const data = {
+                                rawBody: buffer.toString(),
+                                body: '',
+                                query: querystring.parse(request.URL.query),
+                                type: contentType
+                            };
+
+                            if (data.rawBody && contentType) {
+                                try {
+                                    if (/application\/x-www-form-urlencoded/.test(contentType)) {
+                                        data.body = querystring.parse(data.rawBody);
+                                    } else if (/application\/json/.test(contentType)) {
+                                        data.body = JSON.parse(data.rawBody);
+                                    } else if (/multipart\/form-data/.test(contentType)) {
+                                        data.body = data.rawBody;
+                                    }
+                                } catch (error) {
+                                    info && console.log(' > Error: can\'t parse requset body. ' + error.message);
+                                }
+                            }
+
+                            jsonContent.REAL_REQUEST_DATA = data;
+                            const fileContent = JSON.stringify(jsonContent, null, 4);
+                            response.end(fileContent);
+                        }));
                     }
                 }
-
-                cleanRequireCache(targetFileName);
-
-                function collectRealRequestDataAndRespond() {
-                    request.pipe(concat(buffer => {
-                        const contentType = request.headers['content-type'];
-                        const data = {
-                            rawBody: buffer.toString(),
-                            body: '',
-                            query: querystring.parse(request.URL.query),
-                            type: contentType
-                        };
-
-                        if (data.rawBody && contentType) {
-                            try {
-                                if (/application\/x-www-form-urlencoded/.test(contentType)) {
-                                    data.body = querystring.parse(data.rawBody);
-                                } else if (/application\/json/.test(contentType)) {
-                                    data.body = JSON.parse(data.rawBody);
-                                } else if (/multipart\/form-data/.test(contentType)) {
-                                    data.body = data.rawBody;
-                                }
-                            } catch (error) {
-                                info && console.log(' > Error: can\'t parse requset body. ' + error.message);
-                            }
-                        }
-
-                        jsonContent.REAL_REQUEST_DATA = data;
-                        const fileContent = JSON.stringify(jsonContent, null, 4);
-                        response.end(fileContent);
-                    }));
+                // in Orignal format
+                else {
+                    // only when cache max age is `*` valid
+                    if (cacheDigit !== '*') {
+                        return next();
+                    }
+                    const presetHeaders = {
+                        'Content-Type': mime.contentType(targetFilePath),
+                        'X-Cache-Response': 'true'
+                    };
+                    const headers = mergeHeaders(userConfigHeaders, presetHeaders);
+                    setHeaders(response, headers);
+                    const source = fs.createReadStream(targetFilePath);
+                    source.pipe(response);
+                    logMatchedPath(targetFilePath);
+                    next('Hit cache')
                 }
 
             }
@@ -180,11 +207,11 @@ module.exports = {
             next();
         }
 
-        function logMatchedPath(targetFileName) {
+        function logMatchedPath(targetFilePath) {
             const message = chalk.green(`> Hit! [${context.matched.path}]`)
                 + `   ${method.toUpperCase()}   ${url}`
                 + chalk.green('  >>>>  ')
-                + chalk.yellow(targetFileName);
+                + chalk.yellow(targetFilePath);
             console.log(message);
         }
     },
@@ -209,7 +236,14 @@ module.exports = {
             if (cacheContentType.length) {
                 contentTypeReg = new RegExp(`${
                     cacheContentType
-                        .map(it => it.replace(/^\s*/, '').replace(/\s*$/, ''))
+                        .map(it => it
+                            // remove blanks
+                            .replace(/^\s*/, '')
+                            .replace(/\s*$/, '')
+                            // replace */ --> \S+/
+                            .replace(/\*\//, '\\S+/')
+                            // replace /* --> /\S+
+                            .replace(/\/\*/, '/\\S+'))
                         .join('|')
                     }`);
             }
@@ -240,7 +274,7 @@ module.exports = {
                     for (const filter of cacheFilters) {
                         let isMeet;
                         if (filter.custom) {
-                            isMeet = filter.custom.call(this, content, context);
+                            isMeet = filter.custom.call(null, context);
                         }
                         else {
                             const filterContext = {
@@ -321,14 +355,24 @@ module.exports = {
 
 function mergeHeaders(userConfigHeaders, ...headers) {
     const headerMergeList = [];
-    if (typeof (userConfigHeaders) === 'object') {
-        if (typeof (userConfigHeaders.response) === 'object') {
-            headerMergeList.push(userConfigHeaders.response);
-        }
-        else {
-            headerMergeList.push(userConfigHeaders);
-        }
+    if (typeof (userConfigHeaders.response) === 'object') {
+        headerMergeList.push(userConfigHeaders.response);
+    }
+    else if (typeof (userConfigHeaders) === 'object') {
+        headerMergeList.push(userConfigHeaders);
     }
     headerMergeList.push(...headers);
-    return Object.assign(...headerMergeList);
+    return Object.assign({}, ...headerMergeList, { request: null, response: null });
+}
+
+function setHeaders(target, headers) {
+    for (const header in headers) {
+        const value = headers[header];
+        if (value) {
+            target.setHeader(header, value);
+        }
+        else {
+            target.removeHeader(header);
+        }
+    }
 }
