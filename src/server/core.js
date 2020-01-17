@@ -352,14 +352,14 @@ function proxyRequestWrapper(config, corePlugins) {
                 setProxyRequestHeaders(x);
 
                 return new Promise(resolve => {
-                    let pluginOnProxyRespondPromise;
+                    let pluginOnProxyRespondPromise,
+                        collectResponseDataPromise;
 
                     x.on('response', response => {
-                        collectProxyResponseData(context);
                         /**
-                        * Real proxy request
-                        * Instance of http.ClientRequest
-                        */
+                         * Real proxy request
+                         * Instance of http.ClientRequest
+                         */
                         context.proxy.req = x.req;
                         /**
                          * Real proxy response
@@ -369,12 +369,13 @@ function proxyRequestWrapper(config, corePlugins) {
                         setResponseHeaders(response.headers);
                         res.writeHead(response.statusCode, response.statusMessage);
 
+                        collectResponseDataPromise = collectProxyResponseData(context);
                         pluginOnProxyRespondPromise = Middleware_onProxyRespond(context);
                         pluginOnProxyRespondPromise.catch(() => { });
                     });
 
                     x.on('end', () => {
-                        resolve(pluginOnProxyRespondPromise);
+                        resolve(Promise.all([pluginOnProxyRespondPromise, collectResponseDataPromise]));
                     });
 
                     const xReqStream = req
@@ -439,7 +440,7 @@ function proxyRequestWrapper(config, corePlugins) {
              * @param {Object} context
              * @returns {Object} context
              */
-            .then((context) => Middleware_afterProxy(context))
+            .then(([context]) => Middleware_afterProxy(context))
             .catch(error => {
                 if (!error instanceof PluginInterrupt || config.debug) {
                     console.error(error);
@@ -489,33 +490,39 @@ function proxyRequestWrapper(config, corePlugins) {
         // Collect response data
         function collectProxyResponseData(context) {
             const { request: proxyRequest, responseStream } = context.proxy;
+            const data = {
+                rawBuffer: null,
+                rawData: null,
+                data: '',
+                type: null,
+                size: 0,
+                encode: null
+            };
+            context.data.response = data;
 
-            responseStream.pipe(concat(buffer => {
-                const data = {
-                    rawBuffer: buffer,
-                    rawData: buffer.toString(),
-                    data: '',
-                    type: null,
-                    size: 0,
-                    encode: null
-                };
-                context.data.response = data;
-                proxyRequest.on('error', err => {
-                    context.data.error = err;
-                    res.writeHead(503, 'Service Unavailable');
-                    res.end('Connect to server failed with code ' + err.code);
-                });
-
-                data.size = Buffer.byteLength(data.rawData);
-
-                try {
-                    if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
-                        data.data = JSON.parse(fixJson(data.rawData));
+            return new Promise(resolve => {
+                responseStream.pipe(concat(buffer => {
+                    data.rawBuffer = buffer;
+                    data.rawData = buffer.toString();
+                    proxyRequest.on('error', err => {
+                        context.data.error = err;
+                        res.writeHead(503, 'Service Unavailable');
+                        res.end('Connect to server failed with code ' + err.code);
+                    });
+    
+                    data.size = Buffer.byteLength(data.rawData);
+    
+                    try {
+                        if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
+                            data.data = JSON.parse(fixJson(data.rawData));
+                        }
+                    } catch (error) {
+                        console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
                     }
-                } catch (error) {
-                    console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
-                }
-            }))
+
+                    resolve();
+                }));
+            })
         }
 
 
