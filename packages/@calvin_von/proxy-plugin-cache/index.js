@@ -6,7 +6,7 @@ const mime = require('mime-types');
 const moment = require('moment');
 const fs = require('fs');
 
-const { FOREVER_VALID_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./mock.command/mock');
+const { MOCK_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./mock.command/mock');
 const {
     checkAndCreateCacheFolder,
     url2filename
@@ -15,6 +15,7 @@ const {
 function cleanRequireCache(fileName) {
     const id = fileName;
     const cache = require.cache;
+    const mod = cache[id];
 
     const cleanRelativeModuleCache = (mod) => {
         mod.children.forEach(it => {
@@ -26,8 +27,7 @@ function cleanRequireCache(fileName) {
         });
     };
 
-    if (cache[id]) {
-        const mod = cache[id];
+    if (mod) {
         cleanRelativeModuleCache(mod);
         module.children = module.children.filter(m => m !== mod);
         cache[id] = null;
@@ -84,7 +84,7 @@ module.exports = {
                     const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
 
                     // need validate expire time
-                    if (jsonContent[FOREVER_VALID_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
+                    if (jsonContent[MOCK_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
                         const presetHeaders = {
                             'X-Cache-Response': 'true',
                             'X-Cache-Expire-Time': 'permanently valid',
@@ -311,7 +311,7 @@ module.exports = {
                         ...context.data.request
                     };
                     delete resJson.CACHE_REQUEST_DATA.rawBuffer;
-                    resJson[FOREVER_VALID_FIELD_TEXT] = false;
+                    resJson[MOCK_FIELD_TEXT] = false;
                     resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
 
                     const cacheFileName = /\.json$/.test(cacheFileWithNoExt) ? cacheFileWithNoExt : (cacheFileWithNoExt + '.json');

@@ -1,4 +1,5 @@
 const storeCommand = require('./store.command');
+const cleanCommand = require('./clean.command');
 
 module.exports = function CacheCommand(program, register, config) {
     program
@@ -7,5 +8,6 @@ module.exports = function CacheCommand(program, register, config) {
         .forwardSubcommands()
         .use(function (command) {
             storeCommand(command, register, config);
+            cleanCommand(command, register, config);
         })
 }
