@@ -1,6 +1,6 @@
 const { MockFileGenerator } = require('./mock');
 
-module.exports = function MockCommand(program) {
+module.exports = function MockCommand(program, register, config) {
     program
         .command('mock <method>')
         .description('create a mock file in json format')
