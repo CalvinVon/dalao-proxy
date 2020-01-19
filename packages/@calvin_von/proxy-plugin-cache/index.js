@@ -281,7 +281,7 @@ module.exports = {
                                 query: context.data.request.query,
                                 body: context.data.request.body,
                                 data: context.data.response.data,
-                                headers: context.proxy[filter.when].headers
+                                header: context.proxy[filter.when].headers
                             };
                             isMeet = filterContext[filter.where][filter.field] == filter.value;
                         }
