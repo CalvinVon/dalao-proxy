@@ -16,6 +16,7 @@ exports.commands = {
 
 const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
+const originActionFn = Command.prototype.action;
 // Expose states so plugins can access
 Command.prototype.context = {
     /**
@@ -108,6 +109,16 @@ Command.prototype.option = function optionWrapper(flags, description, fn, defaul
 
     return this;
 };
+
+Command.prototype.action = function actionWrapper(callback) {
+    return originActionFn.call(this, (...args) => {
+        this.options.forEach(option => {
+            const optionName = option.name();
+            this.context.options[optionName] =  this[optionName];
+        });
+        return callback.call(this, ...args);
+    })
+}
 
 Command.prototype.forwardSubcommands = function () {
     var self = this;
