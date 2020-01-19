@@ -20,6 +20,7 @@ exports.cleanCache = function cleanCache({ options, config }) {
         all: shouldCleanAll,
         mock: shouldCleanMockFile,
         ext: userExtensions = [],
+        reg: regularExpressions = []
     } = options || {};
 
     const extensions = [...DEFAULT_EXTENSIONS, ...userExtensions];
@@ -46,24 +47,25 @@ exports.cleanCache = function cleanCache({ options, config }) {
             if (file.isDirectory()) return;
 
             const fileExtension = path.extname(file.name).replace('.', '');
-            if (extensions.some(ext => ext === fileExtension)) {
+            if (isMeetCleanCondition()) {
 
                 if (fileExtension === 'json') {
+                    if (shouldCleanMockFile) {
+                        fs.unlinkSync(filePath);
+                    }
                     // judge if user mock file
                     // should in js or json format
                     // contains `[[mock]]` field and the value is `true`
-                    if (shouldCleanMockFile) {
+                    else {
                         try {
                             if (!require(filePath)[MOCK_FIELD_TEXT]) {
                                 fs.unlinkSync(filePath);
                             }
+                            // remove cache
                             delete require.cache[filePath];
                         } catch (error) {
                             fs.unlinkSync(filePath);
                         }
-                    }
-                    else {
-                        fs.unlinkSync(filePath);
                     }
                 }
                 else if (fileExtension === 'js') {
@@ -75,6 +77,11 @@ exports.cleanCache = function cleanCache({ options, config }) {
                     fs.unlinkSync(filePath);
                 }
             }
-        });        
+
+
+            function isMeetCleanCondition() {
+                return extensions.some(ext => ext === fileExtension) || regularExpressions.some(reg => new RegExp(reg).test(file.name));
+            }
+        });
     }
 };

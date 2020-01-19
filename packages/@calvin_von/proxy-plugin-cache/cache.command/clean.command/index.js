@@ -6,8 +6,9 @@ module.exports = function CleanCommand(program, register, config) {
         .command('clean [storeName]')
         .description('clean the cache files including user mock files')
         .option('-a, --all', 'clean the whole cache folder, including cache store folders', false)
-        .option('-e, --ext <extension>', 'clean the files include the given extensions', collectExtensions, [])
         .option('-m, --mock', 'clean the user mock files', false)
+        .option('-e, --ext <extension>', 'clean the files include the specific extension', collectExtensions, [])
+        .option('-r, --reg <regularExpression>', 'clean the files match the specific regular expression', collectExtensions, [])
         .action(function (storeName) {
             cleanCache({
                 config,
