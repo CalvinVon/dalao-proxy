@@ -62,6 +62,9 @@ exports.cleanCache = function cleanCache({ options, config }) {
                             fs.unlinkSync(filePath);
                         }
                     }
+                    else {
+                        fs.unlinkSync(filePath);
+                    }
                 }
                 else if (fileExtension === 'js') {
                     if (shouldCleanMockFile) {
