@@ -15,13 +15,17 @@ const { MOCK_FIELD_TEXT } = require('../../mock.command/mock');
  */
 exports.cleanCache = function cleanCache({ options, config }) {
     const DEFAULT_EXTENSIONS = ['js', 'json'];
-    const {
+    let {
         storeName,
         all: shouldCleanAll,
         mock: shouldCleanMockFile,
         ext: userExtensions = [],
         reg: regularExpressions = []
     } = options || {};
+
+    if (regularExpressions.length) {
+        shouldCleanMockFile = true;
+    }
 
     const extensions = [...DEFAULT_EXTENSIONS, ...userExtensions];
 

@@ -1,12 +1,17 @@
-const chalk = require('chalk');
 const path = require('path');
 const querystring = require('querystring');
+const chalk = require('chalk');
+const _ = require('lodash');
 const concat = require('concat-stream');
 const mime = require('mime-types');
 const moment = require('moment');
 const fs = require('fs');
 
-const { MOCK_FIELD_TEXT, HEADERS_FIELD_TEXT } = require('./mock.command/mock');
+const {
+    MOCK_FIELD_TEXT,
+    HEADERS_FIELD_TEXT,
+    STATUS_FIELD_TEXT
+} = require('./mock.command/mock');
 const {
     checkAndCreateCacheFolder,
     url2filename
@@ -55,18 +60,22 @@ module.exports = {
 
             let targetFilePath,
                 hasCacheFile,
-                isInJsonFormat;
+                isInJsonFormat,
+                isInJsFormat;
 
+            // search static files
             if (fs.existsSync(cacheSearchName)) {
                 targetFilePath = cacheSearchName;
                 hasCacheFile = true;
                 isInJsonFormat = path.extname(targetFilePath) === '.json';
             }
+            // content is in json format
             else {
                 hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
                     if (fs.existsSync(cacheSearchName + ext)) {
                         targetFilePath = cacheSearchName + ext;
-                        isInJsonFormat = true;
+                        isInJsonFormat = ext === '.json';
+                        isInJsFormat = ext === '.js';
                         return true;
                     }
                     return false;
@@ -75,15 +84,95 @@ module.exports = {
 
             if (hasCacheFile) {
 
-                // in JSON format
+                // return data in JSON format
+                // file maybe in json or js format
                 if (isInJsonFormat) {
                     const jsonContent = require(targetFilePath);
                     const fileContent = JSON.stringify(jsonContent, null, 4);
 
+                    handleRespond(jsonContent, fileContent);
+                }
+
+                // judge whether js file exports functions or object
+                else if (isInJsFormat) {
+                    const exportsContent = require(targetFilePath);
+                    if (exportsContent) {
+                        if (Object.prototype.toString.call(exportsContent) === '[object Object]') {
+                            const jsonContent = exportsContent;
+                            const fileContent = JSON.stringify(jsonContent, null, 4);
+
+                            handleRespond(jsonContent, fileContent);
+                        }
+                        else if (typeof (exportsContent) === 'function') {
+                            collectRealRequestData(() => {
+                                const returnValue = exportsContent.call(null, context);
+                                if (returnValue instanceof Promise) {
+                                    returnValue
+                                        .then(value => {
+                                            let jsonContent;
+                                            if (Object.prototype.toString.call(value) === '[object Object]') {
+                                                jsonContent = value;
+                                            }
+                                            else {
+                                                jsonContent = {};
+                                            }
+                                            const fileContent = JSON.stringify(jsonContent, null, 4);
+                                            handleRespond(jsonContent, fileContent, true);
+                                        })
+                                        .catch(err => {
+                                            console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + targetFilePath));
+                                            console.error(error.message);
+                                        })
+                                }
+                                else {
+                                    const jsonContent = returnValue;
+                                    const fileContent = JSON.stringify(jsonContent, null, 4);
+
+                                    handleRespond(jsonContent, fileContent);
+                                }
+                            });
+                        }
+                        else {
+                            console.warn(chalk.red('[Plugin cache] You should return an object or a promise in your mock file: ' + targetFilePath));
+                            next();
+                        }
+                    }
+                    else {
+                        next();
+                    }
+                    cleanRequireCache(targetFilePath);
+                }
+                // in Orignal format
+                else {
+                    // only when cache max age is `*` valid
+                    if (cacheDigit !== '*') {
+                        return next();
+                    }
+                    const presetHeaders = {
+                        'Content-Type': mime.contentType(targetFilePath),
+                        'X-Cache-Response': 'true'
+                    };
+                    const headers = mergeHeaders(userConfigHeaders, presetHeaders);
+                    setHeaders(response, headers);
+                    const source = fs.createReadStream(targetFilePath);
+                    source.pipe(response);
+                    logMatchedPath(targetFilePath);
+                    next('Hit cache')
+                }
+
+
+                /**
+                 * Universal handle responding
+                 * @param {Object} jsonContent content in JSON object format
+                 * @param {String} fileContent content in string format
+                 * @param {Boolean} [noCollectRequestData] if skip collect request data
+                 */
+                function handleRespond(jsonContent, fileContent, noCollectRequestData) {
                     const cachedTimeStamp = jsonContent['CACHE_TIME'];
                     const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
+                    const respondStatus = jsonContent[STATUS_FIELD_TEXT] || 200;
 
-                    // need validate expire time
+                    // permanently valid
                     if (jsonContent[MOCK_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
                         const presetHeaders = {
                             'X-Cache-Response': 'true',
@@ -94,12 +183,18 @@ module.exports = {
                         const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
                         setHeaders(response, headers);
 
-                        response.writeHead(200, {
+                        response.writeHead(respondStatus, {
                             'Content-Type': 'application/json'
                         });
 
-
-                        collectRealRequestDataAndRespond();
+                        if (noCollectRequestData) {
+                            jsonContent.REAL_REQUEST_DATA = context.data.request;
+                            const fileContent = JSON.stringify(jsonContent, null, 4);
+                            response.end(fileContent);
+                        }
+                        else {
+                            collectRealRequestDataAndRespond();
+                        }
                         context.cache = {
                             data: jsonContent,
                             rawData: fileContent,
@@ -112,7 +207,7 @@ module.exports = {
                         // 中断代理请求
                         next('Hit cache');
                     }
-                    // permanently valid
+                    // need validate expire time
                     else {
                         const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
                         // valid cache file
@@ -125,7 +220,14 @@ module.exports = {
                             const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
                             setHeaders(response, headers);
 
-                            collectRealRequestDataAndRespond();
+                            if (noCollectRequestData) {
+                                jsonContent.REAL_REQUEST_DATA = context.data.request;
+                                const fileContent = JSON.stringify(jsonContent, null, 4);
+                                response.end(fileContent);
+                            }
+                            else {
+                                collectRealRequestDataAndRespond();
+                            }
                             context.cache = {
                                 data: jsonContent,
                                 rawData: fileContent,
@@ -149,52 +251,14 @@ module.exports = {
 
                     cleanRequireCache(targetFilePath);
 
+
                     function collectRealRequestDataAndRespond() {
-                        request.pipe(concat(buffer => {
-                            const contentType = request.headers['content-type'];
-                            const data = {
-                                rawBody: buffer.toString(),
-                                body: '',
-                                query: querystring.parse(request.URL.query),
-                                type: contentType
-                            };
-
-                            if (data.rawBody && contentType) {
-                                try {
-                                    if (/application\/x-www-form-urlencoded/.test(contentType)) {
-                                        data.body = querystring.parse(data.rawBody);
-                                    } else if (/application\/json/.test(contentType)) {
-                                        data.body = JSON.parse(data.rawBody);
-                                    } else if (/multipart\/form-data/.test(contentType)) {
-                                        data.body = data.rawBody;
-                                    }
-                                } catch (error) {
-                                    info && console.log(' > Error: can\'t parse requset body. ' + error.message);
-                                }
-                            }
-
+                        collectRealRequestData(data => {
                             jsonContent.REAL_REQUEST_DATA = data;
                             const fileContent = JSON.stringify(jsonContent, null, 4);
                             response.end(fileContent);
-                        }));
+                        });
                     }
-                }
-                // in Orignal format
-                else {
-                    // only when cache max age is `*` valid
-                    if (cacheDigit !== '*') {
-                        return next();
-                    }
-                    const presetHeaders = {
-                        'Content-Type': mime.contentType(targetFilePath),
-                        'X-Cache-Response': 'true'
-                    };
-                    const headers = mergeHeaders(userConfigHeaders, presetHeaders);
-                    setHeaders(response, headers);
-                    const source = fs.createReadStream(targetFilePath);
-                    source.pipe(response);
-                    logMatchedPath(targetFilePath);
-                    next('Hit cache')
                 }
 
             }
@@ -205,6 +269,39 @@ module.exports = {
         } catch (error) {
             console.error(error);
             next();
+        }
+
+
+        function collectRealRequestData(cb) {
+            request.pipe(concat(buffer => {
+                const contentType = request.headers['content-type'];
+                const data = {
+                    rawBody: buffer.toString(),
+                    body: '',
+                    query: querystring.parse(request.URL.query),
+                    type: contentType
+                };
+
+                context.data = {
+                    request: data
+                };
+
+                if (data.rawBody && contentType) {
+                    try {
+                        if (/application\/x-www-form-urlencoded/.test(contentType)) {
+                            data.body = querystring.parse(data.rawBody);
+                        } else if (/application\/json/.test(contentType)) {
+                            data.body = JSON.parse(data.rawBody);
+                        } else if (/multipart\/form-data/.test(contentType)) {
+                            data.body = data.rawBody;
+                        }
+                    } catch (error) {
+                        console.log(' > Error: can\'t parse requset body. ' + error.message);
+                    }
+                }
+
+                cb(data);
+            }));
         }
 
         function logMatchedPath(targetFilePath) {
@@ -281,8 +378,16 @@ module.exports = {
                                 query: context.data.request.query,
                                 body: context.data.request.body,
                                 data: context.data.response.data,
-                                header: context.proxy[filter.when].headers
+                                header: {}
                             };
+                            const headers = context.proxy[filter.when].headers;
+                            Object.keys(headers).forEach(header => {
+                                const _header = formatHeader(header);
+                                filterContext.header[_header] = headers[header];
+                            });
+                            if (filter.where === 'header') {
+                                filter.field = formatHeader(filter.field);
+                            }
                             isMeet = filterContext[filter.where][filter.field] == filter.value;
                         }
 
@@ -313,6 +418,7 @@ module.exports = {
                     delete resJson.CACHE_REQUEST_DATA.rawBuffer;
                     resJson[MOCK_FIELD_TEXT] = false;
                     resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
+                    resJson[STATUS_FIELD_TEXT] = context.proxy.response.statusCode;
 
                     const cacheFileName = /\.json$/.test(cacheFileWithNoExt) ? cacheFileWithNoExt : (cacheFileWithNoExt + '.json');
                     fs.writeFileSync(
@@ -367,12 +473,17 @@ function mergeHeaders(userConfigHeaders, ...headers) {
 
 function setHeaders(target, headers) {
     for (const header in headers) {
+        const _header = formatHeader(header);
         const value = headers[header];
         if (value) {
-            target.setHeader(header, value);
+            target.setHeader(_header, value);
         }
         else {
-            target.removeHeader(header);
+            target.removeHeader(_header);
         }
     }
+}
+
+function formatHeader(header) {
+    return header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
 }

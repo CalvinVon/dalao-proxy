@@ -7,6 +7,7 @@ const moment = require('moment');
 
 const HEADERS_FIELD_TEXT = '[[headers]]';
 const MOCK_FIELD_TEXT = '[[mock]]';
+const STATUS_FIELD_TEXT = '[[status]]';
 
 exports.MockFileGenerator = function MockFileGenerator(method, options, config) {
     return questionUrl(method, options, config);
@@ -14,6 +15,7 @@ exports.MockFileGenerator = function MockFileGenerator(method, options, config) 
 
 exports.HEADERS_FIELD_TEXT = HEADERS_FIELD_TEXT;
 exports.MOCK_FIELD_TEXT = MOCK_FIELD_TEXT;
+exports.STATUS_FIELD_TEXT = STATUS_FIELD_TEXT;
 
 function questionUrl(method, options, config) {
 
@@ -41,7 +43,8 @@ function questionUrl(method, options, config) {
                         method
                     },
                     [HEADERS_FIELD_TEXT]: {},
-                    [MOCK_FIELD_TEXT]: true
+                    [MOCK_FIELD_TEXT]: true,
+                    [STATUS_FIELD_TEXT]: 200
                 };
 
                 applyFilter(config.filters, json);

@@ -4,7 +4,7 @@ const cleanCommand = require('./clean.command');
 module.exports = function CacheCommand(program, register, config) {
     program
         .command('cache')
-        .description('store the current cache files')
+        .description('manage the cache files')
         .forwardSubcommands()
         .use(function (command) {
             storeCommand(command, register, config);

@@ -4,11 +4,11 @@ const { cleanCache } = require('./clean');
 module.exports = function CleanCommand(program, register, config) {
     program
         .command('clean [storeName]')
-        .description('clean the cache files including user mock files')
+        .description('clear cache files, but user mock files will not be cleaned by default')
         .option('-a, --all', 'clean the whole cache folder, including cache store folders', false)
         .option('-m, --mock', 'clean the user mock files', false)
         .option('-e, --ext <extension>', 'clean the files include the specific extension', collectExtensions, [])
-        .option('-r, --reg <regularExpression>', 'clean the files match the specific regular expression', collectExtensions, [])
+        .option('-r, --reg <regularExpression>', 'clean the files match the specific regular expression including user mock files', collectExtensions, [])
         .action(function (storeName) {
             cleanCache({
                 config,
