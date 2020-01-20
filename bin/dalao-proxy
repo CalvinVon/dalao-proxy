@@ -9,13 +9,10 @@ const {
     program,
     ConfigParser,
     parserEmitter,
-    printWelcome,
     usePlugins,
     reloadPlugins,
     commands: Commands,
 } = require('../src');
-
-printWelcome(baseConfig.version);
 
 parserEmitter.on('config:triggerParse:fileChange', () => {
     // reload plugins

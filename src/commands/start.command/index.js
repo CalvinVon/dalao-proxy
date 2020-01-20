@@ -1,4 +1,5 @@
 const baseConfig = require('../../../config');
+const printWelcome = require('../../../src').printWelcome;
 const ProxyServer = require('../../server');
 const parserEmitter = require('../../parser/config-parser').emitter;
 
@@ -16,6 +17,7 @@ module.exports = function startCommand(program) {
         .option('-c, --cache', 'enable request cache')
         .option('-i, --info', 'enable log print')
         .action(function (command) {
+            printWelcome(baseConfig.version);
             program.enableInput();
 
             // On config parsed
@@ -23,7 +25,7 @@ module.exports = function startCommand(program) {
                 if (proxyServer) {
                     proxyServer.close();
                 }
-                
+
                 proxyServer = ProxyServer.createProxyServer(command);
             });
         });

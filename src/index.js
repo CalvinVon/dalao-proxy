@@ -4,16 +4,6 @@ const defaultConfig = require('../config');
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, register } = require('./plugin');
 
-exports.ConfigParser = ConfigParser;
-exports.parserEmitter = ConfigParser.emitter;
-
-// Commands
-exports.commands = {
-    start: require('./commands/start.command'),
-    init: require('./commands/init.command'),
-    pluginManager: require('./commands/plugin-manager.command')
-};
-
 const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
 const originActionFn = Command.prototype.action;
@@ -114,7 +104,7 @@ Command.prototype.action = function actionWrapper(callback) {
     return originActionFn.call(this, (...args) => {
         this.options.forEach(option => {
             const optionName = option.name();
-            this.context.options[optionName] =  this[optionName];
+            this.context.options[optionName] = this[optionName];
         });
         return callback.call(this, ...args);
     })
@@ -201,4 +191,14 @@ exports.printWelcome = function printWelcome(version) {
     console.log('                                            powered by CalvinVon');
     console.log(chalk.grey('                        https://github.com/CalvinVon/dalao-proxy'));
     console.log('\n');
+};
+
+exports.ConfigParser = ConfigParser;
+exports.parserEmitter = ConfigParser.emitter;
+
+// Commands
+exports.commands = {
+    start: require('./commands/start.command'),
+    init: require('./commands/init.command'),
+    pluginManager: require('./commands/plugin-manager.command')
 };

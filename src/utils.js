@@ -6,7 +6,7 @@ const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
 const STATIC_FILE_REG = new RegExp(/(^\/$|\.[^\.]+$)/);
 
 function isDebugMode() {
-    return process.env.DALAO_ENV === 'DEBUG';
+    return process.env.DALAO_ENV === 'DEV';
 }
 
 function custom_assign(objValue, srcValue) {
