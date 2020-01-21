@@ -18,10 +18,10 @@ const defaultOptions = {
             when: "response",
             /**
              * filter by response body or header
-             * Options: `data`, `header` for `response`
+             * Options: `status`, `data`, `header` for `response`
              * Options: `body`, `query`, `header` for `request`
              */
-            where: "data",
+            where: "status",
             /**
              * filter field
              */
@@ -141,8 +141,8 @@ function parseFilters(value) {
                     }
                 }
                 else if (item.when === 'response') {
-                    if (!/^(header|data)$/.test(item.where)) {
-                        configWarn(`value of \`cache.filters[${index}].where\` should be \`header\` or \`data\` when \`filter.when\` is \`response\``);
+                    if (!/^(header|data|status)$/.test(item.where)) {
+                        configWarn(`value of \`cache.filters[${index}].where\` should be \`header\`, \`status\` or \`data\` when \`filter.when\` is \`response\``);
                         item._disabled = true;
                     }
                 }

@@ -378,7 +378,8 @@ module.exports = {
                                 query: context.data.request.query,
                                 body: context.data.request.body,
                                 data: context.data.response.data,
-                                header: {}
+                                header: {},
+                                status: response.statusCode
                             };
                             const headers = context.proxy[filter.when].headers;
                             Object.keys(headers).forEach(header => {
@@ -388,7 +389,13 @@ module.exports = {
                             if (filter.where === 'header') {
                                 filter.field = formatHeader(filter.field);
                             }
-                            isMeet = filterContext[filter.where][filter.field] == filter.value;
+
+                            if (filter.where === 'status') {
+                                isMeet = filterContext.status == filter.value;
+                            }
+                            else {
+                                isMeet = filterContext[filter.where][filter.field] == filter.value;
+                            }
                         }
 
                         isMeetList.push(isMeet);

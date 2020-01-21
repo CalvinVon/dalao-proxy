@@ -168,7 +168,7 @@ exports.program = entryProgram;
 
 exports.usePlugins = function usePlugins(program, pluginsNames) {
     // program.context.plugins = [];
-    register._reset();
+    // register._reset();
 
     pluginsNames.forEach(name => {
         program.context.plugins.push(new Plugin(name, program));
