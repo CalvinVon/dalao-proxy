@@ -133,7 +133,7 @@ const configure = Register.prototype.configure;
  */
 class Plugin {
     /**
-     * @param {String|Array} pluginName
+     * @param {String} pluginName
      * @param {Command} program
      */
     constructor(pluginName, program) {
