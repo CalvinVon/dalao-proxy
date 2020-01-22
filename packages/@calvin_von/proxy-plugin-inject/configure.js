@@ -22,16 +22,16 @@ const RemoteDebug = require('./presets/remote-console');
  *          }
  *      ],
  *      presets: {
- *          mobileConsole: true,
- *          remoteConsole: true,
+ *          mobileConsole: false,
+ *          remoteConsole: false,
  *      }
  *  }
  */
 const defaultOptions = {
     rules: [],
     presets: {
-        mobileConsole: true,
-        remoteConsole: true
+        mobileConsole: false,
+        remoteConsole: false
     }
 };
 

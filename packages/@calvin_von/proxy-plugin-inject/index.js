@@ -5,19 +5,24 @@ const { attachWsServer, executeScript } = require('./presets/remote-console/serv
 
 // consts
 const URL_PREFIX = '/__plugin_inject__/';
+const onServerListener = server => {
+    attachWsServer(server);
+};
+const onInputListener = data => {
+    executeScript(data);
+};
 
 module.exports = {
 
     beforeCreate() {
+        console.log('beforeCreate')
         const { presets } = this.config;
         if (presets.remoteConsole) {
-            this.register.once('context:server', server => {
-                attachWsServer(server);
-            });
+            this.register.removeListener('context:server', onServerListener);
+            this.register.once('context:server', onServerListener);
 
-            this.register.on('input', data => {
-                executeScript(data);
-            })
+            this.register.removeListener('input', onInputListener);
+            this.register.on('input', onInputListener);
         }
     },
 
