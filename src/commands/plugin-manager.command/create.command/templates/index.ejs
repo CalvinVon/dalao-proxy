@@ -1,0 +1,21 @@
+<%
+    const middlewares = [];
+    Plugin.AllMiddlewares.forEach(middlewareName => {
+        const middleware = Plugin.prototype[middlewareName];
+        const needNext = middleware.length > 1;
+
+        if (needNext) {
+            middlewares.push(`function ${middlewareName}(context, next) {
+    next(null${ middlewareName.match(/onPipe/) ? ', context.chunk' : '' });
+}`);
+        }
+        else {
+            middlewares.push(`function ${middlewareName}(context) { }`);
+        }
+    });
+%>
+<%= middlewares.join('\n') %>
+
+module.exports = {
+    <%= Plugin.AllMiddlewares.join(',\n    ') %>
+};

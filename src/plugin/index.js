@@ -3,14 +3,16 @@ const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
 const { isDebugMode, getType } = require('../utils');
-const PATH_COMMANDER = './commander';
-const PATH_CONFIGURE = './configure';
+const PATH_INDEX = './index.js';
+const PATH_COMMANDER = './commander.js';
+const PATH_CONFIGURE = './configure.js';
 const PATH_PACKAGE = './package.json';
 
 function noop() { }
-function nonCallback(context, next) { next && next(false); }
+function nextNoop(context, next) { next && next(null); }
+function nextChunkNoop(context, next) { next && next(null, context.chunk); }
 function isNoOptionFileError(error) {
-    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/(?:\/|\\)(?:commander|configure)'/);
+    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/\b(commander|configure)\.js'/);
 }
 /**
  * Judge the plugin is build-in or not and return plugin name
@@ -149,12 +151,20 @@ class Plugin {
         this.register = register;
 
         this._indexPath = '';
+        this._packagejsonPath;
         this._configurePath;
         this._commanderPath;
 
         try {
-            const { indexPath, commanderPath, configurePath } = Plugin.resolvePluginPaths(this.id);
+            const { 
+                indexPath,
+                commanderPath,
+                configurePath,
+                packagejsonPath
+            } = Plugin.resolvePluginPaths(this.id);
+            
             this._indexPath = indexPath;
+            this._packagejsonPath = packagejsonPath;
             this._commanderPath = commanderPath;
             this._configurePath = configurePath;
 
@@ -188,7 +198,7 @@ class Plugin {
                 this.meta = { isBuildIn: true, version };
             }
             else {
-                this.meta = require(path.join(this._indexPath, PATH_PACKAGE));
+                this.meta = require(this._packagejsonPath);
             }
 
             try {
@@ -260,24 +270,30 @@ class Plugin {
             indexPath: null,
             commanderPath: null,
             configurePath: null,
+            packagejsonPath: null
         };
         let matched = isBuildIn(pluginName);
         if (matched) {
-            const buildInPluginPath = resolvedPaths.indexPath = path.resolve(__dirname, matched[1]);
+            const buildInPluginPath = path.resolve(__dirname, matched[1]);
+            resolvedPaths.indexPath = path.resolve(buildInPluginPath, PATH_INDEX);
             resolvedPaths.configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
             resolvedPaths.commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
+            resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, PATH_PACKAGE);
             this.meta = { isBuildIn: true, version };
         }
         else {
             if (isDebugMode()) {
-                const devPath = resolvedPaths.indexPath = path.resolve(__dirname, '../../packages/', pluginName);
+                const devPath = path.resolve(__dirname, '../../packages/', pluginName);
+                resolvedPaths.indexPath = path.resolve(devPath, PATH_INDEX);
                 resolvedPaths.configurePath = path.resolve(devPath, PATH_CONFIGURE);
                 resolvedPaths.commanderPath = path.resolve(devPath, PATH_COMMANDER);
+                resolvedPaths.packagejsonPath = path.resolve(devPath, PATH_PACKAGE);
             }
             else {
                 resolvedPaths.indexPath = pluginName;
                 resolvedPaths.configurePath = path.join(pluginName, PATH_CONFIGURE);
                 resolvedPaths.commanderPath = path.join(pluginName, PATH_COMMANDER);
+                resolvedPaths.packagejsonPath = path.join(pluginName, PATH_PACKAGE);
             }
         }
         return resolvedPaths;
@@ -367,23 +383,31 @@ class Plugin {
     }
 
     onRequest(context, next) {
-        this._methodWrapper('onRequest', nonCallback, context, next);
+        this._methodWrapper('onRequest', nextNoop, context, next);
     }
 
     onRouteMatch(context, next) {
-        this._methodWrapper('onRouteMatch', nonCallback, context, next);
+        this._methodWrapper('onRouteMatch', nextNoop, context, next);
     }
 
     beforeProxy(context, next) {
-        this._methodWrapper('beforeProxy', nonCallback, context, next);
+        this._methodWrapper('beforeProxy', nextNoop, context, next);
     }
 
     onProxyRespond(context, next) {
-        this._methodWrapper('onProxyRespond', nonCallback, context, next);
+        this._methodWrapper('onProxyRespond', nextNoop, context, next);
     }
 
     afterProxy(context) {
         this._methodWrapper('afterProxy', noop, context);
+    }
+
+    onPipeRequest(context, next) {
+        this._methodWrapper('onPipeRequest', nextChunkNoop, context, next);
+    }
+
+    onPipeResponse(context, next) {
+        this._methodWrapper('onPipeResponse', nextChunkNoop, context, next);
     }
 }
 
@@ -397,6 +421,13 @@ Plugin.AllMiddlewares = [
     'onPipeRequest',
     'onPipeResponse'
 ];
+
+Plugin.FILES = {
+    INDEX: PATH_INDEX,
+    PACKAGE: PATH_PACKAGE,
+    COMMANDER: PATH_COMMANDER,
+    CONFIGURE: PATH_CONFIGURE
+};
 
 class PluginInterrupt {
     constructor(plugin, lifehook, message) {

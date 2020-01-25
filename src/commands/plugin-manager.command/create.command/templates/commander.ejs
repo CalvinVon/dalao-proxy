@@ -1,0 +1,10 @@
+module.exports = function (program) {
+    program
+        .command('<%= pluginName %>')
+        .description('INPUT WITH COMMAND DESCRIPTION')
+        .option('-e, --example', 'output an example log')
+        .action(function () {
+            console.log('<%= pluginName %>: ' + this.context.options.example);
+            process.exit(0);
+        });
+}

@@ -99,27 +99,18 @@ function _invokePipeAllPlugin(hookName, context, chunk, enc, callback) {
     });
 
     function actuator(plugin, cb) {
-        if (plugin.middleware) {
-            const hook = plugin.middleware[hookName];
-            if (typeof (hook) === 'function') {
-                hook.call(plugin, {
-                    ...context,
-                    chunk,
-                    enc
-                }, (err, returnValue) => {
-                    if (!err) {
-                        lastValue = returnValue;
-                    }
-                    next();
-                })
+        const hook = plugin[hookName];
+        hook.call(plugin, {
+            ...context,
+            chunk: lastValue,
+            enc
+        }, (err, returnValue) => {
+            if (!err) {
+                lastValue = returnValue;
             }
-            else {
-                next();
-            }
-        }
-        else {
             next();
-        }
+        })
+
 
         function next() {
             if (index < total - 1) {
@@ -509,9 +500,9 @@ function proxyRequestWrapper(config, corePlugins) {
                         res.writeHead(503, 'Service Unavailable');
                         res.end('Connect to server failed with code ' + err.code);
                     });
-    
+
                     data.size = Buffer.byteLength(data.rawData);
-    
+
                     try {
                         if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
                             data.data = JSON.parse(fixJson(data.rawData));
