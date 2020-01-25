@@ -15,7 +15,6 @@ const onInputListener = data => {
 module.exports = {
 
     beforeCreate() {
-        console.log('beforeCreate')
         const { presets } = this.config;
         if (presets.remoteConsole) {
             this.register.removeListener('context:server', onServerListener);
@@ -65,6 +64,7 @@ module.exports = {
         }
     },
     onPipeResponse(context, next) {
+        const { network } = this.context.server.address;
         const { rules } = this.config;
 
         if (!/(^text\/|^application\/(json|javascript|ecmascript|octet-stream))/.test(context.proxy.response.headers['content-type'])) {
@@ -76,15 +76,17 @@ module.exports = {
         rules.forEach(rule => {
             if (new RegExp(rule.test).test(context.request.url)) {
                 try {
-                    let template = rule.template;
-                    if (!template) {
-                        template = fs.readFileSync(rule.templateSrc).toString();
-                    }
-                    template = template.replace(/{{(.+)}}/g, (placeholder, file) => {
-                        return URL_PREFIX + file;
-                    });
                     const insertEndTag = `</${rule.insert}>`;
-                    context.chunk = context.chunk.replace(insertEndTag, template + insertEndTag);
+                    if (context.chunk.indexOf(insertEndTag) !== -1) {
+                        let template = rule.template;
+                        if (!template) {
+                            template = fs.readFileSync(rule.templateSrc).toString();
+                        }
+                        template = template.replace(/{{(.+)}}/g, (placeholder, file) => {
+                            return network.origin + URL_PREFIX + file;
+                        });
+                        context.chunk = context.chunk.replace(insertEndTag, template + insertEndTag);
+                    }
                 } catch (error) {
                     console.error(error);
                 }

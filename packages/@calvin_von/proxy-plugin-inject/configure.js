@@ -82,7 +82,7 @@ function parseRules(rawRules, presets) {
                     console.warn('[Plugin inject]: inject.rules.' + index + '.test can not be empty');
                     return false;
                 }
-                if (!rule.template && lookUpTemplateFile(rule.templateSrc)) {
+                if (!rule.template && !lookUpTemplateFile(rule.templateSrc)) {
                     console.warn('[Plugin inject]: inject.rules.' + index + ' no template or template file found');
                     return false;
                 }
@@ -100,8 +100,7 @@ function parseRules(rawRules, presets) {
                 return true;
 
                 function lookUpTemplateFile(src) {
-                    const filePath = path.resolve(process.cwd(), src);
-                    return fs.existsSync(filePath);
+                    return fs.existsSync(src);
                 }
             })
     );

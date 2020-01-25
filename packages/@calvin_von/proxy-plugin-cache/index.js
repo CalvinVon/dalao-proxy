@@ -48,6 +48,7 @@ module.exports = {
         const {
             dirname: cacheDirname,
             maxAge: cacheMaxAge,
+            info
         } = this.config;
 
         const { method, url } = request;
@@ -305,6 +306,8 @@ module.exports = {
         }
 
         function logMatchedPath(targetFilePath) {
+            if (!info) return;
+
             const message = chalk.green(`> Hit! [${context.matched.path}]`)
                 + `   ${method.toUpperCase()}   ${url}`
                 + chalk.green('  >>>>  ')
@@ -317,7 +320,8 @@ module.exports = {
         const {
             dirname: cacheDirname,
             contentType: cacheContentType,
-            filters
+            filters,
+            info
         } = this.config;
         const { method, url } = context.request;
         const { response } = context.proxy;
@@ -356,7 +360,7 @@ module.exports = {
                         cacheFileName = cacheFileInOrignal();
                     }
 
-                    console.log(chalk.gray('> Cached into [') + chalk.grey(cacheFileName) + chalk.grey(']'));
+                    info && console.log(chalk.gray('> Cached into [') + chalk.grey(cacheFileName) + chalk.grey(']'));
                 }
 
 
