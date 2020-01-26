@@ -12,7 +12,7 @@ module.exports = function configCommand(pluginCommand) {
                     console.log('Plugin ' + chalk.underline.yellow(pluginName + ':') + '\n');
                 }
                 else {
-                    console.log(chalk.underline.yellow('Dalao proxy ') + '\n');
+                    console.log(chalk.underline.yellow('Dalao proxy') + '\n');
                 }
                 console.log(chalk.yellow('* Default config:'));
                 console.log(JSON.stringify(configObject.defaultConfig, null, 4));

@@ -3,9 +3,13 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
+const { CommandContext } = require('../../../src');
+const { Plugin } = require('../../plugin');
 const defaultConfig = require('../../../config');
-const pwd = process.cwd();
 const custom_assign = require('../../utils').custom_assign;
+
+const pwd = process.cwd();
+const Generator = module.exports;
 
 // questions
 let questionObjs = [
@@ -13,8 +17,7 @@ let questionObjs = [
     { label: 'Proxy server host', value: 'host', text: true, radio: false },
     { label: 'Proxy server port', value: 'port', text: true, radio: false },
     { label: 'Proxy target server address', value: 'target', text: true, radio: false },
-    { label: 'Should cache request', value: 'cache', text: false, radio: true },
-    { label: 'Cache folder name', value: 'cacheDirname', text: true, radio: false },
+    { label: 'Enable cache response', value: 'cache', text: false, radio: true },
 ];
 
 // default answers
@@ -25,15 +28,23 @@ let defaultAnswers = [
     defaultConfig.target,
     // defaultConfig.cache,
     true,
-    defaultConfig.cacheDirname,
 ];
 
 // user answers
 const answers = [];
 let index = 0;
 
-function createConfigFile(forceSkip) {
+function createConfigFile(config) {
+    const {
+        force: forceSkip,
+        js: inJsFormat,
+    } = config;
+
     let generateConfig = {};
+    const saveFileExtention = inJsFormat ? '.js' : '.json';
+    const saveFileWrapper = context => inJsFormat ? `module.exports = ${context};` : context;
+
+
     questionObjs.forEach(function (questionObj, index) {
         generateConfig[questionObj.value] = answers[index];
     });
@@ -42,27 +53,30 @@ function createConfigFile(forceSkip) {
     // prevent build-in plugins exposing
     generateConfig.plugins = [];
 
-    const fullConfigFilePath = path.resolve(pwd, forceSkip ? defaultAnswers[0] : generateConfig.configFileName);
-    fs.writeFileSync(fullConfigFilePath, JSON.stringify(generateConfig, null, 4));
-    console.log(chalk.green(`> 😉  dalao says: 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`));
+    const fullConfigFilePath = path.resolve(pwd, forceSkip ? defaultAnswers[0] : generateConfig.configFileName) + saveFileExtention;
+
+    const fileContent = saveFileWrapper(JSON.stringify(generateConfig, null, 4));
+    fs.writeFileSync(fullConfigFilePath, fileContent);
+    console.log(chalk.green(`> 🎉  Congratulations, \`${fullConfigFilePath}\` has generated for you.`));
     console.log(chalk.grey('  More details about proxy config or cache config, please see ') + chalk.yellow('https://github.com/CalvinVon/dalao-proxy#docs\n'));
 }
 
 /**
  * Run question loop
- * @param {Boolean} forceSkip if true skip all the questions
+ * @param {Object} config
+ * @param {Boolean} config.forceSkip if true skip all the questions
  */
-function runQuestionLoop(forceSkip) {
+function runQuestionLoop(config, callback) {
+    const { force: forceSkip } = config;
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     });
 
     if (forceSkip || index === questionObjs.length) {
-        createConfigFile(forceSkip);
+        createConfigFile(config);
         rl.close();
-        process.exit(0);
-        return;
+        callback();
     }
 
     const questionObj = questionObjs[index];
@@ -94,28 +108,70 @@ function runQuestionLoop(forceSkip) {
                     index++;
                 }
                 else {
-                    console.log(chalk.red('> dalao says: 👋  enter `y/yes` or `n/no`' ));
+                    console.log(chalk.red('> dalao says: 👋  enter `y/yes` or `n/no`'));
                 }
             }
         }
         rl.close();
-        runQuestionLoop();
+        runQuestionLoop(config, callback);
     });
 }
 
-module.exports = function ConfigGenerator ({ force }) {
-    if (!force) {
+function addPluginConfig(config) {
+    const {
+        plugin: pluginName,
+        config: configFilePath,
+        js: inJsFormat,
+    } = config;
+
+    const fileConfig = require(configFilePath);
+
+    const plugin = new Plugin(pluginName, new CommandContext());
+    const pluginConfigField = plugin.setting.userOptionsField;
+    const pluginDefaultConfig = plugin.parser({});
+    fileConfig[pluginConfigField] = pluginDefaultConfig;
+
+    const saveFileExtention = inJsFormat ? '.js' : '.json';
+    const saveFileWrapper = context => inJsFormat ? `module.exports = ${context};` : context;
+
+    const fileContent = saveFileWrapper(JSON.stringify(fileConfig, null, 4));
+    const filePath = configFilePath.replace(path.extname(configFilePath), '') + saveFileExtention;
+    fs.writeFileSync(filePath, fileContent);
+    
+    console.log(chalk.green(`> Config for plugin \`${pluginName}\` updated in field \`${pluginConfigField}\` of \`${filePath}\`.`));
+    console.log(chalk.grey('  More config about the plugin, please use the command ') + chalk.yellow(`\`dalao-proxy plugin config ${pluginName}.\`\n`));
+}
+
+Generator.generateConfigFile = function generateConfigFile(config, callback) {
+    if (!config.force) {
         const preHint = `
 This utility will walk you through creating a config file.
 It only covers the most common items, and tries to guess sensible defaults.
 
-See \`dalao --help\` for definitive documentation on these fields
+See \`dalao-proxy --help\` for definitive documentation on these fields
 and exactly what they do.
 
 Press ^C at any time to quit.
 `;
 
-    console.log(preHint);
+        console.log(preHint);
     }
-    return runQuestionLoop(force);
-}
+    return runQuestionLoop(config, callback);
+};
+
+Generator.generatePluginConfig = function (config, callback) {
+    const {
+        config: configFilePath,
+    } = config;
+
+    if (!fs.existsSync(configFilePath)) {
+        Generator.generateConfigFile(config, () => {
+            addPluginConfig(config);
+            callback();
+        });
+    }
+    else {
+        addPluginConfig(config);
+        callback();
+    }
+};

@@ -4,67 +4,71 @@ const defaultConfig = require('../config');
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, register } = require('./plugin');
 
+class CommandContext {
+    constructor() {
+        /**
+         * the entry command
+         */
+        this.program = null;
+        /**
+         * the current (sub)command
+         */
+        this.command = null;
+        /**
+         * the current (sub)command name
+         */
+        this.commandName = null;
+        /**
+         * parsed options values
+         */
+        this.options = {};
+        /**
+         * user's raw config
+         * @description Notice that it may not exist
+         */
+        this.rawConfig = null;
+        /**
+         * *configurable*
+         * 
+         * parsed core config
+         * 
+         * @description the config is **not parsed immediately** in **`command#action()`** method,
+         *  at the meantime, the config value is only the result of simply merged user's config with the default
+         *  config, you need to use **`register`** object to **configure/access** the value after parsed.
+         */
+        this.config = {};
+        /**
+         * user's config file path
+         */
+        this.configPath = null;
+        /**
+         * default config
+         */
+        this.defaultConfig = defaultConfig;
+        /**
+         * *configurable*
+         * 
+         * Core proxy server
+         */
+        this.server = null;
+        /**
+         * runtime plugins list
+         */
+        this.plugins = [];
+        /**
+         * *configurable*
+         * 
+         * program output
+         */
+        this.output = {};
+    }
+}
+
 const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
 const originActionFn = Command.prototype.action;
 // Expose states so plugins can access
-Command.prototype.context = {
-    /**
-     * the entry command
-     */
-    program: null,
-    /**
-     * the current (sub)command
-     */
-    command: null,
-    /**
-     * the current (sub)command name
-     */
-    commandName: null,
-    /**
-     * parsed options values
-     */
-    options: {},
-    /**
-     * user's raw config
-     * @description Notice that it may not exist
-     */
-    rawConfig: null,
-    /**
-     * *configurable*
-     * 
-     * parsed core config
-     * 
-     * @description the config is **not parsed immediately** in **`command#action()`** method,
-     *  at the meantime, the config value is only the result of simply merged user's config with the default
-     *  config, you need to use **`register`** object to **configure/access** the value after parsed.
-     */
-    config: {},
-    /**
-     * user's config file path
-     */
-    configPath: null,
-    /**
-     * default config
-     */
-    defaultConfig,
-    /**
-     * *configurable*
-     * 
-     * Core proxy server
-     */
-    server: null,
-    /**
-     * runtime plugins list
-     */
-    plugins: [],
-    /**
-     * *configurable*
-     * 
-     * program output
-     */
-    output: {},
-};
+Command.prototype.context = new CommandContext();
 
 /**
  * @public
@@ -171,7 +175,7 @@ exports.usePlugins = function usePlugins(program, pluginsNames) {
     // register._reset();
 
     pluginsNames.forEach(name => {
-        program.context.plugins.push(new Plugin(name, program));
+        program.context.plugins.push(new Plugin(name, program.context));
     });
 };
 
@@ -193,6 +197,7 @@ exports.printWelcome = function printWelcome(version) {
     console.log('\n');
 };
 
+exports.CommandContext = CommandContext;
 exports.ConfigParser = ConfigParser;
 exports.parserEmitter = ConfigParser.emitter;
 

@@ -136,9 +136,9 @@ const configure = Register.prototype.configure;
 class Plugin {
     /**
      * @param {String} pluginName
-     * @param {Command} program
+     * @param {Object} context program.context
      */
-    constructor(pluginName, program) {
+    constructor(pluginName, context) {
         this.id = pluginName;
         this.meta = {};
         this.setting;
@@ -147,7 +147,7 @@ class Plugin {
         this.configure = null;
         this.middleware = {};
         this.commander = null;
-        this.context = program.context;
+        this.context = context;
         this.register = register;
 
         this._indexPath = '';

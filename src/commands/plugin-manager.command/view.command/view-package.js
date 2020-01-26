@@ -1,11 +1,11 @@
 const { spawn, execSync } = require('child_process');
-const { Command } = require('commander');
 const Table = require('cli-table');
 const chalk = require('chalk');
 const Spinner = require('cli-spinner').Spinner;
 const request = require('request');
 const path = require('path');
 
+const { CommandContext } = require('../../../../src');
 const { Plugin } = require('../../../plugin');
 const { analysisPlugin } = require('../list.command/list-plugin');
 const { isDebugMode } = require('../../../utils');
@@ -90,7 +90,7 @@ function installPkgTemporarily(packageName, options, callback) {
     }, (err) => {
         if (err) return callback(err);
 
-        const plugin = new Plugin(packageName, new Command());
+        const plugin = new Plugin(packageName, new CommandContext());
         const pluginDetail = analysisPlugin(plugin);
 
         callback(null, pluginDetail);
