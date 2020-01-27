@@ -188,6 +188,7 @@ function parseRouter(config) {
 
     const {
         target,
+        changeOrigin,
         proxyTable,
     } = config;
 
@@ -210,10 +211,13 @@ function parseRouter(config) {
         [
             ['path', '/', CheckFunctions.proxyTable.path],
             ['target', target, CheckFunctions.proxyTable.target],
+            ['changeOrigin', changeOrigin],
             ['pathRewrite', {}],
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
+
+        router.target = addHttpProtocol(router.target);
 
         outputTable.push(resolveRouteProxyMap(proxyPath, router));
     });
@@ -279,7 +283,7 @@ function resolveRouteProxyMap(proxyPath, router) {
         const { target: overwriteTarget_target, path: overwriteTarget_path } = splitTargetAndPath(overwriteTarget);
         let proxyedPath = joinUrl(overwriteTarget_path, overwritePath, proxyPath);
         proxyedPath = transformPath(overwriteTarget_target + proxyedPath, overwritePathRewrite);
-        return addHttpProtocol(proxyedPath);
+        return proxyedPath;
     }
 
     return [

@@ -25,7 +25,6 @@ const proxyTable = {
     // Support $n replacement
     path: value => _check('proxyTable.path', value, /^\/([\w-_]+\/?)*$/),
     target: value => _check('proxyTable.target', value, REG_PROTOCOL_HOST_PORT, true),
-    cache: value => _check('proxyTable.cache', value, /^(true|false)$/),
 }
 
 // All check functions return true when it is valid.

@@ -1,7 +1,8 @@
 const chalk = require('chalk');
 const request = require('request');
-const through = require('through2');
 const _ = require('lodash');
+const URL = require('url').URL;
+const through = require('through2');
 const concat = require('concat-stream');
 const querystring = require('querystring');
 const { PluginInterrupt } = require('../plugin');
@@ -336,11 +337,11 @@ function proxyRequestWrapper(config, corePlugins) {
              * @returns {Object} context
              */
             .then(context => {
-                const { uri: proxyUrl } = context.proxy;
+                const { uri: proxyUrl, route: matchedRoute } = context.proxy;
                 const { path: matchedPath, redirectMeta = {} } = context.matched;
 
                 const x = _request(proxyUrl, { gzip: true });
-                setProxyRequestHeaders(x);
+                setProxyRequestHeaders(x, matchedRoute);
 
                 return new Promise(resolve => {
                     let pluginOnProxyRespondPromise,
@@ -518,11 +519,16 @@ function proxyRequestWrapper(config, corePlugins) {
 
 
         // set headers for proxy request
-        function setProxyRequestHeaders(proxyRequest) {
+        function setProxyRequestHeaders(proxyRequest, matchedRoute) {
+            const { changeOrigin, target } = matchedRoute || {};
+
             const mergeList = [];
             const rewriteHeaders = {
                 'Connection': 'close',
             };
+            if (changeOrigin) {
+                rewriteHeaders['Host'] = new URL(target).hostname;
+            }
             let _headers = req.headers;
 
             // originalHeaders < rewriteHeaders < userHeaders

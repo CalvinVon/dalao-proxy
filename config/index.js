@@ -9,10 +9,12 @@ const config = {
     "host": "localhost",
     "port": 8000,
     "target": "target.example.com",
+    "changeOrigin": true,
     "headers": {},
     "proxyTable": {
         "/": {
-            "path": "/"
+            "path": "/",
+            "changeOrigin": true,
         }
     },
     "plugins": [
