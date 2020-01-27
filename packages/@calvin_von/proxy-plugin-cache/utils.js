@@ -17,6 +17,7 @@ function url2filename(method, url) {
             .join('_')
             .replace(/\?.+/, '')
             .replace(/#.+/, '')
+        + (url === '/' ? '.html' : '')
 }
 
 module.exports = {

@@ -44,11 +44,11 @@ module.exports = {
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { response, request } = context;
+        const info = context.config.info;
         const userConfigHeaders = context.config.headers;
         const {
             dirname: cacheDirname,
             maxAge: cacheMaxAge,
-            info
         } = this.config;
 
         const { method, url } = request;
@@ -150,8 +150,9 @@ module.exports = {
                         return next();
                     }
                     const presetHeaders = {
-                        'Content-Type': mime.contentType(targetFilePath),
-                        'X-Cache-Response': 'true'
+                        'Content-Type': mime.lookup(targetFilePath),
+                        'X-Cache-Response': 'true',
+                        'X-Cache-File': targetFilePath
                     };
                     const headers = mergeHeaders(userConfigHeaders, presetHeaders);
                     setHeaders(response, headers);
@@ -179,6 +180,7 @@ module.exports = {
                             'X-Cache-Response': 'true',
                             'X-Cache-Expire-Time': 'permanently valid',
                             'X-Cache-Rest-Time': 'forever',
+                            'X-Cache-File': targetFilePath
                         };
 
                         const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
@@ -308,7 +310,7 @@ module.exports = {
         function logMatchedPath(targetFilePath) {
             if (!info) return;
 
-            const message = chalk.green(`> Hit! [${context.matched.path}]`)
+            const message = chalk.yellow(`> Hit! [${context.matched.path}]`)
                 + `   ${method.toUpperCase()}   ${url}`
                 + chalk.green('  >>>>  ')
                 + chalk.yellow(targetFilePath);
@@ -317,11 +319,11 @@ module.exports = {
     },
 
     afterProxy(context) {
+        const info = context.config.info;
         const {
             dirname: cacheDirname,
             contentType: cacheContentType,
             filters,
-            info
         } = this.config;
         const { method, url } = context.request;
         const { response } = context.proxy;
@@ -450,11 +452,7 @@ module.exports = {
                 function cacheFileInOrignal() {
                     fs.writeFileSync(
                         cacheFileWithNoExt,
-                        context.data.response.rawBuffer,
-                        {
-                            encoding: 'buffer',
-                            flag: 'w'
-                        }
+                        context.data.response.rawBuffer
                     );
                     return cacheFileWithNoExt;
                 }

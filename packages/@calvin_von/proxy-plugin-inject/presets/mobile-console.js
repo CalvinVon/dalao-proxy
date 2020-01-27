@@ -7,7 +7,7 @@ module.exports = {
             },
             template: `
                 <script src="{{eruda.js}}"></script>
-                <script>window.eruda.init();</script>
+                <script>window.addEventListener('load', window.eruda.init.bind(window.eruda))</script>
             `,
             insert: 'body'
         }
