@@ -180,7 +180,19 @@ exports.usePlugins = function usePlugins(program, pluginsNames) {
 };
 
 exports.reloadPlugins = function reloadPlugins(plugins) {
-    plugins.forEach(plugin => plugin.load());
+    plugins.forEach(plugin => {
+        try {
+            plugin.load();
+        } catch (error) {
+            let pluginErrResult;
+            if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+                console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
+            }
+            else {
+                console.error(error);
+            }
+        }
+    });
 }
 
 
