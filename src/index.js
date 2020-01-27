@@ -97,8 +97,9 @@ Command.prototype.option = function optionWrapper(flags, description, fn, defaul
     originOptionFn.call(this, flags, description, fn, defaultValue);
     const option = new Option(flags, description);
     const optionName = option.name();
+    const optionAttributeName = option.attributeName();
     this.on('option:' + optionName, val => {
-        this.context.options[optionName] = val || this[optionName];
+        this.context.options[optionAttributeName] = val || this[optionAttributeName];
     });
 
     return this;
@@ -108,7 +109,8 @@ Command.prototype.action = function actionWrapper(callback) {
     return originActionFn.call(this, (...args) => {
         this.options.forEach(option => {
             const optionName = option.name();
-            this.context.options[optionName] = this[optionName];
+            const optionAttributeName = option.attributeName();
+            this.context.options[optionAttributeName] = this[optionAttributeName];
         });
         return callback.call(this, ...args);
     })
