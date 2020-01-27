@@ -14,17 +14,18 @@ const templates = {
 };
 
 
-module.exports = function createPlugin(opt, callback) {
+module.exports = function createPlugin(opt) {
     const {
         pluginName,
         distDir = '',
         configure,
+        configureOnly,
         commander,
+        commanderOnly,
         complete,
-        simple
+        simple,
+        force
     } = opt || {};
-
-    let _writeCount = 0;
 
     const isCustomMode = configure && commander && (!complete);
 
@@ -34,6 +35,13 @@ module.exports = function createPlugin(opt, callback) {
     const createTemplate = (template, filename) => {
         const source = path.join(__dirname, template);
         const dest = path.join(pluginDir, filename);
+
+        if (!force) {
+            if (fs.existsSync(dest)) {
+                console.error(chalk.red('File already exists: ' + dest));
+                return;
+            }
+        }
 
         ejs.renderFile(
             source,
@@ -47,21 +55,23 @@ module.exports = function createPlugin(opt, callback) {
                     return;
                 }
 
-                _writeCount++;
-                const writer = fs.createWriteStream(dest);
-                writer.on('close', () => {
-                    _writeCount--;
-                    if (_writeCount === 0) {
-                        callback();
-                    }
-                });
-                writer.write(string);
-                writer.end();
-
+                fs.writeFileSync(dest, string);
                 console.log(chalk.green(dest + ' generated.'));
             }
         );
     };
+
+
+    if (configureOnly) {
+        createTemplate(templates.configure, Plugin.FILES.CONFIGURE);
+        return;
+    }
+
+    if (commanderOnly) {
+        createTemplate(templates.commander, Plugin.FILES.COMMANDER);
+        return;
+    }
+
 
     createTemplate(templates.index, Plugin.FILES.INDEX);
     createTemplate(templates.package, Plugin.FILES.PACKAGE);
