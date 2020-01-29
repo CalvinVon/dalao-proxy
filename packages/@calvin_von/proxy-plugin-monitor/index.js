@@ -1,17 +1,20 @@
+const open = require('open');
+const concat = require('concat-stream');
+const querystring = require('querystring');
 const RequestMonitor = require('./app');
 const { syncConfig, cleanMonitor } = require('./monitor');
-const open = require('open');
 let app;
 
 module.exports = {
     beforeCreate({ config }) {
-        // Disable logger on request
-        config.info = false;
-
         const {
             open: openOnStart = true,
-            cleanOnRestart = false
-        } = config.monitor || {};
+            cleanOnRestart = false,
+            disableLogger
+        } = this.config;
+
+        // Disable logger on request
+        config.info = !disableLogger;
 
 
         if (app) {
@@ -37,7 +40,9 @@ module.exports = {
     onRequest(context, next) {
         context.monitor = {
             times: {
-                start: Date.now()
+                request_start: Date.now(),
+                proxy_end: null,
+                request_end: null,
             }
         };
         next();
@@ -46,8 +51,43 @@ module.exports = {
         app.emit('proxy:beforeProxy', context);
         next();
     },
+    onProxySetup(context) {
+        const { requestStream } = context.proxy;
+        requestStream.pipe(concat(buf => {
+            const { type, query } = context.data.request;
+            const proxyRequestData = {
+                query,
+                rawBuffer: buf,
+                rawBody: buf.toString(),
+                type,
+                body: null,
+            };
+            try {
+                if (type) {
+                    if (/application\/x-www-form-urlencoded/.test(type)) {
+                        proxyRequestData.body = querystring.parse(proxyRequestData.rawBody);
+                    } else if (/application\/json/.test(type)) {
+                        proxyRequestData.body = JSON.parse(proxyRequestData.rawBody);
+                    } else if (/multipart\/form-data/.test(type)) {
+                        proxyRequestData.body = proxyRequestData.rawBody;
+                    }
+                }
+            } catch (error) {
+                info && console.log(' > Error: can\'t parse requset body. ' + error.message);
+            }
+            context.proxy.data = {
+                request: proxyRequestData
+            };
+        }));
+    },
+    onProxyRespond(context, next) {
+        context.monitor.times.proxy_end = Date.now();
+
+        app.emit('proxy:onProxyRespond', context);
+        next();
+    },
     afterProxy(context) {
-        context.monitor.times.end = Date.now();
+        context.monitor.times.request_end = Date.now();
         app.emit('proxy:afterProxy', context);
     }
 }

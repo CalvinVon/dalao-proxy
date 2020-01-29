@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/proxy-plugin-monitor",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "A dalao-proxy plugin for request monitoring",
   "main": "index.js",
   "repository": {
@@ -15,8 +15,10 @@
   "author": "Calvin",
   "license": "MIT",
   "dependencies": {
+    "concat-stream": "^2.0.0",
     "koa": "^2.7.0",
     "koa-static": "^5.0.0",
+    "launch-editor": "^2.2.1",
     "mime-types": "^2.1.24",
     "open": "^6.2.0",
     "ws": "^7.0.0"
