@@ -95,9 +95,13 @@ else {
 
 // process error caughtor
 process.on('uncaughtException', function (err) {
+    let pluginErrResult;
     if (/(ECONNREFUSED|ECONNRESET)/i.test(err.message)) {
-        console.log(chalk.red('\n> 😫  Oops, dalao can\'t proxy to target'));
+        console.log(chalk.red('\n> Oops, dalao can\'t proxy to target'));
         console.error(err.message);
+    }
+    else if (pluginErrResult = err.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+        console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
     }
     else {
         console.log(chalk.red('\n> 😫  Oops, dalao can\'t handle this...'));

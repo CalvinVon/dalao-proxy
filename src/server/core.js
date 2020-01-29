@@ -56,6 +56,13 @@ function _invokePluginMiddleware(plugin, method, context) {
  * @param {Function} next
  */
 function _invokeAllPluginsMiddlewares(hookName, context, next) {
+    if (!next) {
+        plugins.forEach(plugin => {
+            return _invokePluginMiddleware(plugin, hookName, context);
+        });
+        return;
+    }
+
     const allPluginPromises = plugins.map(plugin => {
         return _invokePluginMiddleware(plugin, hookName, context);
     });
@@ -308,6 +315,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     }
 
                     context.proxy = {
+                        error: null,
                         route: matchedRoute,
                         uri: proxyUrl,
                         URL: require('url').parse(proxyUrl)
@@ -362,8 +370,22 @@ function proxyRequestWrapper(config, corePlugins) {
                         res.writeHead(response.statusCode, response.statusMessage);
 
                         collectResponseDataPromise = collectProxyResponseData(context);
+                        /**
+                         * onProxyRespond
+                         * @desc send request
+                         * @returns {Object} context
+                         */
                         pluginOnProxyRespondPromise = Middleware_onProxyRespond(context);
                         pluginOnProxyRespondPromise.catch(() => { });
+                    });
+
+                    x.on('error', error => {
+                        info && console.error(chalk.red(`> Cannot to proxy ${method.toUpperCase()} [${matchedPath}] to [${proxyUrl}]: ${error.message}`));
+                        context.proxy.error = error;
+                        res.writeHead(502, error.code);
+                        res.write(error.message);
+                        res.end();
+                        resolve([context]);
                     });
 
                     x.on('end', () => {
@@ -418,11 +440,11 @@ function proxyRequestWrapper(config, corePlugins) {
                      * x is an instance of request.Request
                      */
                     context.proxy.request = x;
-
                     context.proxy.requestStream = xReqStream;
                     context.proxy.responseStream = xResStream;
 
                     collectRequestData(context);
+                    Middleware_onProxySetup(context);
                 });
             })
 
@@ -522,34 +544,29 @@ function proxyRequestWrapper(config, corePlugins) {
         function setProxyRequestHeaders(proxyRequest, matchedRoute) {
             const { changeOrigin, target } = matchedRoute || {};
 
+            const clientHeaders = formatHeaders(req.headers);
             const mergeList = [];
-            const rewriteHeaders = {
+            const rewriteHeaders = formatHeaders({
                 'Connection': 'close',
-            };
-            if (changeOrigin) {
-                rewriteHeaders['Host'] = new URL(target).hostname;
-            }
-            let _headers = req.headers;
+                'Host': changeOrigin ? new URL(target).hostname : clientHeaders['Host']
+            });
 
             // originalHeaders < rewriteHeaders < userHeaders
             mergeList.push(rewriteHeaders);
             if (typeof (userHeaders.request) === 'object') {
-                mergeList.push(userHeaders.request);
+                mergeList.push(formatHeaders(userHeaders.request));
             }
             else if (typeof (userHeaders) === 'object') {
-                mergeList.push(userHeaders);
+                mergeList.push(formatHeaders(userHeaders));
             }
 
-            _headers = Object.assign(_headers, ...mergeList);
-
-            const formattedHeaders = formatHeaders(_headers);
-            setHeadersFor(proxyRequest, formattedHeaders);
+            setHeadersFor(proxyRequest, Object.assign({}, clientHeaders, ...mergeList));
         }
 
         // set headers for response
-        function setResponseHeaders(proxyResponseHeaders) {
+        function setResponseHeaders(headers) {
             const mergeList = [];
-            const rewriteHeaders = {
+            const rewriteHeaders = formatHeaders({
                 'Transfer-Encoding': 'chunked',
                 'Connection': 'close',
                 'Via': 'dalao-proxy/' + version,
@@ -557,25 +574,24 @@ function proxyRequestWrapper(config, corePlugins) {
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
                 'Access-Control-Allow-Credentials': true,
                 'Access-Control-Allow-Headers': 'Authorization, Token',
-            };
+            });
 
-            let _headers = proxyResponseHeaders;
+            const proxyResponseHeaders = formatHeaders(headers);
 
             // originalHeaders < rewriteHeaders < userHeaders
             mergeList.push(rewriteHeaders);
             if (typeof (userHeaders.response) === 'object') {
-                mergeList.push(userHeaders.response);
+                mergeList.push(formatHeaders(userHeaders.response));
             }
             else if (typeof (userHeaders) === 'object') {
-                mergeList.push(userHeaders);
+                mergeList.push(formatHeaders(userHeaders));
             }
 
-            _headers = Object.assign(_headers, ...mergeList);
-            const formattedHeaders = formatHeaders(_headers);
+            const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList);
 
             // response has been decoded
-            delete formattedHeaders['Content-Encoding'];
-            delete formattedHeaders['Content-Length'];
+            delete formattedHeaders['content-encoding'];
+            delete formattedHeaders['content-length'];
             setHeadersFor(res, formattedHeaders);
         }
 
@@ -584,7 +600,7 @@ function proxyRequestWrapper(config, corePlugins) {
             for (const header in headers) {
                 const value = headers[header];
                 if (value) {
-                    if (typeof (value) === 'string') {
+                    if (typeof (value) === 'string' || Array.isArray(value)) {
                         target.setHeader(header, value);
                     }
                 }
@@ -602,7 +618,8 @@ function proxyRequestWrapper(config, corePlugins) {
         function formatHeaders(headers) {
             const formattedHeaders = {};
             Object.keys(headers).forEach(key => {
-                const header = key.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
+                // const header = key.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
+                const header = key.toLowerCase();
                 formattedHeaders[header] = headers[key];
             });
             return formattedHeaders;
@@ -633,6 +650,10 @@ function proxyRequestWrapper(config, corePlugins) {
             });
         }
 
+        function Middleware_onProxySetup(context) {
+            _invokeAllPluginsMiddlewares('onProxySetup', context);
+        }
+
         function Middleware_onProxyRespond(context) {
             return new Promise((resolve, reject) => {
                 _invokeAllPluginsMiddlewares('onProxyRespond', context, interrupter(context, resolve, reject));
@@ -645,7 +666,7 @@ function proxyRequestWrapper(config, corePlugins) {
     }
 
     (function Middleware_beforeCreate() {
-        _invokeAllPluginsMiddlewares('beforeCreate', { config }, new Function);
+        _invokeAllPluginsMiddlewares('beforeCreate', { config });
     })();
     return proxyRequest;
 }

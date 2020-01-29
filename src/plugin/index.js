@@ -394,6 +394,10 @@ class Plugin {
         this._methodWrapper('beforeProxy', nextNoop, context, next);
     }
 
+    onProxySetup(context) {
+        this._methodWrapper('onProxySetup', nextNoop, context);
+    }
+
     onProxyRespond(context, next) {
         this._methodWrapper('onProxyRespond', nextNoop, context, next);
     }
@@ -416,6 +420,7 @@ Plugin.AllMiddlewares = [
     'onRequest',
     'onRouteMatch',
     'beforeProxy',
+    'onProxySetup',
     'onProxyRespond',
     'afterProxy',
     'onPipeRequest',
