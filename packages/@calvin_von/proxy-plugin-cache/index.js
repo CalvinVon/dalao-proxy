@@ -149,17 +149,30 @@ module.exports = {
                     if (cacheDigit !== '*') {
                         return next();
                     }
+
+                    const contentType = mime.lookup(targetFilePath);
                     const presetHeaders = {
-                        'Content-Type': mime.lookup(targetFilePath),
+                        'Content-Type': contentType,
                         'X-Cache-Response': 'true',
                         'X-Cache-File': targetFilePath
                     };
                     const headers = mergeHeaders(userConfigHeaders, presetHeaders);
                     setHeaders(response, headers);
-                    const source = fs.createReadStream(targetFilePath);
-                    source.pipe(response);
+                    const fileContent = fs.readFileSync(targetFilePath);
+                    response.write(fileContent);
+                    response.end();
                     logMatchedPath(targetFilePath);
-                    next('Hit cache')
+
+                    context.cache = {
+                        data: null,
+                        rawData: fileContent.toString(),
+                        type: contentType,
+                        size: fileContent.length,
+                        file: targetFilePath,
+                        expireTime: 'permanently valid',
+                        restTime: 'forever'
+                    };
+                    next('Hit cache');
                 }
 
 
@@ -202,7 +215,10 @@ module.exports = {
                             data: jsonContent,
                             rawData: fileContent,
                             type: 'application/json',
-                            size: fileContent.length
+                            size: fileContent.length,
+                            file: targetFilePath,
+                            expireTime: 'permanently valid',
+                            restTime: 'forever',
                         };
 
                         logMatchedPath(targetFilePath);
@@ -215,10 +231,12 @@ module.exports = {
                         const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
                         // valid cache file
                         if (moment().isBefore(deadlineMoment)) {
+                            const expireTime = moment(deadlineMoment).format('llll');
+                            const restTime = moment.duration(moment().diff(deadlineMoment)).humanize();
                             const presetHeaders = {
                                 'X-Cache-Response': 'true',
-                                'X-Cache-Expire-Time': moment(deadlineMoment).format('llll'),
-                                'X-Cache-Rest-Time': moment.duration(moment().diff(deadlineMoment)).humanize(),
+                                'X-Cache-Expire-Time': expireTime,
+                                'X-Cache-Rest-Time': restTime,
                             };
                             const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
                             setHeaders(response, headers);
@@ -235,7 +253,10 @@ module.exports = {
                                 data: jsonContent,
                                 rawData: fileContent,
                                 type: 'application/json',
-                                size: fileContent.length
+                                size: fileContent.length,
+                                file: targetFilePath,
+                                expireTime,
+                                restTime
                             };
                             logMatchedPath(targetFilePath);
 
@@ -471,12 +492,12 @@ module.exports = {
 function mergeHeaders(userConfigHeaders, ...headers) {
     const headerMergeList = [];
     if (typeof (userConfigHeaders.response) === 'object') {
-        headerMergeList.push(userConfigHeaders.response);
+        headerMergeList.push(formatHeaders(userConfigHeaders.response));
     }
     else if (typeof (userConfigHeaders) === 'object') {
-        headerMergeList.push(userConfigHeaders);
+        headerMergeList.push(formatHeaders(userConfigHeaders));
     }
-    headerMergeList.push(...headers);
+    headerMergeList.push(...headers.map(formatHeaders));
     return Object.assign({}, ...headerMergeList, { request: null, response: null });
 }
 
@@ -493,6 +514,16 @@ function setHeaders(target, headers) {
     }
 }
 
-function formatHeader(header) {
-    return header.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
+function formatHeader(string) {
+    // return string.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
+    return string.toLowerCase();
+}
+
+function formatHeaders(headers) {
+    const _headers = {};
+    for (const header in headers) {
+        const value = headers[header];
+        _headers[formatHeader(header)] = value;
+    }
+    return _headers;
 }
