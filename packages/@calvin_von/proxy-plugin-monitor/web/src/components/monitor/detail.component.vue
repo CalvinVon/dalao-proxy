@@ -23,14 +23,25 @@
                 <!-- Query String Parameters -->
                 <detail-block v-if="detail['Query String Parameters']"
                               name="Query String Parameters"
+                              showParsedField
                               :detail="detail"></detail-block>
                 <!-- Query String Parameters -->
 
                 <!-- Request Payload -->
                 <detail-block v-if="detail['Request Payload']"
                               name="Request Payload"
+                              showParsedField
                               :detail="detail"></detail-block>
                 <!-- Request Payload -->
+
+                <!-- Form Data -->
+                <detail-block v-if="detail['Form Data']"
+                              name="Form Data"
+                              alias="Form Data"
+                              showParsedField
+                              showDownloadField
+                              :detail="detail"></detail-block>
+                <!-- Form Data -->
             </a-tab-pane>
 
             <a-tab-pane tab="Proxy"
@@ -63,6 +74,7 @@
                 <detail-block v-if="detail['Proxy Query String Parameters']"
                               name="Proxy Query String Parameters"
                               alias="Query String Parameters"
+                              showParsedField
                               :detail="detail"></detail-block>
                 <!-- Query String Parameters -->
 
@@ -70,8 +82,17 @@
                 <detail-block v-if="detail['Proxy Request Payload']"
                               name="Proxy Request Payload"
                               alias="Request Payload"
+                              showParsedField
                               :detail="detail"></detail-block>
                 <!-- Request Payload -->
+
+                <!-- Form Data -->
+                <detail-block v-if="detail['Form Data']"
+                              name="Proxy Form Data"
+                              alias="Form Data"
+                              showParsedField
+                              :detail="detail"></detail-block>
+                <!-- Form Data -->
 
             </a-tab-pane>
 

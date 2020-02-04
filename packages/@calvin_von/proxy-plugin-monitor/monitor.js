@@ -1,30 +1,125 @@
+const fs = require('fs');
+const path = require('path');
 const mime = require('mime-types');
 const chalk = require('chalk');
 const open = require('launch-editor');
+const FileStorage = require('./formdata-files.storage');
 
-const Monitor = module.exports = function (app) {
+class WsSendData {
+    constructor(error, value) {
+        this.type = null;
+        this.action = null;
+        this.error = error instanceof Error ? error.message : error;
+        this.value = value;
+    }
+
+    setId(id) {
+        this.id = id;
+        return this;
+    }
+
+    setAction(type) {
+        this.action = type;
+        return this;
+    }
+
+    setType(type) {
+        this.type = type;
+        return this;
+    }
+
+    setResposeOf(request) {
+        this.setType('response');
+        this.setId(request.id);
+        this.setAction(request.type);
+        return this;
+    }
+
+    stringify() {
+        return JSON.stringify(this);
+    }
+}
+
+const Monitor = module.exports = function (app, config) {
     const broadcast = app.ws.broadcast;
 
     app.ws.on('connection', client => {
-        client.send(JSON.stringify({
-            type: 'config',
-            config: app.monitorService.config
-        }));
+        client.send(new WsSendData(null, app.monitorService.config).setType('config').stringify())
         console.log('  [monitor] Connected!');
 
         client.on('message', message => {
-            const { type, action, value } = JSON.parse(message);
+            const request = JSON.parse(message);
+            const { id, type, action, value } = request;
             if (type === 'action') {
                 switch (action) {
+                    case 'clean':
+                        FileStorage.clean();
+                        break;
+
                     case 'open-file':
-                        open(value, 'code', (filename, error) => {
+                        open(value, config.editor, (filename, error) => {
                             console.error(chalk.red('> Open file error: ' + error.message));
                         });
+                        break;
+
+                    case 'download-file':
+                        (() => {
+                            const { field, savePath, id: recordId } = value;
+                            const record = FileStorage.getRecord(recordId);
+                            if (record) {
+                                const fileData = record.files[field];
+                                const filePath = path.join(savePath, fileData.name);
+                                fs.writeFile(filePath, fileData.buffer, err => {
+                                    if (!err) {
+                                        open(filePath, config.editor, err => {
+                                            client.send(new WsSendData(err)
+                                                .setResposeOf(request)
+                                                .stringify())
+                                        });
+                                    }
+                                    else {
+                                        client.send(new WsSendData(err)
+                                            .setResposeOf(request)
+                                            .stringify())
+                                    }
+                                });
+                            }
+                            else {
+                                client.send(new WsSendData('no file cache found!')
+                                    .setResposeOf(request)
+                                    .stringify())
+                            }
+                        })();
                         break;
 
                     default:
                         break;
                 }
+            }
+            else if (type === 'file-system') {
+                (() => {
+                    const {
+                        path: currentPath,
+                        isForward,
+                        forwardDirname
+                    } = value;
+                    let dirPath = currentPath || process.cwd();
+                    if (isForward) {
+                        dirPath = path.join(dirPath, forwardDirname);
+                    }
+                    else if (isForward === false) {
+                        dirPath = path.resolve(dirPath, '../');
+                    }
+                    const fileList = fs.readdirSync(dirPath, { withFileTypes: true }).map(it => ({ name: it.name, isDir: it.isDirectory() }));
+                    client.send(
+                        new WsSendData(null, {
+                            path: dirPath,
+                            list: fileList
+                        })
+                            .setResposeOf(request)
+                            .stringify()
+                    );
+                })();
             }
         });
     });
@@ -88,8 +183,9 @@ const Monitor = module.exports = function (app) {
                 data['Timing'] = now - ctx.monitor.times.request_start;
                 data['Cache'] = cacheMeta;
                 data.data = {
-                    response: ctx.cache
+                    response: { ...ctx.cache }
                 };
+                delete data.data.response.rawBuffer;
                 data.status = {
                     code: 200,
                     message: 'OK'
@@ -107,18 +203,52 @@ const Monitor = module.exports = function (app) {
     app.on('proxy:onProxyRespond', function (ctx) {
         const { req: proxyRequest, response: proxyResponse } = ctx.proxy;
         const { data, times } = ctx.monitor;
+        data.data.request = { ...ctx.data.request };
+        delete data.data.request.rawBuffer;
         data.status = '(Proxy responded)';
         data.type = 'onProxyRespond';
         data['Proxy Request Headers'] = proxyRequest.getHeaders();
         data['Proxy Response Headers'] = proxyResponse.headers;
         data['Proxy']['Timing'] = times.proxy_end - times.request_start;
 
-        if (/json/.test(ctx.proxy.data.request.type)) {
-            data['Proxy Request Payload'] = ctx.proxy.data.request.body;
+        // send request data
+        if (ctx.data.request) {
+            const reqBodyType = ctx.data.request.type;
+            const originBody = ctx.data.request.body;
+            const proxyBody = ctx.proxy.data.request.body;
+            if (/json/.test(reqBodyType)) {
+                data['Request Payload'] = JSON.stringify(originBody, null, 4);
+                data['Request Payload[parsed]'] = originBody;
+                data['Proxy Request Payload'] = JSON.stringify(proxyBody, null, 4);
+                data['Proxy Request Payload[parsed]'] = proxyBody;
+            }
+            else if (/form-data/.test(reqBodyType)) {
+                const rawOriginBody = originBody._raw;
+                const rawProxyBody = proxyBody._raw;
+                delete originBody._raw;
+                delete proxyBody._raw;
+                data['Form Data'] = transformRawFormData(reqBodyType, rawOriginBody, originBody);
+                data['Form Data[parsed]'] = transformFormData(rawOriginBody, originBody);
+                data['Proxy Form Data'] = transformRawFormData(reqBodyType, rawProxyBody, proxyBody);
+                data['Proxy Form Data[parsed]'] = transformFormData(rawProxyBody, proxyBody);
+
+                const filesData = attachDownloadableFile(rawOriginBody, originBody);
+                FileStorage.storeRecord({ id: data.id, files: filesData });
+            }
+            else if (/x-www-form-urlencoded/.test(reqBodyType)) {
+                data['Form Data'] = JSON.stringify(originBody, null, 4);
+                data['Form Data[parsed]'] = originBody;
+                data['Proxy Form Data'] = JSON.stringify(proxyBody, null, 4);
+                data['Proxy Form Data[parsed]'] = proxyBody;
+            }
         }
 
+        // send request query data
         if (ctx.request.URL.query) {
-            data['Proxy Query String Parameters'] = ctx.data.request.query;
+            data['Query String Parameters'] = JSON.stringify(ctx.data.request.query, null, 4);
+            data['Query String Parameters[parsed]'] = ctx.data.request.query;
+            data['Proxy Query String Parameters'] = JSON.stringify(ctx.data.request.query, null, 4);
+            data['Proxy Query String Parameters[parsed]'] = ctx.data.request.query;
         }
         broadcast(data);
     });
@@ -130,7 +260,14 @@ const Monitor = module.exports = function (app) {
             const data = {
                 id: ctx.monitor.id,
                 type: 'afterProxy',
-                data: ctx.data,
+                data: {
+                    request: {
+                        ...ctx.data.request
+                    },
+                    response: {
+                        ...ctx.data.response
+                    },
+                },
                 'General': {
                     'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`,
                 },
@@ -143,7 +280,7 @@ const Monitor = module.exports = function (app) {
             };
 
             delete data.data.request.rawBuffer;
-            data.data.response && delete data.data.response.rawBuffer;
+            delete data.data.response.rawBuffer;
 
             if (ctx.data.error) {
                 data['General']['Status Code'] = `(failed) ${ctx.data.error.code}`;
@@ -153,13 +290,6 @@ const Monitor = module.exports = function (app) {
                 };
             }
 
-            if (/json/.test(ctx.data.request.type)) {
-                data['Request Payload'] = ctx.data.request.body;
-            }
-
-            if (ctx.request.URL.query) {
-                data['Query String Parameters'] = ctx.data.request.query;
-            }
 
             if (!headers['content-type']) {
                 if (ctx.request.url === '/') {
@@ -189,3 +319,53 @@ Monitor.cleanMonitor = function (app) {
         type: 'clean'
     });
 };
+
+
+function attachDownloadableFile(rawBody, body) {
+    const files = {};
+    Object.keys(rawBody).forEach(field => {
+        if (rawBody[field].isFile) {
+            files[field] = {
+                buffer: rawBody[field].body,
+                name: body[field].name
+            };
+        }
+    });
+    return files;
+}
+
+function transformFormData(rawBody, body) {
+    const formData = {};
+    for (const field in body) {
+        if (rawBody[field].isFile) {
+            formData[field] = `<File: ${body[field].name}>`;
+        }
+        else {
+            formData[field] = body[field];
+        }
+    }
+    return formData;
+}
+
+/**
+ * replace file content of form data
+ * @param {String} type request's Content-Type
+ * @param {String} rawBody raw request body
+ */
+function transformRawFormData(contentType, rawBody, body) {
+    const boundary = '--' + contentType.match(/boundary=(\S+)/)[1];
+    let content = '';
+    Object.keys(rawBody).forEach(field => {
+        const fieldHead = rawBody[field].head.toString();
+        let fieldBody;
+        if (rawBody[field].isFile) {
+            fieldBody = `<File: ${body[field].name}>`;
+        }
+        else {
+            fieldBody = body[field];
+        }
+        const fieldValue = boundary + '\n' + fieldHead + '\n\n' + fieldBody + '\n';
+        content += fieldValue;
+    });
+    return content + boundary + '--';
+}

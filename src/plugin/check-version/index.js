@@ -57,7 +57,7 @@ function checkVersion({ debug }) {
     versionCmd.stderr.on('data', data => errorData += data);
     versionCmd.stderr.on('end', () => {
         if (debug) {
-            console.log('\n\nCan\'t get version info with error');
+            console.log('\n\nCan\'t get version logger with error');
             console.error(errorData.toString());
         }
         versionCmd.kill();

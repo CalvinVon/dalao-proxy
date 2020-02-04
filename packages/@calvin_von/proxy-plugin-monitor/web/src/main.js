@@ -3,6 +3,7 @@ import App from './App.vue';
 import './filters';
 import './plugins/ant-design-vue';
 import './plugins/json-viewer';
+import './plugins/vue-clipboard';
 import 'minireset.css';
 import './styles/index.scss';
 

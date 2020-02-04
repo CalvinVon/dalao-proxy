@@ -93,7 +93,7 @@ Options:
     -H, --host [hostname]       定制代理监听host
     -t, --target [proxyTarget]  代理目标地址
     -c, --cache                 开启请求缓存
-    -i, --info                  开启日志输出
+    -i, --logger                  开启日志输出
     -h, --help                  输出帮助信息
 ```
 
@@ -279,7 +279,7 @@ module.exports = {
     // 设置请求返回体过滤器
     "responseFilter": [],
     // 开启日志
-    "info": false,
+    "logger": false,
     // 显示调试信息
     "debug": false,
     // 自定义响应头

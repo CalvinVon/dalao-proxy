@@ -14,7 +14,7 @@ module.exports = function startCommand(program) {
         .option('-P, --port <port>', 'custom proxy server listening port')
         .option('-H, --host <hostname>', 'custom proxy server hostname')
         .option('-t, --target <proxyTarget>', 'target server to proxy')
-        .option('-i, --info', 'enable log print')
+        .option('-i, --logger', 'enable log print')
         .action(function (command) {
             printWelcome(baseConfig.version);
             program.enableInput();

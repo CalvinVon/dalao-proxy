@@ -1,8 +1,8 @@
-const open = require('open');
 const concat = require('concat-stream');
-const querystring = require('querystring');
+const open = require('open');
 const RequestMonitor = require('./app');
 const { syncConfig, cleanMonitor } = require('./monitor');
+const FileStorage = require('./formdata-files.storage');
 let app;
 
 module.exports = {
@@ -14,7 +14,8 @@ module.exports = {
         } = this.config;
 
         // Disable logger on request
-        config.info = !disableLogger;
+        config.logger = !disableLogger;
+        FileStorage.init(this.config);
 
 
         if (app) {
@@ -26,11 +27,15 @@ module.exports = {
         }
         else {
             // Launch monitor server
-            app = RequestMonitor.launchMonitor(port => {
+            app = RequestMonitor.launchMonitor(this.config, port => {
                 if (openOnStart) {
                     open(`http://localhost:${port}`);
                 }
-            })
+
+                this.register.on('context:server', () => {
+                    console.log('  [monitor] attached at http://localhost:' + port);
+                });
+            });
         }
 
         app.monitorService = {
@@ -53,37 +58,54 @@ module.exports = {
     },
     onProxySetup(context) {
         const { requestStream } = context.proxy;
+        context.proxy.data = {
+            request: null,
+            response: null
+        };
+
+        // collect proxy request data
         requestStream.pipe(concat(buf => {
-            const { type, query } = context.data.request;
-            const proxyRequestData = {
-                query,
+            const reqContentType = context.data.request.type;
+            const data = {
                 rawBuffer: buf,
                 rawBody: buf.toString(),
-                type,
                 body: null,
+                type: reqContentType,
+                size: buf.byteLength
             };
-            try {
-                if (type) {
-                    if (/application\/x-www-form-urlencoded/.test(type)) {
-                        proxyRequestData.body = querystring.parse(proxyRequestData.rawBody);
-                    } else if (/application\/json/.test(type)) {
-                        proxyRequestData.body = JSON.parse(proxyRequestData.rawBody);
-                    } else if (/multipart\/form-data/.test(type)) {
-                        proxyRequestData.body = proxyRequestData.rawBody;
-                    }
-                }
-            } catch (error) {
-                info && console.log(' > Error: can\'t parse requset body. ' + error.message);
-            }
-            context.proxy.data = {
-                request: proxyRequestData
-            };
+            context.proxy.data.request = data;
+
+            data.body = this.context.exports.BodyParser.parse(reqContentType, buf, error => {
+                context.config.logger && console.log(' > Error: can\'t parse requset body. ' + error.message);
+            });
         }));
     },
     onProxyRespond(context, next) {
         context.monitor.times.proxy_end = Date.now();
 
-        app.emit('proxy:onProxyRespond', context);
+        const { originResponseStream, response: proxyResponse } = context.proxy;
+        // collect origin response data
+        originResponseStream.pipe(concat(buf => {
+            const data = {
+                rawBuffer: buf,
+                rawData: buf.toString(),
+                data: '',
+                type: null,
+                size: buf.byteLength,
+            };
+
+            try {
+                if (/json/.test(data.type = proxyResponse.headers['content-type'])) {
+                    data.data = JSON.parse(this.context.exports.Utils.fixJson(data.rawData));
+                }
+            } catch (error) {
+                console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
+            }
+
+            context.proxy.data.response = data;
+            app.emit('proxy:onProxyRespond', context);
+        }));
+
         next();
     },
     afterProxy(context) {

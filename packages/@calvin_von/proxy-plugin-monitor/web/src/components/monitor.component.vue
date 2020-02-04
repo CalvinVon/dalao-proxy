@@ -46,6 +46,13 @@
                      rowKey="id"
                      bordered>
 
+                <!-- Method -->
+                <template slot="Method"
+                          slot-scope="text, record">
+                    {{ record['General']['Method'] }}
+                </template>
+                <!-- Method -->
+
                 <!-- Name -->
                 <div slot="Name"
                      slot-scope="text, record">
@@ -132,10 +139,10 @@
 </template>
 
 <script>
+import wsConnector from '../plugins/ws-connector';
 import Status from "./monitor/status.component";
 import FilterTab from "./monitor/filter-tab.component";
 import Detail from "./monitor/detail.component";
-const env = process.env.NODE_ENV;
 const customRenderer = field => ({
     scopedSlots: {
         customRender: field
@@ -164,6 +171,13 @@ const CACHE_FILTERS = [
     { name: "Real", test: item => item.type !== "hitCache" }
 ];
 const columns = [
+    {
+        title: "Method",
+        dataIndex: "method",
+        key: "Method",
+        width: 90,
+        ...customRenderer("Method")
+    },
     {
         title: "Name",
         dataIndex: "name",
@@ -203,16 +217,10 @@ const columns = [
 
 export default {
     name: "monitor-component",
-    provide() {
-        return {
-            getWs: () => this.ws
-        };
-    },
     data() {
         return {
+            wsConnector,
             serverConfig: {},
-            ws: null,
-            ws_connected: false,
 
             textFilter: "",
             typeFilter: TYPE_FILTERS[0],
@@ -228,6 +236,15 @@ export default {
         };
     },
     computed: {
+        ws() {
+            return this.wsConnector.ws;
+        },
+        ws_connected() {
+            return this.wsConnector.ws_connected;
+        },
+        config() {
+            return this.serverConfig.monitor;
+        },
         // monitor data filtering
         filteredData() {
             return this.monitorData.filter(item => {
@@ -312,34 +329,8 @@ export default {
         },
         // Establish connection
         connect() {
-            this.ws_connected = "Connecting";
-            if (this.ws) {
-                this.ws.close();
-            }
-
-            let socketUrl = "ws://" + window.location.host + "/ws";
-            if (env !== "production") {
-                socketUrl = "ws://localhost:40001/ws";
-            }
-            const ws = (this.ws = new WebSocket(socketUrl));
-            ws.onopen = () => {
-                this.ws_connected = "Connected";
-            };
-            ws.onclose = ev => {
-                this.ws_connected = "Disconnected";
-                this.$notification.open({
-                    key: "onclose",
-                    message: "Connection closed.",
-                    description:
-                        "The connection to the server has been disconnected, check if dalao-proxy still running",
-                    onClick: () => {
-                        this.$notification.close("onclose");
-                    }
-                });
-            };
-            ws.onmessage = ev => {
-                this.receivingData(ev.data);
-            };
+            wsConnector.connect();
+            wsConnector.listen('onMessage', this.receivingData);
         },
 
         // Add data to monitor
@@ -357,10 +348,15 @@ export default {
                         Object.assign({}, item, data)
                     );
                 } else {
-                    this.monitorData.push(data);
+                    const { maxRecords } = this.config;
+                    let limitIndex = this.monitorData.length - maxRecords;
+                    if (limitIndex < 0) {
+                        limitIndex = 0;
+                    }
+                    this.monitorData = [...this.monitorData, data].slice(limitIndex);
                 }
             } else if (/config/.test(data.type)) {
-                this.serverConfig = data.config;
+                this.serverConfig = data.value;
             } else if (/clean/.test(data.type)) {
                 this.monitorData = [];
             }
@@ -390,6 +386,10 @@ export default {
         },
         clearAllData() {
             this.monitorData = [];
+            wsConnector.send({
+                type: 'action',
+                action: 'clean',
+            })
         },
 
         rowClassName(row) {
@@ -490,6 +490,14 @@ export default {
                 background: #fafafa;
             }
         }
+    }
+
+    &-detail-wrapper {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        overflow-y: auto;
     }
     .label {
         &-connecting {

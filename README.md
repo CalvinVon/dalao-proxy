@@ -93,7 +93,7 @@ Options:
     -H, --host [hostname]       dynamic add host linked to your server address
     -t, --target [proxyTarget]  target server to proxy
     -c, --cache                 enable request cache
-    -i, --info                  enable log print
+    -i, --logger                  enable log print
     -h, --help                  output usage information
 ```
 
@@ -273,7 +273,7 @@ Default config filename is `dalao.config.json`
     // define response body filter
     "responseFilter": [],
     // enable logger
-    "info": false,
+    "logger": false,
     // show debug message
     "debug": false,
     // custom response headers

@@ -1,7 +1,9 @@
 const defaultOptions = {
     open: true,
     cleanOnRestart: false,
-    disableLogger: true
+    disableLogger: true,
+    maxRecords: 100,
+    editor: 'code'
 };
 
 function configureSetting() {

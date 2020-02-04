@@ -44,7 +44,7 @@ module.exports = {
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { response, request } = context;
-        const info = context.config.info;
+        const logger = context.config.logger;
         const userConfigHeaders = context.config.headers;
         const {
             dirname: cacheDirname,
@@ -329,7 +329,7 @@ module.exports = {
         }
 
         function logMatchedPath(targetFilePath) {
-            if (!info) return;
+            if (!logger) return;
 
             const message = chalk.yellow(`> Hit! [${context.matched.path}]`)
                 + `   ${method.toUpperCase()}   ${url}`
@@ -340,14 +340,16 @@ module.exports = {
     },
 
     afterProxy(context) {
-        const info = context.config.info;
+        const logger = context.config.logger;
         const {
             dirname: cacheDirname,
             contentType: cacheContentType,
             filters,
         } = this.config;
         const { method, url } = context.request;
-        const { response } = context.proxy;
+        const { response, error } = context.proxy;
+
+        if (error) return;
 
         const route = context.matched.route;
         const cacheFilters = filters.filter(filter => (filter.applyRoute === '*' || filter.applyRoute === route.path));
@@ -383,7 +385,7 @@ module.exports = {
                         cacheFileName = cacheFileInOrignal();
                     }
 
-                    info && console.log(chalk.gray('> Cached into [') + chalk.grey(cacheFileName) + chalk.grey(']'));
+                    logger && console.log(chalk.gray('> Cached into [') + chalk.grey(cacheFileName) + chalk.grey(']'));
                 }
 
 

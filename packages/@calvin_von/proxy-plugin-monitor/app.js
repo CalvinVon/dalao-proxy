@@ -7,7 +7,7 @@ const port = 40001;
 let server;
 let app;
 
-exports.launchMonitor = function (cb) {
+exports.launchMonitor = function (config, cb) {
     if (server) {
         server.close();
         app.ws.clients.forEach(client => client.terminate());
@@ -23,7 +23,7 @@ exports.launchMonitor = function (cb) {
 
     attachServer(port, (ws, realPort) => {
         app.ws = ws;
-        require('./monitor')(app);
+        require('./monitor')(app, config);
         cb(realPort);
     });
 
@@ -36,7 +36,6 @@ exports.launchMonitor = function (cb) {
                 server,
                 path: '/ws'
             });
-            console.log('  [monitor] attached at http://localhost:' + port);
 
             // add broadcast method
             ws.broadcast = function broadcast(data) {
