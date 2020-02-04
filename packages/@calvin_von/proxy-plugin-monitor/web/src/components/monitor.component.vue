@@ -86,7 +86,7 @@
                         {{ record['Response Headers']['content-type'] }}
                     </template>
                     <template v-else>
-                        {{ record['Request Headers']['content-type'] }}
+                        {{ record['Request Headers']['content-type'].replace(/;\s?boundary=\S+/, '') }}
                     </template>
                 </div>
                 <!-- Type -->
@@ -139,7 +139,7 @@
 </template>
 
 <script>
-import wsConnector from '../plugins/ws-connector';
+import wsConnector from "../plugins/ws-connector";
 import Status from "./monitor/status.component";
 import FilterTab from "./monitor/filter-tab.component";
 import Detail from "./monitor/detail.component";
@@ -330,7 +330,7 @@ export default {
         // Establish connection
         connect() {
             wsConnector.connect();
-            wsConnector.listen('onMessage', this.receivingData);
+            wsConnector.listen("onMessage", this.receivingData);
         },
 
         // Add data to monitor
@@ -353,7 +353,9 @@ export default {
                     if (limitIndex < 0) {
                         limitIndex = 0;
                     }
-                    this.monitorData = [...this.monitorData, data].slice(limitIndex);
+                    this.monitorData = [...this.monitorData, data].slice(
+                        limitIndex
+                    );
                 }
             } else if (/config/.test(data.type)) {
                 this.serverConfig = data.value;
@@ -387,19 +389,28 @@ export default {
         clearAllData() {
             this.monitorData = [];
             wsConnector.send({
-                type: 'action',
-                action: 'clean',
-            })
+                type: "action",
+                action: "clean"
+            });
         },
 
         rowClassName(row) {
             const classes = [];
-            if (row.status.code === 500) {
-                classes.push("row-status-500");
+            if (typeof row.status === "object") {
+                if (!/(2\d{2}|304)/.test(row.status.code + '')) {
+                    classes.push("row-status-unsuccess");
+                }
+                else if (row.status.code === 500) {
+                    classes.push("row-status-500");
+                }
+            } else {
+                classes.push("row-status-unfinished");
             }
+
             if (row === this.detail) {
                 classes.push("row-status-selected");
             }
+
             return classes;
         },
 
@@ -571,6 +582,12 @@ export default {
             }
             &-500 {
                 background: #fafafa;
+            }
+            &-unfinished {
+                background: #f5f5f5;
+            }
+            &-unsuccess {
+                background: rgba(255, 253, 231, 0.43);
             }
         }
     }
