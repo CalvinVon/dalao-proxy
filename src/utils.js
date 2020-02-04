@@ -1,5 +1,7 @@
-const os = require('os');
+const chalk = require('chalk');
 const _ = require('lodash');
+
+const os = require('os');
 const path = require('path');
 
 const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
@@ -139,7 +141,22 @@ function getType(value, type) {
 }
 
 
+function printWelcome(version) {
+    let str = '';
+    str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
+    str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
+    str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n\n';
+    str += '                                             ';
+
+    console.log(chalk.yellow(str), chalk.yellow('Dalao Proxy'), chalk.green('v' + version));
+    console.log('                                            powered by CalvinVon');
+    console.log(chalk.grey('                        https://github.com/CalvinVon/dalao-proxy'));
+    console.log('\n');
+};
+
+
 module.exports = {
+    printWelcome,
     isDebugMode,
     HTTP_PREFIX_REG,
     custom_assign,

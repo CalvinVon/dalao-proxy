@@ -156,13 +156,13 @@ class Plugin {
         this._commanderPath;
 
         try {
-            const { 
+            const {
                 indexPath,
                 commanderPath,
                 configurePath,
                 packagejsonPath
             } = Plugin.resolvePluginPaths(this.id);
-            
+
             this._indexPath = indexPath;
             this._packagejsonPath = packagejsonPath;
             this._commanderPath = commanderPath;
@@ -446,9 +446,37 @@ class PluginInterrupt {
     }
 }
 
+
+function usePlugins(program, pluginsNames) {
+    // program.context.plugins = [];
+    // register._reset();
+
+    pluginsNames.forEach(name => {
+        program.context.plugins.push(new Plugin(name, program.context));
+    });
+};
+
+function reloadPlugins(plugins) {
+    plugins.forEach(plugin => {
+        try {
+            plugin.load();
+        } catch (error) {
+            let pluginErrResult;
+            if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+                console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
+            }
+            else {
+                console.error(error);
+            }
+        }
+    });
+}
+
 module.exports = {
     Plugin,
     PluginInterrupt,
     Register,
     register,
-}
+    usePlugins,
+    reloadPlugins
+};

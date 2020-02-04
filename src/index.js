@@ -1,4 +1,3 @@
-const chalk = require('chalk');
 const { Command, Option } = require('commander');
 const defaultConfig = require('../config');
 const ConfigParser = require('./parser/config-parser');
@@ -81,10 +80,62 @@ Command.prototype.context = new CommandContext();
 
 /**
  * @public
+ */
+Command.prototype.use = function use(command, callback) {
+    command.call(this, this, callback);
+    return this;
+};
+
+
+/**
+ * @public
  * Find subcommand by name
  */
 Command.prototype.findCommand = function findCommand(subcommandName) {
     return this.commands.find(it => it._name === subcommandName);
+};
+
+
+/**
+ * @public
+ * Enable the program read user input and emit 'input' event
+ */
+Command.prototype.enableInput = function () {
+    this.context.program._enableInput = true;
+};
+
+
+/**
+ * @public
+ * Enable the server collect each real proxy request's data and response's data
+ */
+Command.prototype.enableCollectData = function () {
+    this.context.program._collectingData = true;
+};
+
+/**
+ * @public
+ * Enable the server collect each client request's data and response's data
+ */
+Command.prototype.enableCollectOriginData = function () {
+    this.context.program._collectingOriginData = true;
+};
+
+/**
+ * @public
+ * Return whether the server is collecting real proxy data
+ */
+Command.prototype.isCollectingData = function () {
+    return this.context.program._collectingData;
+};
+
+
+/**
+ * @public
+ * Return whether the server is collecting client data
+ */
+Command.prototype.isCollectingOriginData = function () {
+    return this.context.program._collectingOriginData;
 };
 
 
@@ -160,65 +211,10 @@ Command.prototype.forwardSubcommands = function () {
     return this;
 };
 
-/**
- * @private
- */
-Command.prototype.use = function use(command, callback) {
-    command.call(this, this, callback);
-    return this;
-};
-
-
-/**
- * @public
- * Enable program read user input and emit 'input' event
- */
-Command.prototype.enableInput = function () {
-    this._enableInput = true;
-};
 
 const entryProgram = new Command();
 entryProgram.context.program = entryProgram;
 exports.program = entryProgram;
-
-exports.usePlugins = function usePlugins(program, pluginsNames) {
-    // program.context.plugins = [];
-    // register._reset();
-
-    pluginsNames.forEach(name => {
-        program.context.plugins.push(new Plugin(name, program.context));
-    });
-};
-
-exports.reloadPlugins = function reloadPlugins(plugins) {
-    plugins.forEach(plugin => {
-        try {
-            plugin.load();
-        } catch (error) {
-            let pluginErrResult;
-            if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
-                console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
-            }
-            else {
-                console.error(error);
-            }
-        }
-    });
-}
-
-
-exports.printWelcome = function printWelcome(version) {
-    let str = '';
-    str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
-    str += '| | \\  / /\\  | |    / /\\  / / \\     | |_) | |_) / / \\ \\ \\_/ \\ \\_/ \n';
-    str += '|_|_/ /_/--\\ |_|__ /_/--\\ \\_\\_/     |_|   |_| \\ \\_\\_/ /_/ \\  |_|  \n\n';
-    str += '                                             ';
-
-    console.log(chalk.yellow(str), chalk.yellow('Dalao Proxy'), chalk.green('v' + version));
-    console.log('                                            powered by CalvinVon');
-    console.log(chalk.grey('                        https://github.com/CalvinVon/dalao-proxy'));
-    console.log('\n');
-};
 
 exports.CommandContext = CommandContext;
 exports.ConfigParser = ConfigParser;

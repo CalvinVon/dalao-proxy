@@ -10,6 +10,7 @@ const querystring = require('querystring');
 const BodyParser = require('../parser/body-parser');
 const { PluginInterrupt } = require('../plugin');
 const { version } = require('../../config/index');
+const { program } = require('..');
 
 const {
     joinUrl,
@@ -319,6 +320,11 @@ function proxyRequestWrapper(config, corePlugins) {
 
                     context.proxy = {
                         error: null,
+                        data: {
+                            error: null,
+                            request: null,
+                            response: null
+                        },
                         route: matchedRoute,
                         uri: proxyUrl,
                         URL: require('url').parse(proxyUrl)
@@ -355,8 +361,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 setProxyRequestHeaders(x, matchedRoute);
 
                 return new Promise(resolve => {
-                    let pluginOnProxyRespondPromise,
-                        collectResponseDataPromise;
+                    const waitingList = [];
 
                     x.on('response', response => {
                         /**
@@ -372,27 +377,49 @@ function proxyRequestWrapper(config, corePlugins) {
                         setResponseHeaders(response.headers);
                         res.writeHead(response.statusCode, response.statusMessage);
 
-                        collectResponseDataPromise = collectProxyResponseData(context);
+                        // collect proxy request data
+                        if (program._collectingData) {
+                            waitingList.push(
+                                collectResponseData(context, context.proxy.responseStream)
+                                    .then(data => {
+                                        context.data.response = data;
+                                    })
+                                    .catch(err => context.proxy.data.error = err)
+                            );
+                        }
+
+                        // collect client request data
+                        if (program._collectingOriginData) {
+                            waitingList.push(
+                                collectResponseData(context, context.proxy.originResponseStream)
+                                    .then(data => {
+                                        context.proxy.data.response = data;
+                                    })
+                                    .catch(err => context.data.error = err)
+                            );
+                        }
+
                         /**
                          * onProxyRespond
                          * @desc send request
                          * @returns {Object} context
                          */
-                        pluginOnProxyRespondPromise = Middleware_onProxyRespond(context);
+                        const pluginOnProxyRespondPromise = Middleware_onProxyRespond(context);
                         pluginOnProxyRespondPromise.catch(() => { });
+                        waitingList.push(pluginOnProxyRespondPromise);
                     });
 
                     x.on('error', error => {
                         logger && console.error(chalk.red(`> Cannot to proxy ${method.toUpperCase()} [${matchedPath}] to [${proxyUrl}]: ${error.message}`));
                         context.proxy.error = error;
-                        res.writeHead(502, error.code);
+                        res.writeHead(503, 'Service Unavailable');
                         res.write(error.message);
-                        res.end();
+                        res.end('Connect to server failed with code ' + err.code);
                         resolve([context]);
                     });
 
                     x.on('end', () => {
-                        resolve(Promise.all([pluginOnProxyRespondPromise, collectResponseDataPromise]));
+                        resolve(Promise.all(waitingList));
                     });
 
                     const xReqStream = req
@@ -458,7 +485,29 @@ function proxyRequestWrapper(config, corePlugins) {
                      */
                     context.proxy.originResponseStream = xResOriginStream;
 
-                    collectRequestData(context);
+
+                    // collect data
+                    context.data = {
+                        error: null,
+                        request: null,
+                        response: null
+                    };
+
+                    // collect proxy request data
+                    if (program._collectingData) {
+                        collectRequestData(context, context.proxy.requestStream, (err, data) => {
+                            context.proxy.data.error = err;
+                            context.proxy.data.request = data;
+                        });
+                    }
+
+                    // collect client request data
+                    if (program._collectingOriginData) {
+                        collectRequestData(context, req, (err, data) => {
+                            context.proxy.data.error = err;
+                            context.data.request = data;
+                        });
+                    }
                     Middleware_onProxySetup(context);
                 });
             })
@@ -469,7 +518,7 @@ function proxyRequestWrapper(config, corePlugins) {
              * @param {Object} context
              * @returns {Object} context
              */
-            .then(([context]) => Middleware_afterProxy(context))
+            .then(([...args]) => Middleware_afterProxy(args.pop()))
             .catch(error => {
                 if (!error instanceof PluginInterrupt || config.debug) {
                     console.error(error);
@@ -482,35 +531,38 @@ function proxyRequestWrapper(config, corePlugins) {
         /* Functions in Content ------------------------------- */
         /********************************************************/
 
-        // Collect request data
-        function collectRequestData(context) {
-
-            const reqContentType = req.headers['content-type'];
-            context.proxy.requestStream.pipe(concat(buffer => {
+        /**
+         * Collect request data
+         * @param {CommandContext} context
+         * @param {ReadableStream<Buffer>} source
+         * @param {Function} callback
+         */
+        function collectRequestData(context, source, callback) {
+            let error;
+            const reqContentType = formatHeaders(req.headers)['content-type'];
+            source.pipe(concat(buffer => {
                 const data = {
                     rawBuffer: buffer,
                     body: '',
                     query: querystring.parse(context.request.URL.query),
                     type: reqContentType
                 };
-                context.data = {
-                    error: null,
-                    request: data,
-                    response: null
-                };
 
-                data.body = BodyParser.parse(reqContentType, buffer, error => {
+                data.body = BodyParser.parse(reqContentType, buffer, err => {
+                    error = err;
                     logger && console.log(' > Error: can\'t parse requset body. ' + error.message);
                 });
+
+                callback(error, data);
             }));
         }
 
         // Collect response data
-        function collectProxyResponseData(context) {
-            const { request: proxyRequest, response: proxyResponse, responseStream } = context.proxy;
+        function collectResponseData(context, source) {
+            const { response: proxyResponse } = context.proxy;
 
             return new Promise(resolve => {
-                responseStream.pipe(concat(buffer => {
+                source.pipe(concat(buffer => {
                     const data = {
                         rawBuffer: buffer,
                         rawData: buffer.toString(),
@@ -518,23 +570,17 @@ function proxyRequestWrapper(config, corePlugins) {
                         type: null,
                         size: buffer.byteLength,
                     };
-                    context.data.response = data;
-                    proxyRequest.on('error', err => {
-                        context.data.error = err;
-                        res.writeHead(503, 'Service Unavailable');
-                        res.end('Connect to server failed with code ' + err.code);
-                    });
-
 
                     try {
-                        if (/json/.test(data.type = proxyResponse.headers['content-type'])) {
+                        const contentType = data.type = formatHeaders(proxyResponse.headers)['content-type'];
+                        if (/json/.test(contentType)) {
                             data.data = JSON.parse(fixJson(data.rawData));
                         }
                     } catch (error) {
                         console.error(chalk.red(` > An error occurred (${error.message}) while parsing response data.`));
                     }
 
-                    resolve();
+                    resolve(data);
                 }));
             })
         }
@@ -548,7 +594,9 @@ function proxyRequestWrapper(config, corePlugins) {
             const mergeList = [];
             const rewriteHeaders = formatHeaders({
                 'Connection': 'close',
-                'Host': changeOrigin ? new URL(target).hostname : clientHeaders['Host']
+                'Transfer-Encoding': 'chunked',
+                'Host': changeOrigin ? new URL(target).hostname : clientHeaders['Host'],
+                'Content-Length': null
             });
 
             // originalHeaders < rewriteHeaders < userHeaders
@@ -618,7 +666,6 @@ function proxyRequestWrapper(config, corePlugins) {
         function formatHeaders(headers) {
             const formattedHeaders = {};
             Object.keys(headers).forEach(key => {
-                // const header = key.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
                 const header = key.toLowerCase();
                 formattedHeaders[header] = headers[key];
             });

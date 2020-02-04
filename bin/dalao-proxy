@@ -4,13 +4,11 @@ const chalk = require('chalk');
 const readline = require('readline');
 const baseConfig = require('../config');
 
-const register = require('../src/plugin').register;
+const { register, usePlugins, reloadPlugins } = require('../src/plugin');
 const {
     program,
     ConfigParser,
     parserEmitter,
-    usePlugins,
-    reloadPlugins,
     commands: Commands,
 } = require('../src');
 

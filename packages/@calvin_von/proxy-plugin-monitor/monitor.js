@@ -212,7 +212,7 @@ const Monitor = module.exports = function (app, config) {
         data['Proxy']['Timing'] = times.proxy_end - times.request_start;
 
         // send request data
-        if (ctx.data.request) {
+        if (ctx.data.request && ctx.data.request.body) {
             const reqBodyType = ctx.data.request.type;
             const originBody = ctx.data.request.body;
             const proxyBody = ctx.proxy.data.request.body;
@@ -266,7 +266,7 @@ const Monitor = module.exports = function (app, config) {
                     },
                     response: {
                         ...ctx.data.response
-                    },
+                    }
                 },
                 'General': {
                     'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`,
@@ -274,6 +274,10 @@ const Monitor = module.exports = function (app, config) {
                 status: {
                     code: ctx.response.statusCode,
                     message: ctx.response.statusMessage
+                },
+                'Proxy Response': {
+                    ...ctx.proxy.data.response,
+                    rawBuffer: null
                 },
                 'Response Headers': headers,
                 'Timing': ctx.monitor.times.request_end - ctx.monitor.times.request_start

@@ -94,6 +94,12 @@
                               :detail="detail"></detail-block>
                 <!-- Form Data -->
 
+                <!-- Proxy Response -->
+                <detail-block v-if="detail['Proxy Response']"
+                              name="Proxy Response"
+                              useRawDataViewer
+                              :detail="detail"></detail-block>
+                <!-- Proxy Response -->
             </a-tab-pane>
 
             <a-tab-pane tab="Preview"

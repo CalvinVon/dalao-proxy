@@ -13,89 +13,96 @@
         <div class="block-content"
              v-if="!folded">
 
-            <!-- render data fields -->
-            <template v-if="(showParsedField && toggleParsed) || !showParsedField">
-                <p class="content-pair"
-                   v-for="key in Object.keys(targetValue || {})"
-                   :key="key">
-
-                    <template v-if="key == 'rawBuffer'"></template>
-
-                    <!-- render pairs if they are same -->
-                    <template v-else-if="Array.isArray(targetValue[key])">
-                        <p class="content-pair same-pair"
-                           v-for="item in targetValue[key]"
-                           :key="item">
-                            <span class="pair-key">{{ key }}</span>
-                            <code class="pair-value">{{ item }}</code>
-                        </p>
-                    </template>
-                    <!-- render pairs if they are same -->
-
-                    <!-- render normal pairs -->
-                    <template v-else>
-                        <span class="pair-key">{{ key }}</span>
-
-                        <template v-if="isCached && /hit cache/i.test(targetValue[key])">
-                            <a-tooltip placement="top">
-                                <code class="pair-value">{{ targetValue[key] }}</code>
-
-                                <template slot="title">
-                                    <p class="cache-tooltip">
-                                        <span>
-                                            Response is cached
-                                        </span>
-                                    </p>
-                                </template>
-                            </a-tooltip>
-                            <a-button @click="$emit('change-tab', '2')">Open in cache tab
-                                <a-icon type="link" />
-                            </a-button>
-                        </template>
-
-                        <template v-else>
-                            <code class="pair-value">{{ targetValue[key] }}
-
-                                <template v-if="isCached && key.match(/^x-cache-file$/)">
-                                    <a-tooltip placement="top">
-                                        <a-icon @click="handleOpenFile(targetValue[key])"
-                                                type="link" />
-
-                                        <template slot="title">
-                                            <span>Open file in editor</span>
-                                        </template>
-                                    </a-tooltip>
-                                </template>
-
-                                <template v-else-if="showDownloadField && targetValue[key].match(/^\<File: [^>]+>$/)">
-                                    <a-tooltip placement="top">
-                                        <a-icon @click="handleDownloadFile(key)"
-                                                type="download" />
-
-                                        <template slot="title">
-                                            <span>Download this file</span>
-                                        </template>
-                                    </a-tooltip>
-                                </template>
-                            </code>
-                        </template>
-                    </template>
-                    <!-- render normal pairs -->
-
-                </p>
+            <template v-if="useRawDataViewer">
+                <RawDataViewer :data="detail[name]"/>
             </template>
-            <!-- render data fields -->
-
-            <!-- render raw -->
             <template v-else>
-                <pre class="content-raw">{{ targetValue }}<a-tooltip placement="top">
+
+                <!-- render data fields -->
+                <template v-if="(showParsedField && toggleParsed) || !showParsedField">
+                    <p class="content-pair"
+                       v-for="key in Object.keys(targetValue || {})"
+                       :key="key">
+
+                        <template v-if="key == 'rawBuffer'"></template>
+
+                        <!-- render pairs if they are same -->
+                        <template v-else-if="Array.isArray(targetValue[key])">
+                            <p class="content-pair same-pair"
+                               v-for="item in targetValue[key]"
+                               :key="item">
+                                <span class="pair-key">{{ key }}</span>
+                                <code class="pair-value">{{ item }}</code>
+                            </p>
+                        </template>
+                        <!-- render pairs if they are same -->
+
+                        <!-- render normal pairs -->
+                        <template v-else>
+                            <span class="pair-key">{{ key }}</span>
+
+                            <template v-if="isCached && /hit cache/i.test(targetValue[key])">
+                                <a-tooltip placement="top">
+                                    <code class="pair-value">{{ targetValue[key] }}</code>
+
+                                    <template slot="title">
+                                        <p class="cache-tooltip">
+                                            <span>
+                                                Response is cached
+                                            </span>
+                                        </p>
+                                    </template>
+                                </a-tooltip>
+                                <a-button @click="$emit('change-tab', '2')">Open in cache tab
+                                    <a-icon type="link" />
+                                </a-button>
+                            </template>
+
+                            <template v-else>
+                                <code class="pair-value">{{ targetValue[key] }}
+
+                                    <template v-if="isCached && key.match(/^x-cache-file$/)">
+                                        <a-tooltip placement="top">
+                                            <a-icon @click="handleOpenFile(targetValue[key])"
+                                                    type="link" />
+
+                                            <template slot="title">
+                                                <span>Open file in editor</span>
+                                            </template>
+                                        </a-tooltip>
+                                    </template>
+
+                                    <template v-else-if="showDownloadField && targetValue[key].match(/^\<File: [^>]+>$/)">
+                                        <a-tooltip placement="top">
+                                            <a-icon @click="handleDownloadFile(key)"
+                                                    type="download" />
+
+                                            <template slot="title">
+                                                <span>Download this file</span>
+                                            </template>
+                                        </a-tooltip>
+                                    </template>
+                                </code>
+                            </template>
+                        </template>
+                        <!-- render normal pairs -->
+
+                    </p>
+                </template>
+                <!-- render data fields -->
+
+                <!-- render raw -->
+                <template v-else>
+                    <pre class="content-raw">{{ targetValue }}<a-tooltip placement="top">
                     <a-icon v-clipboard:copy="targetValue" type="copy" />
                     <template slot="title">
                         <span>Copy it!</span>
                     </template>
                 </a-tooltip></pre>
+                </template>
+                <!-- render raw -->
+
             </template>
-            <!-- render raw -->
         </div>
     </div>
 </template>
@@ -105,6 +112,7 @@ import { Modal } from "ant-design-vue";
 import wsConnector from "../../plugins/ws-connector";
 import Mount from "vue-mount";
 import FilePathSelector from "./file-path-selector.component";
+import RawDataViewer from './raw-data-viewer.component';
 
 const FileSelectorDialog = {
     name: "FileSelectorDialog",
@@ -122,11 +130,11 @@ const FileSelectorDialog = {
             Modal,
             {
                 props: {
-                    title: 'Please select folder to save',
+                    title: "Please select folder to save",
                     width: "80%",
                     visible: this.visible,
                     wrapClassName: "file-selector-dialog",
-                    okText: "Select this folder",
+                    okText: "Select this folder"
                 },
                 on: {
                     ok: () => {
@@ -150,12 +158,16 @@ const FileSelectorDialog = {
 
 export default {
     name: "monitor-detail-block",
+    components: {
+        RawDataViewer
+    },
     props: {
         detail: Object,
         name: String,
         alias: String,
         showParsedField: Boolean,
-        showDownloadField: Boolean
+        showDownloadField: Boolean,
+        useRawDataViewer: Boolean
     },
     data() {
         return {
@@ -210,11 +222,11 @@ export default {
 
                 if (error) {
                     this.$notification.error({
-                        message: 'Download file error',
-                        description: 'Reason: ' + error
+                        message: "Download file error",
+                        description: "Reason: " + error
                     });
                 }
-            })
+            });
         },
 
         openPathSelector(callback) {
@@ -360,6 +372,10 @@ export default {
                 }
             }
         }
+    }
+
+    .anticon-copy {
+        top: 0;
     }
 }
 

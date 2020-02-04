@@ -1,5 +1,5 @@
 const baseConfig = require('../../../config');
-const printWelcome = require('../../../src').printWelcome;
+const { printWelcome } = require('../../utils');
 const ProxyServer = require('../../server');
 const parserEmitter = require('../../parser/config-parser').emitter;
 
