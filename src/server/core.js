@@ -1,10 +1,13 @@
 const chalk = require('chalk');
 const request = require('request');
 const _ = require('lodash');
-const URL = require('url').URL;
 const through = require('through2');
 const concat = require('concat-stream');
+
+const URL = require('url').URL;
 const querystring = require('querystring');
+
+const BodyParser = require('../parser/body-parser');
 const { PluginInterrupt } = require('../plugin');
 const { version } = require('../../config/index');
 
@@ -168,7 +171,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
     function proxyRequest(req, res) {
         const {
-            info,
+            logger,
             host,
             port,
             headers: userHeaders,
@@ -380,7 +383,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     });
 
                     x.on('error', error => {
-                        info && console.error(chalk.red(`> Cannot to proxy ${method.toUpperCase()} [${matchedPath}] to [${proxyUrl}]: ${error.message}`));
+                        logger && console.error(chalk.red(`> Cannot to proxy ${method.toUpperCase()} [${matchedPath}] to [${proxyUrl}]: ${error.message}`));
                         context.proxy.error = error;
                         res.writeHead(502, error.code);
                         res.write(error.message);
@@ -412,8 +415,10 @@ function proxyRequestWrapper(config, corePlugins) {
                             })
                         );
 
-                    const xResStream = xReqStream
-                        .pipe(x)
+                    const xResOriginStream = xReqStream
+                        .pipe(x);
+
+                    const xResStream = xResOriginStream
                         .pipe(
                             through(function (chunk, enc, callback) {
 
@@ -434,14 +439,24 @@ function proxyRequestWrapper(config, corePlugins) {
 
                     xResStream.pipe(res);
 
-                    info && console.log(chalk.green(`> Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
+                    logger && console.log(chalk.green(`> Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
                     /**
                      * x is an instance of request.Request
                      */
                     context.proxy.request = x;
+                    /**
+                     * Proxy request stream after transformed
+                     */
                     context.proxy.requestStream = xReqStream;
+                    /**
+                     * Proxy response stream after transformed
+                     */
                     context.proxy.responseStream = xResStream;
+                    /**
+                     * Original response stream
+                     */
+                    context.proxy.originResponseStream = xResOriginStream;
 
                     collectRequestData(context);
                     Middleware_onProxySetup(context);
@@ -474,7 +489,6 @@ function proxyRequestWrapper(config, corePlugins) {
             context.proxy.requestStream.pipe(concat(buffer => {
                 const data = {
                     rawBuffer: buffer,
-                    rawBody: buffer.toString(),
                     body: '',
                     query: querystring.parse(context.request.URL.query),
                     type: reqContentType
@@ -485,49 +499,35 @@ function proxyRequestWrapper(config, corePlugins) {
                     response: null
                 };
 
-                if (!data.rawBody || !reqContentType) return;
-
-                try {
-                    if (/application\/x-www-form-urlencoded/.test(reqContentType)) {
-                        data.body = querystring.parse(data.rawBody);
-                    } else if (/application\/json/.test(reqContentType)) {
-                        data.body = JSON.parse(data.rawBody);
-                    } else if (/multipart\/form-data/.test(reqContentType)) {
-                        data.body = data.rawBody;
-                    }
-                } catch (error) {
-                    info && console.log(' > Error: can\'t parse requset body. ' + error.message);
-                }
+                data.body = BodyParser.parse(reqContentType, buffer, error => {
+                    logger && console.log(' > Error: can\'t parse requset body. ' + error.message);
+                });
             }));
         }
 
         // Collect response data
         function collectProxyResponseData(context) {
-            const { request: proxyRequest, responseStream } = context.proxy;
-            const data = {
-                rawBuffer: null,
-                rawData: null,
-                data: '',
-                type: null,
-                size: 0,
-                encode: null
-            };
-            context.data.response = data;
+            const { request: proxyRequest, response: proxyResponse, responseStream } = context.proxy;
 
             return new Promise(resolve => {
                 responseStream.pipe(concat(buffer => {
-                    data.rawBuffer = buffer;
-                    data.rawData = buffer.toString();
+                    const data = {
+                        rawBuffer: buffer,
+                        rawData: buffer.toString(),
+                        data: '',
+                        type: null,
+                        size: buffer.byteLength,
+                    };
+                    context.data.response = data;
                     proxyRequest.on('error', err => {
                         context.data.error = err;
                         res.writeHead(503, 'Service Unavailable');
                         res.end('Connect to server failed with code ' + err.code);
                     });
 
-                    data.size = Buffer.byteLength(data.rawData);
 
                     try {
-                        if (/json/.test(data.type = proxyRequest.response.headers['content-type'])) {
+                        if (/json/.test(data.type = proxyResponse.headers['content-type'])) {
                             data.data = JSON.parse(fixJson(data.rawData));
                         }
                     } catch (error) {

@@ -2,7 +2,9 @@ const chalk = require('chalk');
 const { Command, Option } = require('commander');
 const defaultConfig = require('../config');
 const ConfigParser = require('./parser/config-parser');
+const BodyParser = require('./parser/body-parser');
 const { Plugin, register } = require('./plugin');
+const Utils = require('./utils');
 
 class CommandContext {
     constructor() {
@@ -61,6 +63,13 @@ class CommandContext {
          * program output
          */
         this.output = {};
+
+        this.exports = {
+            ConfigParser,
+            BodyParser,
+            Plugin,
+            Utils
+        };
     }
 }
 
