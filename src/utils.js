@@ -2,10 +2,10 @@ const chalk = require('chalk');
 const _ = require('lodash');
 
 const os = require('os');
+const URL = require('url').URL;
 const path = require('path');
 
-const HTTP_PREFIX_REG = new RegExp(/^(https?:\/\/)/);
-const STATIC_FILE_REG = new RegExp(/(^\/$|\.[^\.]+$)/);
+const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
 
 function isDebugMode() {
     return process.env.DALAO_ENV === 'DEV';
@@ -17,7 +17,7 @@ function custom_assign(objValue, srcValue) {
 
 // make url complete with http/https
 function addHttpProtocol(urlFragment) {
-    if (!HTTP_PREFIX_REG.test(urlFragment)) {
+    if (!HTTP_PROTOCOL_REG.test(urlFragment)) {
         return 'http://' + urlFragment;
     }
     else {
@@ -27,11 +27,11 @@ function addHttpProtocol(urlFragment) {
 
 
 function splitTargetAndPath(url) {
-    const [_, target = '', path = ''] = url.match(/^((?:https?:\/\/)?(?:(?:[\w-_]+\.)+[\w-_]+|localhost)(?::\d+)?)?(.+)?/i) || [];
+    const { origin: target, pathname: path } = new URL(addHttpProtocol(url));
     return {
         target,
         path
-    }
+    };
 }
 
 
@@ -69,10 +69,13 @@ function transformPath(target, pathRewriteMap) {
             Object.keys(pathRewriteMap).forEach(path => {
                 const rewriteReg = new RegExp(path);
                 const replaceStr = pathRewriteMap[path];
-                // use string match replace first, then regexp match
+
                 result = result
-                    .replace(path, replaceStr)
-                    .replace(rewriteReg, replaceStr)
+                    .replace(rewriteReg, (...matched) => {
+                        return replaceStr.replace(/\$(\d+)/g, (_, index) => {
+                            return matched[index];
+                        });
+                    })
             });
 
             return targetTarget + result.replace(/\/\//g, '/');
@@ -103,15 +106,6 @@ function fixJson(value) {
         })
 }
 
-// is static file uri value
-function isStaticResouce(uri = '') {
-    return STATIC_FILE_REG.test(
-        uri
-            .replace(/\?.+/, '')
-            .replace(/#.+/, '')
-    )
-
-}
 
 function getIPv4Address() {
     const interfaces = os.networkInterfaces();
@@ -158,11 +152,10 @@ function printWelcome(version) {
 module.exports = {
     printWelcome,
     isDebugMode,
-    HTTP_PREFIX_REG,
+    HTTP_PROTOCOL_REG,
     custom_assign,
     joinUrl,
     addHttpProtocol,
-    isStaticResouce,
     splitTargetAndPath,
     pathCompareFactory,
     transformPath,

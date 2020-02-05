@@ -1,5 +1,5 @@
 const chalk = require('chalk');
-const REG_PROTOCOL_HOST_PORT = /^(https?:\/\/)?(([\w-_]+\.)+[\w-_]+|localhost)(\:\d+)?/;
+const REG_PROTOCOL_HOST_PORT = /^(https?:\/\/)?(([a-z\u00a1-\uffff0-9%_-]+\.)+[a-z\u00a1-\uffff0-9%_-]+|localhost)(\:\d+)?/i;
 
 /**
  * base check function
@@ -19,11 +19,11 @@ function _check (field, value, regexp, canIgnore = false) {
 
 const proxyTable = {
     // Supported Regexp
-    proxyPath: value => _check('proxyTable.[proxy]', value, /^\/([\w-_]+\/?)*$/),
+    proxyPath: value => _check('proxyTable.[proxy]', value, /^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/),
     // proxyPath: value => _check('proxyTable.[proxy]', value, /^[\w-_^$\\\.\/()\[\]]+$/),
     
     // Support $n replacement
-    path: value => _check('proxyTable.path', value, /^\/([\w-_]+\/?)*$/),
+    path: value => _check('proxyTable.path', value, /^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/),
     target: value => _check('proxyTable.target', value, REG_PROTOCOL_HOST_PORT, true),
 }
 
@@ -32,8 +32,7 @@ module.exports = {
     configFileName: value => _check('configFileName', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+(\.js(on)?)?$/),
     cacheDirname: value => _check('cacheDirname', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+$/),
     watch: value => _check('watch', value, /^(true|false)$/),
-    // cache: value => _check('cache', value, /^(true|false)$/),
-    host: value => _check('host', value, /^([\w-_]+\.)*[\w-_]+$/),
+    host: value => _check('host', value, /^([a-z\u00a1-\uffff0-9%_-]+\.)*[a-z\u00a1-\uffff0-9%_-]+$/),
     port: value => _check('port', value, /^\d{2,5}$/),
     target: value => _check('target', value, REG_PROTOCOL_HOST_PORT),
     proxyTable
