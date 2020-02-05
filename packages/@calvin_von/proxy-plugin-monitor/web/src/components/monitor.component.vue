@@ -86,7 +86,7 @@
                         {{ record['Response Headers']['content-type'] }}
                     </template>
                     <template v-else>
-                        {{ record['Request Headers']['content-type'].replace(/;\s?boundary=\S+/, '') }}
+                        {{ (record['Request Headers']['content-type'] || '').replace(/;\s?boundary=\S+/, '') }}
                     </template>
                 </div>
                 <!-- Type -->
@@ -306,7 +306,8 @@ export default {
             }, 0);
         },
         serverAddress() {
-            return `http://${this.serverConfig.host}:${this.serverConfig.port}`;
+            const host = this.serverConfig.host === '0.0.0.0' ? 'localhost' : this.serverConfig.host;
+            return `http://${host}:${this.serverConfig.port}`;
         }
     },
     components: {
@@ -358,7 +359,7 @@ export default {
                     );
                 }
             } else if (/config/.test(data.type)) {
-                this.serverConfig = data.value;
+                this.serverConfig = Object.freeze(data.value);
             } else if (/clean/.test(data.type)) {
                 this.monitorData = [];
             }

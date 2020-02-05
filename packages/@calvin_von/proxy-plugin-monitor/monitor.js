@@ -44,12 +44,16 @@ const Monitor = module.exports = function (app, config) {
     const broadcast = app.ws.broadcast;
 
     app.ws.on('connection', client => {
-        client.send(new WsSendData(null, app.monitorService.config).setType('config').stringify())
+        client.send(
+            new WsSendData(null, app.monitorService.config)
+                .setType('config')
+                .stringify()
+        );
         console.log('  [monitor] Connected!');
 
         client.on('message', message => {
             const request = JSON.parse(message);
-            const { id, type, action, value } = request;
+            const { type, action, value } = request;
             if (type === 'action') {
                 switch (action) {
                     case 'clean':
@@ -312,16 +316,19 @@ const Monitor = module.exports = function (app, config) {
 }
 
 Monitor.syncConfig = function (app) {
-    app.ws.broadcast({
-        type: 'config',
-        config: app.monitorService.config
-    });
+    app.ws.broadcast(
+        new WsSendData(null, app.monitorService.config)
+            .setType('config')
+            .stringify()
+    );
 };
 
 Monitor.cleanMonitor = function (app) {
-    app.ws.broadcast({
-        type: 'clean'
-    });
+    app.ws.broadcast(
+        new WsSendData(null)
+            .setType('clean')
+            .stringify()
+    );
 };
 
 
