@@ -179,6 +179,7 @@ function proxyRequestWrapper(config, corePlugins) {
             proxyTable,
         } = config;
 
+        const serverHost = host === '0.0.0.0' ? 'localhost' : host;
         const { method, url } = req;
         const { host: requestHost } = req.headers;
         const _request = request[method.toLowerCase()];
@@ -305,7 +306,8 @@ function proxyRequestWrapper(config, corePlugins) {
                     const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
 
                     // invalid request
-                    if (new RegExp(`\\b${host}:${port}\\b`).test(overwriteHost)) {
+                    
+                    if (new RegExp(`\\b${serverHost}:${port}\\b`).test(overwriteHost)) {
                         res.writeHead(403, {
                             'Content-Type': 'text/html; charset=utf-8'
                         });
@@ -414,7 +416,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         context.proxy.error = error;
                         res.writeHead(503, 'Service Unavailable');
                         res.write(error.message);
-                        res.end('Connect to server failed with code ' + err.code);
+                        res.end('Connect to server failed with code ' + error.code);
                         resolve([context]);
                     });
 
