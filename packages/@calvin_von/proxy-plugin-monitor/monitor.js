@@ -213,7 +213,8 @@ const Monitor = module.exports = function (app, config) {
         data.type = 'onProxyRespond';
         data['Proxy Request Headers'] = proxyRequest.getHeaders();
         data['Proxy Response Headers'] = proxyResponse.headers;
-        data['Proxy']['Timing'] = times.proxy_end - times.request_start;
+        data['Timing'] = times.proxy_end - times.request_start;
+        data['Proxy']['Timing'] = times.proxy_end - times.proxy_start;
 
         // send request data
         if (ctx.data.request && ctx.data.request.body) {

@@ -104,13 +104,19 @@
 
             <a-tab-pane tab="Preview"
                         class="pane-preview"
-                        v-if="isPending || isError || canPreview"
+                        v-if="isPending || isResponded || isError || canPreview"
                         key="3">
 
                 <template v-if="isPending">
                     <div class="not-available flex flex-center flex-column">
                         <h3>Preview not available</h3>
                         <p>Request not finished yet.</p>
+                    </div>
+                </template>
+                <template v-else-if="isResponded">
+                    <div class="not-available flex flex-center flex-column">
+                        <h3>Preview not available</h3>
+                        <p>Server responded, but not all response data received.</p>
                     </div>
                 </template>
                 <template v-else-if="isError">
@@ -140,6 +146,12 @@
                     <div class="not-available flex flex-center flex-column">
                         <h3>Response not available</h3>
                         <p>Request not finished yet.</p>
+                    </div>
+                </template>
+                <template v-else-if="isResponded">
+                    <div class="not-available flex flex-center flex-column">
+                        <h3>Response not available</h3>
+                        <p>Server responded, but not all response data received.</p>
                     </div>
                 </template>
                 <template v-else-if="isError">
@@ -190,6 +202,9 @@ export default {
         },
         isPending() {
             return /pending/i.test(this.detail.status);
+        },
+        isResponded() {
+            return /responded/i.test(this.detail.status);
         },
         isError() {
             return this.detail.data.error;

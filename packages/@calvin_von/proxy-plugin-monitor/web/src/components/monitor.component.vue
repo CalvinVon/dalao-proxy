@@ -317,6 +317,7 @@ export default {
     },
     created() {
         this.connect();
+        this.startRunTimeScan();
     },
     filters: {
         // whether the request hit cache
@@ -325,6 +326,15 @@ export default {
         }
     },
     methods: {
+        startRunTimeScan() {
+            setInterval(() => {
+                this.monitorData.forEach((request) => {
+                    if (typeof request.status === 'string') {
+                        request.Timing += 20;
+                    }
+                });
+            }, 20);
+        },
         is(value, type) {
             return Object.prototype.toString.call(value) === `[object ${type}]`;
         },

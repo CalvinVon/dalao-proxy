@@ -16,7 +16,7 @@ module.exports = {
         const { request, config: { redirect } } = context;
         const { url } = request;
 
-        const isToRedirectUrl = url => /^(https?:\/\/)?(([\w-_]+\.)+[\w-_]+|localhost)(\:\d+)?/.test(url);
+        const isToRedirectUrl = url => /^(https?:\/\/)?((\S+\.)+\S+|localhost)(\:\d+)?/.test(url);
 
         if (isToRedirectUrl(url)) {
             // Modify notFound parameter

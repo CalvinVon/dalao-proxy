@@ -46,6 +46,7 @@ module.exports = {
         context.monitor = {
             times: {
                 request_start: Date.now(),
+                proxy_start: null,
                 proxy_end: null,
                 request_end: null,
             }
@@ -55,6 +56,9 @@ module.exports = {
     beforeProxy(context, next) {
         app.emit('proxy:beforeProxy', context);
         next();
+    },
+    onProxySetup(context) {
+        context.monitor.times.proxy_start = Date.now();
     },
     onProxyRespond(context, next) {
         context.monitor.times.proxy_end = Date.now();
