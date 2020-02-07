@@ -127,7 +127,7 @@ function addPluginConfig(config) {
     const fileConfig = require(configFilePath);
 
     const plugin = new Plugin(pluginName, new CommandContext());
-    const pluginConfigField = plugin.setting.userOptionsField;
+    const pluginConfigField = plugin.setting.optionsField;
     const pluginDefaultConfig = plugin.parser({});
     fileConfig[pluginConfigField] = pluginDefaultConfig;
 

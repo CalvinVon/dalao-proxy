@@ -1,8 +1,8 @@
 const chalk = require('chalk');
 
 module.exports = {
-    beforeCreate({ config }) {
-        const { redirect = [] } = config;
+    beforeCreate() {
+        const { redirect = [] } = this.config;
 
         if (Array.isArray(redirect)) {
             parse(redirect);
@@ -16,7 +16,7 @@ module.exports = {
         const { request, config: { redirect } } = context;
         const { url } = request;
 
-        const isToRedirectUrl = url => /^(https?:\/\/)?((\S+\.)+\S+|localhost)(\:\d+)?/.test(url);
+        const isToRedirectUrl = url => /^(https?:\/\/)?(([a-z\u00a1-\uffff0-9%_-]+\.)+[a-z\u00a1-\uffff0-9%_-]+|localhost)(\:\d+)?/.test(url);
 
         if (isToRedirectUrl(url)) {
             // Modify notFound parameter
@@ -67,7 +67,7 @@ module.exports = {
 };
 
 function parse(redirect) {
-    const Table = require('cli-table');
+    const Table = require('cli-table3');
     const outputTable = new Table({
         head: [chalk.yellow('From'), chalk.yellow('To')]
     });

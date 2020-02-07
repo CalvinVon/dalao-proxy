@@ -237,12 +237,12 @@ class Plugin {
      * Resolve plugin config from `setting.configField`
      */
     loadPluginConfig() {
-        const rawPluginConfig = this.context.config[this.setting.userOptionsField];
-        const rawEnable = rawPluginConfig && rawPluginConfig[this.setting.configureEnableField];
+        const rawPluginConfig = this.context.config[this.setting.optionsField];
+        const rawEnable = rawPluginConfig && rawPluginConfig[this.setting.enableField];
         const parser = this.parser = Plugin.resolveConfigParser(this);
         const parsedConfig = parser.call(this, rawPluginConfig) || {};
         if (rawEnable !== undefined && rawEnable !== null) {
-            parsedConfig[this.setting.configureEnableField] = rawEnable;
+            parsedConfig[this.setting.enableField] = rawEnable;
         }
         return parsedConfig;
     }
@@ -250,8 +250,8 @@ class Plugin {
     static defaultSetting(plugin) {
         return {
             defaultEnable: true,
-            userOptionsField: plugin.id,
-            configureEnableField: 'enable',
+            optionsField: plugin.id,
+            enableField: 'enable',
         };
     }
 
@@ -303,9 +303,9 @@ class Plugin {
         const defaultSetting = Plugin.defaultSetting(plugin);
         const configure = plugin.configure;
         if (configure && typeof configure === 'object') {
-            const configureSetting = configure.configureSetting;
-            if (typeof configureSetting === 'function') {
-                return Object.assign({}, defaultSetting, configureSetting.call(plugin));
+            const setting = configure.setting;
+            if (typeof setting === 'function') {
+                return Object.assign({}, defaultSetting, setting.call(plugin));
             }
             else {
                 return defaultSetting;
@@ -336,7 +336,7 @@ class Plugin {
     static resolveEnable(plugin) {
         const { setting, config } = plugin;
         let pluginEnable;
-        const userEnable = pluginEnable = config[setting.configureEnableField];
+        const userEnable = pluginEnable = config[setting.enableField];
         if (userEnable === undefined) {
             pluginEnable = setting.defaultEnable;
         }

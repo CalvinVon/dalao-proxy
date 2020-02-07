@@ -9,7 +9,7 @@ module.exports = function startCommand(program) {
     program
         .version(baseConfig.version)
         .command('start')
-        .description('start proxy server')
+        .description('Start the proxy server')
         .option('-w, --watch', 'reload when config file changes')
         .option('-P, --port <port>', 'custom proxy server listening port')
         .option('-H, --host <hostname>', 'custom proxy server hostname')

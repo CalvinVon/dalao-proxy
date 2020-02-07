@@ -2,11 +2,11 @@ const defaultOptions = {
 
 };
 
-function configureSetting() {
+function setting() {
     return {
         defaultEnable: true,
-        userOptionsField: '<%= pluginName %>',
-        configureEnableField: 'enable',
+        optionsField: '<%= pluginName %>',
+        enableField: 'enable',
     }
 }
 
@@ -17,6 +17,6 @@ function parser(rawUserConfig) {
 }
 
 module.exports = {
-    configureSetting,
+    setting,
     parser
 };

@@ -172,9 +172,9 @@ function mergeConfig(baseConfig, fileConfig) {
 
 function mergePluginsConfig(targetConfig, plugins) {
     plugins.forEach(plugin => {
-        const userOptionsField = plugin.setting.userOptionsField;
-        if (userOptionsField) {
-            targetConfig[userOptionsField] = plugin.config;
+        const optionsField = plugin.setting.optionsField;
+        if (optionsField) {
+            targetConfig[optionsField] = plugin.config;
         }
     });
 }
@@ -193,7 +193,7 @@ function parseRouter(config) {
     } = config;
 
 
-    const Table = require('cli-table');
+    const Table = require('cli-table3');
     const outputTable = new Table({
         head: [chalk.yellow('Proxy'), chalk.white('Target'), chalk.white('Path Rewrite'), chalk.yellow('Result')]
     });
@@ -258,7 +258,7 @@ function resolveRouteProxyMap(proxyPath, router) {
             return '-';
         }
         else {
-            const Table = require('cli-table');
+            const Table = require('cli-table3');
             const rewriteMapTable = new Table({
                 chars: {
                     'top': '', 'top-mid': '', 'top-left': '', 'top-right': ''

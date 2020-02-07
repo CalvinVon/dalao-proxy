@@ -1,5 +1,4 @@
 
-const path = require('path');
 const fs = require('fs');
 // presets
 const PresetConsole = require('./presets/mobile-console');
@@ -36,9 +35,9 @@ const defaultOptions = {
 };
 
 module.exports = {
-    configureSetting() {
+    setting() {
         return {
-            userOptionsField: 'inject'
+            optionsField: 'inject'
         };
     },
 

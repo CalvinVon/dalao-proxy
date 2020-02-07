@@ -25,8 +25,8 @@ module.exports = function pluginInstallCommand(pluginCommand) {
         .command('uninstall <name> [names...]')
         .alias('remove', 'rm')
         .description('uninstall plugins to extends ability')
-        .option('-l, --local', 'install plugin locally')
-        .option('-g, --global', 'install plugin globally')
+        .option('-l, --local', 'uninstall plugin locally')
+        .option('-g, --global', 'uninstall plugin globally')
         .action(function (name, names) {
             const { local, global } = this.context.options;
             uninstall([name, ...names], {

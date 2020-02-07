@@ -51,18 +51,18 @@ const defaultOptions = {
  * Configure plugin setting
  * @description Define plugin configuration field in config file.
  */
-function configureSetting() {
+function setting() {
     return {
         defaultEnable: true,
-        userOptionsField: 'cache',
-        configureEnableField: 'enable',
+        optionsField: 'cache',
+        enableField: 'enable',
     };
 }
 
 
 /**
  * Parser raw config
- * @description The first parameter passed in depends on the field configureSetting.configField,
+ * @description The first parameter passed in depends on the field setting.configField,
  *              the second parameter is the whole raw config object.
  */
 function parser(cacheOptions) {
@@ -219,6 +219,6 @@ function configWarn(message) {
 }
 
 module.exports = {
-    configureSetting,
+    setting,
     parser
 };

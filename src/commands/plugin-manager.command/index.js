@@ -7,7 +7,7 @@ const createCommand = require('./create.command');
 module.exports = function pluginManagerCommand(program) {
     program
         .command('plugin')
-        .description('plugin manager, list and view all plugins, install, remove or update plugins')
+        .description('Plugins manager')
         .forwardSubcommands()
         .use(installCommand)
         .use(listCommand)

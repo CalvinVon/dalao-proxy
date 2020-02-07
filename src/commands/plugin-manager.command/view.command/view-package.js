@@ -1,5 +1,5 @@
 const { spawn, execSync } = require('child_process');
-const Table = require('cli-table');
+const Table = require('cli-table3');
 const chalk = require('chalk');
 const Spinner = require('cli-spinner').Spinner;
 const request = require('request');

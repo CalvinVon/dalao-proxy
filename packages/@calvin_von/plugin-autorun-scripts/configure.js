@@ -2,9 +2,9 @@ const defaultOptions = {
     scripts: ['start']
 };
 
-function configureSetting() {
+function setting() {
     return {
-        userOptionsField: 'autorun'
+        optionsField: 'autorun'
     };
 }
 
@@ -19,6 +19,6 @@ function parser(userOptions) {
 
 
 module.exports = {
-    configureSetting,
+    setting,
     parser
 }

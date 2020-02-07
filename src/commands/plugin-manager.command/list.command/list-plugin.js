@@ -1,5 +1,5 @@
 const chalk = require('chalk');
-const Table = require('cli-table');
+const Table = require('cli-table3');
 const { Plugin } = require('../../../plugin');
 const findExtendedCommand = require('../find-extended-command');
 

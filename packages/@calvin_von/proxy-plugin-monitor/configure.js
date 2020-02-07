@@ -6,11 +6,11 @@ const defaultOptions = {
     editor: 'code'
 };
 
-function configureSetting() {
+function setting() {
     return {
         defaultEnable: true,
-        userOptionsField: 'monitor',
-        configureEnableField: 'enable',
+        optionsField: 'monitor',
+        enableField: 'enable',
     }
 }
 
@@ -27,6 +27,6 @@ function parser(rawUserConfig) {
 }
 
 module.exports = {
-    configureSetting,
+    setting,
     parser
 };
