@@ -154,7 +154,7 @@ module.exports = {
                     const presetHeaders = {
                         'Content-Type': contentType,
                         'X-Cache-Response': 'true',
-                        'X-Cache-File': targetFilePath
+                        'X-Cache-File': encodeURIComponent(targetFilePath)
                     };
                     const headers = mergeHeaders(userConfigHeaders, presetHeaders);
                     setHeaders(response, headers);
@@ -193,7 +193,7 @@ module.exports = {
                             'X-Cache-Response': 'true',
                             'X-Cache-Expire-Time': 'permanently valid',
                             'X-Cache-Rest-Time': 'forever',
-                            'X-Cache-File': targetFilePath
+                            'X-Cache-File': encodeURIComponent(targetFilePath)
                         };
 
                         const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
@@ -291,7 +291,8 @@ module.exports = {
             }
 
         } catch (error) {
-            console.error(error);
+            console.error(chalk.red(`[plugin cache] Error loading cache/mock file: ${error.message}`));
+            console.error(chalk.red(`[plugin cache] Error occurred when method=${method} url=${url}`));
             next();
         }
 

@@ -28,7 +28,7 @@ function questionUrl(method, options, config) {
             chalk.yellow('> Request url path: ') + config.prefix,
             function (url) {
                 url = config.prefix + url;
-                if (!/^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/.test(url)) {
+                if (!/^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/i.test(url)) {
                     console.log('Please input a valid path');
                     rl.close();
                     return question();

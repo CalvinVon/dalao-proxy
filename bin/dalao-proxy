@@ -20,7 +20,10 @@ parserEmitter.on('config:triggerParse:fileChange', () => {
 // On config parsed
 parserEmitter.on('config:parsed', function (configObject) {
     const { config } = configObject;
-    config['[[parsed]]'] = true;
+    Object.defineProperty(config, '[[parsed]]', {
+        enumerable: false,
+        value: true
+    });
     program.context.config = config;
 
     // trigger field `config`
@@ -116,7 +119,10 @@ process.on('uncaughtException', function (err) {
 
 function registerPlugins() {
     const { rawConfig, config, path } = ConfigParser.parsePlugins();
-    config['[[parsed]]'] = false;
+    Object.defineProperty(config, '[[parsed]]', {
+        enumerable: false,
+        value: false
+    });
     program.context.rawConfig = rawConfig;
     program.context.config = config;
     program.context.configPath = path;
