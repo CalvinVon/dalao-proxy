@@ -117,8 +117,8 @@ Command.prototype.enableCollectData = function () {
  * @public
  * Enable the server collect each client request's data and response's data
  */
-Command.prototype.enableCollectOriginData = function () {
-    this.context.program._collectingOriginData = true;
+Command.prototype.enableCollectProxyData = function () {
+    this.context.program._collectingProxyData = true;
 };
 
 /**
@@ -134,8 +134,8 @@ Command.prototype.isCollectingData = function () {
  * @public
  * Return whether the server is collecting client data
  */
-Command.prototype.isCollectingOriginData = function () {
-    return this.context.program._collectingOriginData;
+Command.prototype.isCollectingProxyData = function () {
+    return this.context.program._collectingProxyData;
 };
 
 

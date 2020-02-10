@@ -379,7 +379,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         setResponseHeaders(response.headers);
                         res.writeHead(response.statusCode, response.statusMessage);
 
-                        // collect proxy request data
+                        // collect request data
                         if (program._collectingData) {
                             waitingList.push(
                                 collectResponseData(context, context.proxy.responseStream)
@@ -390,8 +390,8 @@ function proxyRequestWrapper(config, corePlugins) {
                             );
                         }
 
-                        // collect client request data
-                        if (program._collectingOriginData) {
+                        // collect proxy request data
+                        if (program._collectingProxyData) {
                             waitingList.push(
                                 collectResponseData(context, context.proxy.originResponseStream)
                                     .then(data => {
@@ -496,7 +496,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     };
 
                     // collect proxy request data
-                    if (program._collectingData) {
+                    if (program._collectingProxyData) {
                         collectRequestData(context, context.proxy.requestStream, (err, data) => {
                             context.proxy.data.error = err;
                             context.proxy.data.request = data;
@@ -504,9 +504,9 @@ function proxyRequestWrapper(config, corePlugins) {
                     }
 
                     // collect client request data
-                    if (program._collectingOriginData) {
+                    if (program._collectingData) {
                         collectRequestData(context, req, (err, data) => {
-                            context.proxy.data.error = err;
+                            context.data.error = err;
                             context.data.request = data;
                         });
                     }

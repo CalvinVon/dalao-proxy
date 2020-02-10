@@ -12,7 +12,7 @@
     "inject",
     "debug"
   ],
-  "author": "",
+  "author": "Calvin",
   "license": "ISC",
   "dependencies": {
     "chalk": "^3.0.0",
