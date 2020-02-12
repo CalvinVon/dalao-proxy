@@ -98,11 +98,31 @@ module.exports = {
                 else if (isInJsFormat) {
                     const exportsContent = require(targetFilePath);
                     if (exportsContent) {
+                        // handle plain object
                         if (Object.prototype.toString.call(exportsContent) === '[object Object]') {
                             const jsonContent = exportsContent;
                             const fileContent = JSON.stringify(jsonContent, null, 4);
 
                             handleRespond(jsonContent, fileContent);
+                        }
+                        // handle export Promise
+                        else if (Object.prototype.toString.call(exportsContent) === '[object Promise]') {
+                            exportsContent
+                                .then(value => {
+                                    let jsonContent;
+                                    if (Object.prototype.toString.call(value) === '[object Object]') {
+                                        jsonContent = value;
+                                    }
+                                    else {
+                                        jsonContent = {};
+                                    }
+                                    const fileContent = JSON.stringify(jsonContent, null, 4);
+                                    handleRespond(jsonContent, fileContent);
+                                })
+                                .catch(error => {
+                                    console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + targetFilePath));
+                                    console.error(error.message);
+                                })
                         }
                         else if (typeof (exportsContent) === 'function') {
                             collectRealRequestData(() => {
@@ -120,7 +140,7 @@ module.exports = {
                                             const fileContent = JSON.stringify(jsonContent, null, 4);
                                             handleRespond(jsonContent, fileContent, true);
                                         })
-                                        .catch(err => {
+                                        .catch(error => {
                                             console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + targetFilePath));
                                             console.error(error.message);
                                         })
