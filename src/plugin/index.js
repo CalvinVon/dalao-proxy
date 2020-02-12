@@ -279,7 +279,6 @@ class Plugin {
             resolvedPaths.configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
             resolvedPaths.commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
             resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, PATH_PACKAGE);
-            this.meta = { isBuildIn: true, version };
         }
         else {
             if (isDebugMode()) {

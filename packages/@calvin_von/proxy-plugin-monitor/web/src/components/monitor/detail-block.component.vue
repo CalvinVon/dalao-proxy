@@ -41,7 +41,7 @@
                         <template v-else>
                             <span class="pair-key">{{ key }}</span>
 
-                            <template v-if="isCached && /hit cache/i.test(targetValue[key])">
+                            <template v-if="isCached && key === 'Status Code'">
                                 <a-tooltip placement="top">
                                     <code class="pair-value">{{ targetValue[key] }}</code>
 
@@ -59,10 +59,9 @@
                             </template>
 
                             <template v-else>
-                                <code class="pair-value">{{ targetValue[key] }}
-
-                                    <template v-if="isCached && key.match(/^x-cache-file$/)">
-                                        <a-tooltip placement="top">
+                                <code class="pair-value">
+                                    <template v-if="isCached && key.match(/^(x-cache-)?file$/)">
+                                        <a-tooltip placement="top"><span class="file-path">{{ decodeURIComponent(targetValue[key]) }}</span>
                                             <a-icon @click="handleOpenFile(targetValue[key])"
                                                     type="link" />
 
@@ -74,6 +73,7 @@
 
                                     <template v-else-if="showDownloadField && targetValue[key].match(/^\<File: [^>]+>$/)">
                                         <a-tooltip placement="top">
+                                            {{ targetValue[key] }}
                                             <a-icon @click="handleDownloadFile(key)"
                                                     type="download" />
 
@@ -82,6 +82,7 @@
                                             </template>
                                         </a-tooltip>
                                     </template>
+                                    <template v-else>{{ targetValue[key] }}</template>
                                 </code>
                             </template>
                         </template>
@@ -172,7 +173,8 @@ export default {
     data() {
         return {
             folded: false,
-            toggleParsed: true
+            toggleParsed: true,
+            decodeURIComponent: decodeURIComponent.bind(window)
         };
     },
     computed: {
@@ -203,7 +205,7 @@ export default {
             wsConnector.send({
                 type: "action",
                 action: "open-file",
-                value: filePath
+                value: decodeURIComponent(filePath)
             });
         },
 
@@ -363,6 +365,10 @@ export default {
                     transition: all 0.2s ease;
                 }
 
+                .file-path {
+                    text-decoration: underline;
+                }
+
                 .anticon {
                     transition: all 0.2s ease;
                     &:hover {
@@ -387,12 +393,6 @@ export default {
     }
 }
 
-.file-selector-dialog {
-    .ant-modal-content {
-        .ant-modal-body {
-        }
-    }
-}
 </style>
 
 

@@ -60,12 +60,14 @@
 
                 <!-- Proxy Response Headers -->
                 <detail-block name="Proxy Response Headers"
+                              v-if="detail['Proxy Response Headers']"
                               alias="Response Headers"
                               :detail="detail"></detail-block>
                 <!-- Proxy Response Headers -->
 
                 <!-- Proxy Request Headers -->
                 <detail-block name="Proxy Request Headers"
+                              v-if="detail['Proxy Request Headers']"
                               alias="Request Headers"
                               :detail="detail"></detail-block>
                 <!-- Proxy Request Headers -->

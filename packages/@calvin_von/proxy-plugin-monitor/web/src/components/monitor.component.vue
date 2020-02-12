@@ -491,7 +491,7 @@ export default {
         }
 
         .monitor-detail-wrapper {
-            width: 50%;
+            width: 65%;
             background: #fff;
             z-index: 999;
             overflow-y: hidden;

@@ -181,7 +181,7 @@ const Monitor = module.exports = function (app, config) {
                 delete cacheMeta.rawData;
                 delete cacheMeta.data;
                 data['type'] = 'hitCache';
-                data['General']['Status Code'] = '200 Hit Cache';
+                data['General']['Status Code'] = `${ctx.response.statusCode} ${ctx.response.statusMessage}`;
                 data['Response Headers'] = ctx.response.getHeaders();
                 const now = ctx.monitor.times.request_end = Date.now();
                 data['Timing'] = now - ctx.monitor.times.request_start;
@@ -191,8 +191,8 @@ const Monitor = module.exports = function (app, config) {
                 };
                 delete data.data.response.rawBuffer;
                 data.status = {
-                    code: 200,
-                    message: 'OK'
+                    code: ctx.response.statusCode,
+                    message: ctx.response.statusMessage
                 }
                 broadcast(data);
             }
