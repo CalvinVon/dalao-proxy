@@ -249,12 +249,12 @@ class Plugin {
             rawPluginConfig = [this.context.config[optionsField]];
         }
         
-        const rawEnable = rawPluginConfig && rawPluginConfig[this.setting.enableField];
         const parser = this.parser = Plugin.resolveConfigParser(this);
         const parsedConfig = parser.apply(this, rawPluginConfig) || {};
-        if (rawEnable !== undefined && rawEnable !== null) {
-            parsedConfig[this.setting.enableField] = rawEnable;
-        }
+        
+        // resolve plugin enable config
+        // 
+        parsedConfig[this.setting.enableField] = rawPluginConfig[0] && rawPluginConfig[0][this.setting.enableField];
         return parsedConfig;
     }
 
@@ -348,7 +348,7 @@ class Plugin {
         let pluginEnable;
         const userEnable = pluginEnable = config[setting.enableField];
         if (userEnable === undefined) {
-            pluginEnable = setting.defaultEnable;
+            config[setting.enableField] = pluginEnable = setting.defaultEnable;
         }
         return pluginEnable;
     }
