@@ -306,7 +306,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
 
                     // invalid request
-                    
+
                     if (new RegExp(`\\b${serverHost}:${port}\\b`).test(overwriteHost)) {
                         res.writeHead(403, {
                             'Content-Type': 'text/html; charset=utf-8'
@@ -550,9 +550,12 @@ function proxyRequestWrapper(config, corePlugins) {
                     type: reqContentType
                 };
 
-                data.body = BodyParser.parse(reqContentType, buffer, err => {
-                    error = err;
-                    logger && console.log(' > Error: can\'t parse requset body. ' + error.message);
+                data.body = BodyParser.parse(reqContentType, buffer, {
+                    appendRawFormData: true,
+                    errorHandler: err => {
+                        error = err;
+                        logger && console.log(' > Error: can\'t parse requset body. ' + error.message);
+                    }
                 });
 
                 callback(error, data);

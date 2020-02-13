@@ -7,19 +7,29 @@ const querystring = require('querystring');
  * Parse raw request body
  * @param {String} contentType request content type
  * @param {String} rawBuffer request raw body
- * @param {Function} [errorHandler] parse error handler
+ * @param {Object} [opt]
+ * @param {Function} [opt.errorHandler] parse error handler
+ * @param {Boolean} [opt.appendRawFormData] whether append raw form data in field `_raw`. default: false
+ * @param {Boolean} [opt.noRawFileData] whether collect raw file data. default: false
  */
-BodyParser.parse = function parse(contentType, rawBuffer, errorHandler) {
+BodyParser.parse = function parse(contentType, rawBuffer, opt) {
+    const {
+        errorHandler,
+        appendRawFormData,
+        noRawFileData
+    } = opt || {};
     if (!rawBuffer.length || !contentType) return;
     let body = {};
 
     try {
         if (/application\/x-www-form-urlencoded/.test(contentType)) {
             body = querystring.parse(rawBuffer.toString());
-        } else if (/application\/json/.test(contentType)) {
+        }
+        else if (/application\/json/.test(contentType)) {
             body = JSON.parse(rawBuffer.toString());
-        } else if (/multipart\/form-data/.test(contentType)) {
-            body = parseFormData(contentType, rawBuffer);
+        }
+        else if (/multipart\/form-data/.test(contentType)) {
+            body = parseFormData(contentType, rawBuffer, { appendRawFormData, noRawFileData });
         }
     } catch (error) {
         if (isDebugMode) {
@@ -31,7 +41,16 @@ BodyParser.parse = function parse(contentType, rawBuffer, errorHandler) {
 };
 
 
-function parseFormData(contentType, rawBuffer) {
+/**
+ * parse form data
+ * @param {String} contentType
+ * @param {Buffer} rawBuffer
+ * @param {Object} [opt]
+ * @param {Boolean} [opt.appendRawFormData] whether append raw form data in field `_raw`. default: false
+ * @param {Boolean} [opt.noRawFileData] whether collect raw file data. default: false
+ */
+function parseFormData(contentType, rawBuffer, opt) {
+    const { appendRawFormData, noRawFileData } = opt || {};
     const boundary = Buffer.from('--' + contentType.match(/boundary=(\S+)$/)[1]);
 
     const parts = [];
@@ -76,6 +95,10 @@ function parseFormData(contentType, rawBuffer) {
                 size: Buffer.byteLength(rawBodyBuffer),
                 rawBuffer: rawBodyBuffer
             };
+            if (noRawFileData) {
+                delete value.rawBuffer;
+            }
+
             rawValue = {
                 head: rawHeadBuffer,
                 body: rawBodyBuffer,
@@ -94,7 +117,10 @@ function parseFormData(contentType, rawBuffer) {
         body[field] = value;
         rawBody[field] = rawValue;
     });
-    body._raw = rawBody;
+    if (appendRawFormData) {
+        body._raw = rawBody;
+    }
+
     return body;
 
 
