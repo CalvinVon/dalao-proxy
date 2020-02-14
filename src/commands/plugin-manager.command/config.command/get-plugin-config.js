@@ -9,9 +9,7 @@ module.exports = function getPluginConfig(pluginName, cb) {
         });
     }
     else {
-        register.configure('config', (value, next) => {
-            next(value);
-
+        register.on('context:config', value => {
             cb({
                 config: value,
                 defaultConfig: this.context.defaultConfig,

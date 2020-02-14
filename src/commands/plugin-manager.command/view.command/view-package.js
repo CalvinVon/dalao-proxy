@@ -20,7 +20,7 @@ function fetchPackageInfo(packageName, options, callback) {
 
     if (isDebugMode()) {
         const { indexPath } = Plugin.resolvePluginPaths(packageName);
-        callback(null, require(path.join(indexPath, 'package.json')));
+        callback(null, require(path.join(indexPath, '../package.json')));
     }
     else {
         const npmOptions = [
