@@ -1,15 +1,15 @@
 const fs = require("fs");
 const path = require("path");
-const { checkAndCreateCacheFolder } = require('../../utils');
+const { checkAndCreateFolder } = require('../../utils');
 
 const pwd = process.cwd();
 const STORE_NAME_PREFIX = '.store-';
 
 const CacheStore = module.exports;
 
-CacheStore.store = function (storeName, config) {
-    const dirname = config.dirname;
-    checkAndCreateCacheFolder(dirname);
+CacheStore.store = function (storeName, config, parentName) {
+    const dirname = config[parentName].dirname;
+    checkAndCreateFolder(dirname);
 
     const fileList = fs.readdirSync(dirname, { withFileTypes: true }).filter(file => !file.isDirectory());
     if (!fileList.length) return;
@@ -30,9 +30,9 @@ CacheStore.store = function (storeName, config) {
     return subdirname.replace(STORE_NAME_PREFIX, '');
 };
 
-CacheStore.restore = function (storeName, config) {
-    const dirname = config.dirname;
-    checkAndCreateCacheFolder(dirname);
+CacheStore.restore = function (storeName, config, parentName) {
+    const dirname = config[parentName].dirname;
+    checkAndCreateFolder(dirname);
 
     const subdirname = CacheStore.resolveStoreName(storeName);
     const subdirPath = path.join(pwd, dirname, subdirname);
@@ -63,9 +63,9 @@ CacheStore.restore = function (storeName, config) {
     }
 };
 
-CacheStore.list = function (config) {
-    const dirname = config.dirname;
-    checkAndCreateCacheFolder(dirname);
+CacheStore.list = function (config, parentName) {
+    const dirname = config[parentName].dirname;
+    checkAndCreateFolder(dirname);
 
     const fileList = fs.readdirSync(dirname, { withFileTypes: true });
     const storeList = [];

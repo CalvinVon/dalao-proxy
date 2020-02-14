@@ -1,11 +1,11 @@
 const path = require('path');
 const fs = require('fs');
 
-function checkAndCreateCacheFolder (cacheDirname) {
+function checkAndCreateFolder (dirname) {
     const pwd = process.cwd();
-    const fullCacheDirname = path.resolve(pwd, cacheDirname);
-    if (!fs.existsSync(fullCacheDirname)) {
-        fs.mkdirSync(fullCacheDirname);
+    const fullDirname = path.resolve(pwd, dirname);
+    if (!fs.existsSync(fullDirname)) {
+        fs.mkdirSync(fullDirname);
     }
 }
 
@@ -21,6 +21,6 @@ function url2filename(method, url) {
 }
 
 module.exports = {
-    checkAndCreateCacheFolder,
+    checkAndCreateFolder,
     url2filename
 };

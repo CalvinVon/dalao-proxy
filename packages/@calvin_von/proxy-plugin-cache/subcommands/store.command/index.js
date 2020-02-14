@@ -2,10 +2,10 @@ const chalk = require('chalk');
 const moment = require('moment');
 const { store, restore, list } = require('./store');
 
-module.exports = function cacheStoreCommand(pluginCommand, register, config) {
+module.exports = function storeCommand(pluginCommand, register, config, parentName) {
     pluginCommand
         .command('store [storeName]')
-        .description('store the cache files')
+        .description(`store the ${parentName} files`)
         .action(function (name) {
             handleStore(name);
             process.exit(0);
@@ -13,7 +13,7 @@ module.exports = function cacheStoreCommand(pluginCommand, register, config) {
 
     pluginCommand
         .command('restore <storeName>')
-        .description('store the current cache files')
+        .description(`store the current ${parentName} files`)
         .action(function (name) {
             handleRestore(name);
             process.exit(0);
@@ -21,7 +21,7 @@ module.exports = function cacheStoreCommand(pluginCommand, register, config) {
 
     pluginCommand
         .command('list')
-        .description('list the cache stores')
+        .description(`list the ${parentName} stores`)
         .action(function () {
             handleListStore(() => {
                 process.exit(0);
@@ -47,7 +47,7 @@ module.exports = function cacheStoreCommand(pluginCommand, register, config) {
 
 
     function handleStore(name) {
-        const storeName = store(name, config);
+        const storeName = store(name, config, parentName);
         if (storeName) {
             console.log(chalk.green('Stored successfully by name: ') + storeName);
         }
@@ -57,24 +57,24 @@ module.exports = function cacheStoreCommand(pluginCommand, register, config) {
     }
 
     function handleRestore(name) {
-        const success = restore(name, config);
+        const success = restore(name, config, parentName);
         if (success) {
             console.log(chalk.green('Restored successfully by name: ') + name);
         }
         else {
-            console.log('No cache store found, exit.');
+            console.log(`No ${parentName} store found, exit.`);
         }
     }
 
     function handleListStore(cb) {
-        const storeList = list(config);
+        const storeList = list(config, parentName);
 
         if (!storeList.length) {
-            console.log('No cache store found.');
+            console.log(`No ${parentName} store found.`);
             cb && cb();
         }
 
-        console.log('Cache store list:\n');
+        console.log(parentName + ' store list:\n');
         storeList.forEach(store => {
             console.log(
                 '  - Name: ' + chalk.yellow(store.name)

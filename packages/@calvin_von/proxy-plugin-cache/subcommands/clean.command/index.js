@@ -1,7 +1,7 @@
 const chalk = require('chalk');
 const { cleanCache } = require('./clean');
 
-module.exports = function CleanCommand(program, register, config) {
+module.exports = function CleanCommand(program, register, config, parentName) {
     program
         .command('clean [storeName]')
         .description('clear cache files, but user mock files will not be cleaned by default')
@@ -11,7 +11,7 @@ module.exports = function CleanCommand(program, register, config) {
         .option('-r, --reg <regularExpression>', 'clean the files match the specific regular expression including user mock files', collectExtensions, [])
         .action(function (storeName) {
             cleanCache({
-                config,
+                config: config[parentName],
                 options: {
                     storeName,
                     ...this.context.options
@@ -26,7 +26,7 @@ module.exports = function CleanCommand(program, register, config) {
         if (matched = input.match(/\b(cacheclr|clean|cacheclean)\b(?:\s(\S+))?/)) {
             const storeName = matched[2];
             cleanCache({
-                config,
+                config: config[parentName],
                 options: {
                     storeName
                 }

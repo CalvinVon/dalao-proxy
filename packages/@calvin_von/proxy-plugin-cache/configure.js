@@ -1,6 +1,6 @@
 const chalk = require('chalk');
 
-const defaultOptions = {
+const cacheDefaults = {
     "dirname": ".dalao-cache",
     "contentType": [
         "application/json"
@@ -25,7 +25,7 @@ const defaultOptions = {
             /**
              * filter field
              */
-            field: "code",
+            field: null,
             /**
              * filter field value
              */
@@ -41,8 +41,13 @@ const defaultOptions = {
             applyRoute: "*"
         }
     ],
-    "prefix": "",
     "logger": true
+};
+
+const mockDefaults = {
+    "dirname": "mocks",
+    "prefix": "",
+    "enable": true
 };
 
 
@@ -54,36 +59,51 @@ const defaultOptions = {
 function setting() {
     return {
         defaultEnable: true,
-        optionsField: 'cache',
+        optionsField: ['cache', 'mock'],
         enableField: 'enable',
     };
 }
 
 
 /**
- * Parser raw config
- * @description The first parameter passed in depends on the field setting.configField,
- *              the second parameter is the whole raw config object.
+ * Parser raw cache options
+ * @param {any} cacheOptions
  */
-function parser(cacheOptions) {
+function cacheParser(cacheOptions) {
     if (isType(cacheOptions, 'Object')) {
         return {
-            ...defaultOptions,
+            ...cacheDefaults,
             ...cacheOptions,
             contentType: parseContentType(cacheOptions.contentType),
             maxAge: parseMaxAge(cacheOptions.maxAge),
             filters: parseFilters(cacheOptions.filters),
-            prefix: parsePrefix(cacheOptions.prefix),
-            dirname: parseDirname(cacheOptions.dirname),
+            dirname: parseCacheDirname(cacheOptions.dirname),
         };
     }
     else {
-        return defaultOptions;
+        return cacheDefaults;
+    }
+}
+
+/**
+ * Parser raw mock options
+ * @param {any} mockOptions
+ */
+function mockParser(mockOptions) {
+    if (mockOptions) {
+        return {
+            prefix: parsePrefix(mockOptions.prefix),
+            dirname: parseMockDirname(mockOptions.dirname),
+            enable: typeof mockOptions.enable === 'undefined' ? mockDefaults.enable : mockOptions.enable
+        };
+    }
+    else {
+        return mockDefaults;
     }
 }
 
 function parseContentType(value) {
-    return makeSureFieldType('contentType', 'Array', value);
+    return makeSureFieldType(cacheDefaults, 'contentType', 'Array', value);
 }
 
 function parseMaxAge(value) {
@@ -91,7 +111,7 @@ function parseMaxAge(value) {
     if (isType(value, 'Array')) {
         if (value[0] !== '*' && Number.isNaN(Number(value[0]))) {
             configWarn('type of field `cache.maxAge[0]` should be Number');
-            maxAge[0] = defaultOptions.maxAge[0];
+            maxAge[0] = cacheDefaults.maxAge[0];
         }
         else {
             maxAge[0] = value[0];
@@ -99,7 +119,7 @@ function parseMaxAge(value) {
 
         if (!/^(s(econds?)?|m(inutes?)?|h(ours?)?|d(ays?)?|M(onths?)?|y(ears?)?)$/.test(value[1])) {
             configWarn('value of field `cache.maxAge[1]` should match `/^(s(econds?)?|m(inutes?)?|h(ours?)?|d(ays?)?|M(onths?)?|y(ears?)?)$/`');
-            maxAge[1] = defaultOptions.maxAge[1];
+            maxAge[1] = cacheDefaults.maxAge[1];
         }
         else {
             maxAge[1] = value[1];
@@ -109,7 +129,7 @@ function parseMaxAge(value) {
         if (value) {
             configWarn('type of field `cache.maxAge` should be Array');
         }
-        maxAge = defaultOptions.maxAge;
+        maxAge = cacheDefaults.maxAge;
     }
     return maxAge;
 }
@@ -170,7 +190,7 @@ function parseFilters(value) {
         if (value) {
             configWarn('type of field `cache.filters` should be Array');
         }
-        filters = defaultOptions.filters;
+        filters = cacheDefaults.filters;
     }
 
 
@@ -178,17 +198,29 @@ function parseFilters(value) {
 }
 
 function parsePrefix(value) {
-    return makeSureFieldType('prefix', 'String', value, () => {
+    return makeSureFieldType(mockDefaults, 'prefix', 'String', value, () => {
         if (value && value[0] !== '/') {
-            configWarn('`cache.prefix` must start with `/`');
-            return defaultOptions.prefix;
+            configWarn('`mock.prefix` must start with `/`');
+            return mockDefaults.prefix;
         }
         return value;
     });
 }
 
-function parseDirname(value) {
-    return makeSureFieldType('dirname', 'String', value);
+function parseCacheDirname(value) {
+    return makeSureFieldType(cacheDefaults, 'dirname', 'String', value);
+}
+
+function parseMockDirname(value) {
+    if (isType(value, 'String')) {
+        return value;
+    }
+    else {
+        if (value) {
+            configWarn(`type of field \`mock.dirname\` should be ${type}`)
+        }
+        return mockDefaults.dirname;
+    }
 }
 
 
@@ -197,7 +229,7 @@ function isType(value, type) {
 }
 
 
-function makeSureFieldType(field, type, value, callback) {
+function makeSureFieldType(source, field, type, value, callback) {
     if (isType(value, type)) {
         if (callback) {
             return callback();
@@ -210,7 +242,7 @@ function makeSureFieldType(field, type, value, callback) {
         if (value) {
             configWarn(`type of field \`cache.${field}\` should be ${type}`)
         }
-        return defaultOptions[field];
+        return source[field];
     }
 }
 
@@ -220,5 +252,10 @@ function configWarn(message) {
 
 module.exports = {
     setting,
-    parser
+    parser(cacheOptions, mockOptions) {
+        return {
+            cache: cacheParser(cacheOptions),
+            mock: mockParser(mockOptions)
+        };
+    }
 };

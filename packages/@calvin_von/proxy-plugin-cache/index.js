@@ -13,7 +13,7 @@ const {
     STATUS_FIELD_TEXT
 } = require('./mock.command/mock');
 const {
-    checkAndCreateCacheFolder,
+    checkAndCreateFolder,
     url2filename
 } = require('./utils');
 
@@ -44,37 +44,60 @@ module.exports = {
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { response, request } = context;
+        const { method, url } = request;
         const logger = context.config.logger;
+
+        const { BodyParser } = this.context.exports;
         const userConfigHeaders = context.config.headers;
         const {
             dirname: cacheDirname,
             maxAge: cacheMaxAge,
-        } = this.config;
-
-        const { method, url } = request;
+        } = this.config.cache;
+        const {
+            dirname: mockDirname,
+            enable: mockEnable
+        } = this.config.mock;
 
         // Try to read cache
         try {
-            checkAndCreateCacheFolder(cacheDirname);
+            checkAndCreateFolder(mockDirname);
+            checkAndCreateFolder(cacheDirname);
+            const mockSearchName = path.resolve(process.cwd(), `./${mockDirname}/${url2filename(method, url)}`);
             const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
-            const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
+            if (mockEnable) {
+                tryLoadLocalFile(mockSearchName, false, () => {
+                    tryLoadLocalFile(cacheSearchName, true, next);
+                });
+            }
+            else {
+                tryLoadLocalFile(cacheSearchName, true, next);
+            }
+
+        } catch (error) {
+            console.error(chalk.red(`[plugin cache] Error loading cache/mock file: ${error.message}`));
+            console.error(chalk.red(`[plugin cache] Error occurred when method=${method} url=${url}`));
+            next();
+        }
+
+
+        function tryLoadLocalFile(searchFilePath, searchCacheFile, missCallback) {
             let targetFilePath,
-                hasCacheFile,
+                hasFoundFile,
                 isInJsonFormat,
                 isInJsFormat;
 
             // search static files
-            if (fs.existsSync(cacheSearchName)) {
-                targetFilePath = cacheSearchName;
-                hasCacheFile = true;
+            if (searchCacheFile && fs.existsSync(searchFilePath)) {
+                targetFilePath = searchFilePath;
+                hasFoundFile = true;
                 isInJsonFormat = path.extname(targetFilePath) === '.json';
             }
             // content is in json format
             else {
-                hasCacheFile = SUPPORTED_EXTENSIONS.some(ext => {
-                    if (fs.existsSync(cacheSearchName + ext)) {
-                        targetFilePath = cacheSearchName + ext;
+                hasFoundFile = SUPPORTED_EXTENSIONS.some(ext => {
+                    if (fs.existsSync(searchFilePath + ext)) {
+                        targetFilePath = searchFilePath + ext;
                         isInJsonFormat = ext === '.json';
                         isInJsFormat = ext === '.js';
                         return true;
@@ -83,7 +106,8 @@ module.exports = {
                 })
             }
 
-            if (hasCacheFile) {
+            if (hasFoundFile) {
+                const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
                 // return data in JSON format
                 // file maybe in json or js format
@@ -155,11 +179,11 @@ module.exports = {
                         }
                         else {
                             console.warn(chalk.red('[Plugin cache] You should return an object or a promise in your mock file: ' + targetFilePath));
-                            next();
+                            missCallback();
                         }
                     }
                     else {
-                        next();
+                        missCallback();
                     }
                     cleanRequireCache(targetFilePath);
                 }
@@ -167,7 +191,7 @@ module.exports = {
                 else {
                     // only when cache max age is `*` valid
                     if (cacheDigit !== '*') {
-                        return next();
+                        return missCallback();
                     }
 
                     const contentType = mime.lookup(targetFilePath);
@@ -207,8 +231,16 @@ module.exports = {
                     const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
                     const respondStatus = jsonContent[STATUS_FIELD_TEXT] || 200;
 
+                    let condition;
+                    if (searchCacheFile) {
+                        condition = jsonContent[MOCK_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*';
+                    }
+                    else {
+                        condition = jsonContent[MOCK_FIELD_TEXT];
+                    }
+
                     // permanently valid
-                    if (jsonContent[MOCK_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*') {
+                    if (condition) {
                         const presetHeaders = {
                             'X-Cache-Response': 'true',
                             'X-Cache-Expire-Time': 'permanently valid',
@@ -248,6 +280,9 @@ module.exports = {
                     }
                     // need validate expire time
                     else {
+                        if (!searchCacheFile) {
+                            return missCallback();
+                        }
                         const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
                         // valid cache file
                         if (moment().isBefore(deadlineMoment)) {
@@ -286,10 +321,10 @@ module.exports = {
                         else {
                             // Do not delete expired cache automatically
                             // V0.6.4 2019.4.17
-                            // fs.unlinkSync(cacheSearchName);
+                            // fs.unlinkSync(searchFilePath);
 
                             // continue
-                            next();
+                            missCallback();
                         }
                     }
 
@@ -307,13 +342,8 @@ module.exports = {
 
             }
             else {
-                next();
+                missCallback();
             }
-
-        } catch (error) {
-            console.error(chalk.red(`[plugin cache] Error loading cache/mock file: ${error.message}`));
-            console.error(chalk.red(`[plugin cache] Error occurred when method=${method} url=${url}`));
-            next();
         }
 
 
@@ -321,30 +351,21 @@ module.exports = {
             request.pipe(concat(buffer => {
                 const contentType = request.headers['content-type'];
                 const data = {
-                    rawBody: buffer.toString(),
-                    body: '',
+                    body: null,
                     query: querystring.parse(request.URL.query),
                     type: contentType
                 };
+                data.body = BodyParser.parse(contentType, buffer, {
+                    noRawFileData: true
+                });
+                
+                if (!/multipart\/form-data/.test(contentType)) {
+                    data.rawBody = buffer.toString();
+                }
 
                 context.data = {
                     request: data
                 };
-
-                if (data.rawBody && contentType) {
-                    try {
-                        if (/application\/x-www-form-urlencoded/.test(contentType)) {
-                            data.body = querystring.parse(data.rawBody);
-                        } else if (/application\/json/.test(contentType)) {
-                            data.body = JSON.parse(data.rawBody);
-                        } else if (/multipart\/form-data/.test(contentType)) {
-                            data.body = data.rawBody;
-                        }
-                    } catch (error) {
-                        console.log(' > Error: can\'t parse requset body. ' + error.message);
-                    }
-                }
-
                 cb(data);
             }));
         }
@@ -366,7 +387,7 @@ module.exports = {
             dirname: cacheDirname,
             contentType: cacheContentType,
             filters,
-        } = this.config;
+        } = this.config.cache;
         const { method, url } = context.request;
         const { response, error } = context.proxy;
 
