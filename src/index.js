@@ -168,15 +168,20 @@ Command.prototype.option = function optionWrapper(flags, description, fn, defaul
 Command.prototype.action = function actionWrapper(callback) {
     return originActionFn.call(this, (...args) => {
         this.options.forEach(option => {
-            const optionName = option.name();
             const optionAttributeName = option.attributeName();
             this.context.options[optionAttributeName] = this[optionAttributeName];
         });
         return callback.call(this, ...args);
     })
-}
+};
 
-Command.prototype.forwardSubcommands = function () {
+
+/**
+ * forward subcommand
+ * @description the `fn` parameter is called just like `#action` method when no subcommand called
+ * @param {Function} [fn]
+ */
+Command.prototype.forwardSubcommands = function (fn) {
     var self = this;
     var listener = function (args, unknown) {
         // Parse any so-far unknown options
@@ -187,18 +192,52 @@ Command.prototype.forwardSubcommands = function () {
         if (parsed.args.length) args = parsed.args.concat(args);
         unknown = parsed.unknown;
 
-        // Output help if necessary
-        if (!args.length || (unknown.includes('--help') || unknown.includes('-h')) && (!args || !self.listeners('command:' + args[0]))) {
+        if ((unknown.includes('--help') || unknown.includes('-h'))) {
             self.outputHelp();
             process.exit(0);
         }
 
+        if (args.length) {
+            // whether the first command is the registered subcommand
+            if (!self.findCommand(args[0])) {
+                self._args.forEach(function (arg, i) {
+                    if (arg.required && args[i] == null) {
+                        self.missingArgument(arg.name);
+                    } else if (arg.variadic) {
+                        if (i !== self._args.length - 1) {
+                            self.variadicArgNotLast(arg.name);
+                        }
+
+                        args[i] = args.splice(i);
+                    }
+                });
+
+                // The .forwardSubcommands callback takes an extra parameter which is the command itself.
+                var expectedArgsCount = self._args.length;
+                var actionArgs = args.slice(0, expectedArgsCount);
+                actionArgs[expectedArgsCount] = self;
+                // Add the extra arguments so available too.
+                if (args.length > expectedArgsCount) {
+                    actionArgs.push(args.slice(expectedArgsCount));
+                }
+
+                fn.apply(self, actionArgs);
+                return;
+            }
+        }
+        else {
+            if (fn) {
+                fn.call(self);
+                return;
+            }
+            else {
+                self.outputHelp();
+                process.exit(0);
+            }
+        }
+
         self.parseArgs(args, unknown);
     };
-
-    if (this._args.length > 0) {
-        console.error('forwardSubcommands cannot be applied to command with explicit args');
-    }
 
     var parent = this.parent || this;
     var name = parent === this ? '*' : this._name;
