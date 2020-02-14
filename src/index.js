@@ -192,14 +192,17 @@ Command.prototype.forwardSubcommands = function (fn) {
         if (parsed.args.length) args = parsed.args.concat(args);
         unknown = parsed.unknown;
 
-        if ((unknown.includes('--help') || unknown.includes('-h'))) {
-            self.outputHelp();
-            process.exit(0);
-        }
-
         if (args.length) {
             // whether the first command is the registered subcommand
-            if (!self.findCommand(args[0])) {
+            const subcommand = self.findCommand(args[0]);
+
+            if (subcommand) {
+                if ((unknown.includes('--help') || unknown.includes('-h'))) {
+                    subcommand.outputHelp();
+                    process.exit(0);
+                }
+            }
+            else {
                 self._args.forEach(function (arg, i) {
                     if (arg.required && args[i] == null) {
                         self.missingArgument(arg.name);
@@ -226,7 +229,11 @@ Command.prototype.forwardSubcommands = function (fn) {
             }
         }
         else {
-            if (fn) {
+            if ((unknown.includes('--help') || unknown.includes('-h'))) {
+                self.outputHelp();
+                process.exit(0);
+            }
+            else if (fn) {
                 fn.call(self);
                 return;
             }
