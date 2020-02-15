@@ -188,21 +188,30 @@ Command.prototype.forwardSubcommands = function (fn) {
         args = args || [];
         unknown = unknown || [];
 
-        var parsed = self.parseOptions(unknown);
-        if (parsed.args.length) args = parsed.args.concat(args);
-        unknown = parsed.unknown;
+        let command;
 
         if (args.length) {
-            // whether the first command is the registered subcommand
-            const subcommand = self.findCommand(args[0]);
+            // whether the first command is the registered command
+            command = self.findCommand(args[0]);
 
-            if (subcommand) {
+            if (command) {
                 if ((unknown.includes('--help') || unknown.includes('-h'))) {
-                    subcommand.outputHelp();
+                    command.outputHelp();
                     process.exit(0);
+                }
+                else {
+                    var parsed = command.parseOptions(unknown);
+                    if (parsed.args.length) args = parsed.args.concat(args);
+                    unknown = parsed.unknown;
                 }
             }
             else {
+                command = self;
+
+                var parsed = self.parseOptions(unknown);
+                if (parsed.args.length) args = parsed.args.concat(args);
+                unknown = parsed.unknown;
+
                 self._args.forEach(function (arg, i) {
                     if (arg.required && args[i] == null) {
                         self.missingArgument(arg.name);
@@ -229,6 +238,7 @@ Command.prototype.forwardSubcommands = function (fn) {
             }
         }
         else {
+            command = self;
             if ((unknown.includes('--help') || unknown.includes('-h'))) {
                 self.outputHelp();
                 process.exit(0);
