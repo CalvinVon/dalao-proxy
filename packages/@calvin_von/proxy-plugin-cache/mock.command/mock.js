@@ -9,6 +9,50 @@ const HEADERS_FIELD_TEXT = '[[headers]]';
 const MOCK_FIELD_TEXT = '[[mock]]';
 const STATUS_FIELD_TEXT = '[[status]]';
 
+const ContentWrapper = {
+    useObject: content => {
+        return `module.exports = ${content};`;
+    },
+
+    usePromise: (content, time) => {
+        return `const data = ${content};
+
+module.exports = new Promise(resolve => {
+    setTimeout(() => {
+        resolve(data);
+    }, ${time});
+});`
+    },
+
+    useFunction: content => {
+        return `const data = ${content};
+
+module.exports = function(context) {
+    return data;
+}`;
+    },
+
+    useFunctionReturnPromise: (content, time) => {
+        return `const data = ${content};
+
+module.exports = function(context) {
+    const { request, response } = context;
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(data);
+        }, ${time});
+    });
+}`;
+    }
+};
+
+exports.HEADERS_FIELD_TEXT = HEADERS_FIELD_TEXT;
+exports.MOCK_FIELD_TEXT = MOCK_FIELD_TEXT;
+exports.STATUS_FIELD_TEXT = STATUS_FIELD_TEXT;
+
+
+exports.ContentWrapper = ContentWrapper;
+
 exports.MockFileGenerator = function MockFileGenerator(method, url, options, config) {
     if (url) {
         generateFile(method, url, options, config);
@@ -17,11 +61,7 @@ exports.MockFileGenerator = function MockFileGenerator(method, url, options, con
     else {
         questionUrl(method, options, config);
     }
-}
-
-exports.HEADERS_FIELD_TEXT = HEADERS_FIELD_TEXT;
-exports.MOCK_FIELD_TEXT = MOCK_FIELD_TEXT;
-exports.STATUS_FIELD_TEXT = STATUS_FIELD_TEXT;
+};
 
 function questionUrl(method, options, config) {
     const rl = readline.createInterface({
@@ -87,7 +127,7 @@ function questionUrl(method, options, config) {
 
 function generateFile(method, url, options, config) {
     const mockUrl = config.mock.prefix + url;
-    const isInJsFile = options.js;
+    const isInJsFile = options.program;
     const mockFileName = path.resolve(process.cwd(), `./${config.mock.dirname}/${url2filename(method, mockUrl)}`) + (isInJsFile ? '.js' : '.json');
     const json = {
         CACHE_INFO: 'Mocked by Dalao-Proxy Plugin Cache',
@@ -108,21 +148,32 @@ function generateFile(method, url, options, config) {
 
     if (isInJsFile) {
         const fileWrapper = content => {
-            if (options.time) {
-                return `const data = ${content};
+            const {
+                time: useDelay,
+                function: useFunction
+            } = options;
 
-module.exports = new Promise(resolve => {
-    setTimeout(() => {
-        resolve(data);
-    }, ${options.time});
-});`
+            let useWrapper;
+
+            if (useDelay && useFunction) {
+                useWrapper = ContentWrapper.useFunctionReturnPromise.bind(null, content, useDelay);
+            }
+            else if (useDelay) {
+                useWrapper = ContentWrapper.usePromise.bind(null, content, useDelay);
+            }
+            else if (useFunction) {
+                useWrapper = ContentWrapper.useFunction.bind(null, content);
             }
             else {
-                return `module.exports = ${content};`
+                useWrapper = ContentWrapper.useObject.bind(null, content);
             }
+
+            return useWrapper();
         };
+
         fileContent = fileWrapper(fileContent);
     }
+
     fs.writeFileSync(
         mockFileName,
         fileContent,

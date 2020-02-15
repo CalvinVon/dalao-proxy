@@ -10,7 +10,7 @@ function checkAndCreateFolder (dirname) {
 }
 
 // transfer url to (cache) filename
-// /`${GET/POST}_${URI}`/
+// /`${Method}_${URI}`/
 function url2filename(method, url) {
     return method.toUpperCase()
         + url.split('/')
@@ -20,7 +20,18 @@ function url2filename(method, url) {
         + (url === '/' ? '.html' : '')
 }
 
+function filename2url(filename) {
+    const parts = filename.split('_');
+    const method = parts.shift();
+    const url = '/' + parts.join('/');
+    return {
+        method,
+        url
+    }
+}
+
 module.exports = {
     checkAndCreateFolder,
-    url2filename
+    url2filename,
+    filename2url
 };

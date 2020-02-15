@@ -2,8 +2,8 @@ const chalk = require('chalk');
 const moment = require('moment');
 const { store, restore, list } = require('./store');
 
-module.exports = function storeCommand(pluginCommand, register, config, parentName) {
-    pluginCommand
+module.exports = function storeCommand(command, register, config, parentName) {
+    command
         .command('store [storeName]')
         .description(`store the ${parentName} files`)
         .action(function (name) {
@@ -11,7 +11,7 @@ module.exports = function storeCommand(pluginCommand, register, config, parentNa
             process.exit(0);
         });
 
-    pluginCommand
+    command
         .command('restore <storeName>')
         .description(`store the current ${parentName} files`)
         .action(function (name) {
@@ -19,7 +19,7 @@ module.exports = function storeCommand(pluginCommand, register, config, parentNa
             process.exit(0);
         });
 
-    pluginCommand
+    command
         .command('list')
         .description(`list the ${parentName} stores`)
         .action(function () {

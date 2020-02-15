@@ -12,6 +12,7 @@ const {
     HEADERS_FIELD_TEXT,
     STATUS_FIELD_TEXT
 } = require('./mock.command/mock');
+
 const {
     checkAndCreateFolder,
     url2filename
@@ -47,7 +48,7 @@ module.exports = {
         const { method, url } = request;
         const logger = context.config.logger;
 
-        const { BodyParser } = this.context.exports;
+        const { BodyParser, Utils } = this.context.exports;
         const userConfigHeaders = context.config.headers;
         const {
             dirname: cacheDirname,
@@ -123,14 +124,14 @@ module.exports = {
                     const exportsContent = require(targetFilePath);
                     if (exportsContent) {
                         // handle plain object
-                        if (Object.prototype.toString.call(exportsContent) === '[object Object]') {
+                        if (Utils.getType(exportsContent, 'Object')) {
                             const jsonContent = exportsContent;
                             const fileContent = JSON.stringify(jsonContent, null, 4);
 
                             handleRespond(jsonContent, fileContent);
                         }
                         // handle export Promise
-                        else if (Object.prototype.toString.call(exportsContent) === '[object Promise]') {
+                        else if (Utils.getType(exportsContent, 'Promise')) {
                             exportsContent
                                 .then(value => {
                                     let jsonContent;
@@ -148,7 +149,7 @@ module.exports = {
                                     console.error(error.message);
                                 })
                         }
-                        else if (typeof (exportsContent) === 'function') {
+                        else if (Utils.getType(exportsContent, 'Function')) {
                             collectRealRequestData(() => {
                                 const returnValue = exportsContent.call(null, context);
                                 if (returnValue instanceof Promise) {
@@ -173,7 +174,7 @@ module.exports = {
                                     const jsonContent = returnValue;
                                     const fileContent = JSON.stringify(jsonContent, null, 4);
 
-                                    handleRespond(jsonContent, fileContent);
+                                    handleRespond(jsonContent, fileContent, true);
                                 }
                             });
                         }
@@ -358,7 +359,7 @@ module.exports = {
                 data.body = BodyParser.parse(contentType, buffer, {
                     noRawFileData: true
                 });
-                
+
                 if (!/multipart\/form-data/.test(contentType)) {
                     data.rawBody = buffer.toString();
                 }

@@ -1,8 +1,8 @@
 const chalk = require('chalk');
 const { cleanCache } = require('./clean');
 
-module.exports = function CleanCommand(program, register, config, parentName) {
-    program
+module.exports = function CleanCommand(command, register, config, parentName) {
+    command
         .command('clean [storeName]')
         .description('clear cache files, but user mock files will not be cleaned by default')
         .option('-a, --all', 'clean the whole cache folder, including cache store folders', false)
