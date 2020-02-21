@@ -45,6 +45,7 @@ module.exports = function(context) {
 }`;
     }
 };
+let validators;
 
 exports.HEADERS_FIELD_TEXT = HEADERS_FIELD_TEXT;
 exports.MOCK_FIELD_TEXT = MOCK_FIELD_TEXT;
@@ -54,8 +55,31 @@ exports.STATUS_FIELD_TEXT = STATUS_FIELD_TEXT;
 exports.ContentWrapper = ContentWrapper;
 
 exports.MockFileGenerator = function MockFileGenerator(method, url, options, config) {
-    if (url) {
-        generateFile(method, url, options, config);
+    validators = {
+        method: method => {
+            if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
+                console.error(chalk.red(method + ' is not a valid HTTP method'));
+                return false;
+            }
+            return true;
+        },
+        url: url => {
+            const mockUrl = config.mock.prefix + url;
+            if (!/^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/i.test(mockUrl)) {
+                console.error(chalk.red(mockUrl + ' is not a valid url'));
+                return false;
+            }
+            return true;
+        }
+    };
+    validators[0] = validators.method;
+    validators[1] = validators.url;
+
+
+    if (method && url) {
+        if (validators.method.call(null, method) && validators.url.call(null, method)) {
+            generateFile(method, url, options, config);
+        }
         process.exit(0);
     }
     else {
@@ -74,30 +98,17 @@ function questionUrl(method, options, config) {
         chalk.yellow('[Mock] Url: ') + config.mock.prefix,
     ];
 
-    const validators = [
-        method => {
-            if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
-                console.error(chalk.red(method + ' is not a valid HTTP method'));
-                return false;
-            }
-            return true;
-        },
-        url => {
-            const mockUrl = config.mock.prefix + url;
-            if (!/^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/i.test(mockUrl)) {
-                console.error(chalk.red(mockUrl + ' is not a valid url'));
-                return false;
-            }
-            return true;
-        }
-    ];
-
     const answers = [];
 
     let index = 0;
     if (method) {
-        index++;
-        answers.push(method);
+        if (validators.method.call(null, method)) {
+            index++;
+            answers.push(method);
+        }
+        else {
+            process.exit(-1);
+        }
     }
 
     function askQuestion() {

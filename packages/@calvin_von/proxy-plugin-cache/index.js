@@ -1,7 +1,6 @@
 const path = require('path');
 const querystring = require('querystring');
 const chalk = require('chalk');
-const _ = require('lodash');
 const concat = require('concat-stream');
 const mime = require('mime-types');
 const moment = require('moment');
@@ -560,7 +559,6 @@ function setHeaders(target, headers) {
 }
 
 function formatHeader(string) {
-    // return string.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
     return string.toLowerCase();
 }
 
