@@ -190,7 +190,7 @@ Command.prototype.forwardSubcommands = function (fn) {
 
         let command;
 
-        if (args.length) {
+        if (args.length || unknown.length) {
             // whether the first command is the registered command
             command = self.findCommand(args[0]);
 
