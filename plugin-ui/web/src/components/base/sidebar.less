@@ -1,0 +1,47 @@
+.sidebar {
+    background: @color-dark;
+
+    &-header {
+        padding: 20px 0;
+        font-size: 20px;
+        font-weight: 500;
+        text-align: center;
+
+        img {
+            width: 180px;
+        }
+    }
+
+    &-menu {
+        line-height: 26px;
+        color: #eeeeee;
+
+        .menu-item {
+            display: block;
+            font-size: 26px;
+            padding: 8px 0 8px 34px;
+            transition: all 0.5s;
+            cursor: pointer;
+            color: #eeeeee;
+
+            .item-icon {
+                vertical-align: middle;
+                width: 26px;
+            }
+
+            .item-text {
+                margin-left: 8px;
+                font-size: 16px;
+            }
+
+            &:hover {
+                background: @color-bg-active;
+            }
+
+            &.active {
+                color: @color-primary;
+            }
+        }
+    }
+
+}

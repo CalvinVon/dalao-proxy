@@ -1,0 +1,19 @@
+{
+  "name": "plugin-ui",
+  "version": "1.0.0",
+  "description": "A dalao-proxy UI plugin to support",
+  "keywords": [
+    "dalao-proxy",
+    "ui-console",
+    "plugin-plugin-ui"
+  ],
+  "author": "Calvin",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "koa": "^2.11.0",
+    "koa-static": "^5.0.0",
+    "open": "^7.0.2",
+    "ws": "^7.2.1"
+  }
+}

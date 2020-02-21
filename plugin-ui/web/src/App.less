@@ -1,0 +1,30 @@
+@sidebarWidth: 220px;
+
+html,
+body,
+#root {
+    height: 100%;
+    font-size: unset;
+}
+
+ul {
+    margin: 0;
+}
+
+.app {
+    height: 100%;
+
+    .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: @sidebarWidth;
+    }
+
+    &-container {
+        margin-left: @sidebarWidth;
+        height: 100%;
+        background-color: @color-bg;
+    }
+}
