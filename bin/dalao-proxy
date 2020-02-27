@@ -67,10 +67,20 @@ if (program.context.command) {
     if (program._enableInput) {
         const rl = readline.createInterface({
             input: process.stdin,
-            output: process.stdout
+            output: process.stdout,
+            prompt: chalk.green(`Type commands > `),
+            completer: cmd => {
+                const completions = ['rs', 'restart', 'reload', ...register.lineCommand];
+                const hits = completions.filter(c => c.startsWith(cmd));
+                return [
+                    hits.length ? hits : completions,
+                    cmd
+                ];
+            }
         });
         // user runtime input listener
         rl.on('line', runtimeCmd => {
+            setImmediate(() => rl.prompt());
             register.emit('input', runtimeCmd);
 
             if (program.context.commandName === 'start') {
@@ -86,6 +96,10 @@ if (program.context.command) {
                 }
             }
         });
+
+        rl.on('close', () => {
+            process.exit(0);
+        })
     }
 }
 else {
