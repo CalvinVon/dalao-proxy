@@ -27,6 +27,7 @@ class Register extends EventEmitter {
     constructor() {
         super();
         this.registerMapper = {};
+        this.lineCommand = [];
     }
 
 
@@ -113,6 +114,17 @@ class Register extends EventEmitter {
         else {
             this.registerMapper[field] = [registerSetter];
         }
+    }
+
+
+    addLineCommand(cmd, ...cmds) {
+        if (Array.isArray(cmd)) {
+            this.lineCommand.push(...cmd);
+        }
+        else {
+            this.lineCommand.push(cmd, ...cmds);
+        }
+        this.lineCommand = [...new Set(this.lineCommand)];
     }
 }
 

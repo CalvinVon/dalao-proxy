@@ -31,7 +31,7 @@ function attachServerListener(program, server, config) {
         console.log('  - Local:    ' + chalk.green(localAddress));
         console.log('  - Network:  ' + chalk.green(networkAddress));
         console.log(chalk.grey('  You can enter `rs`,`restart`,`reload` to reload server anytime.'));
-        console.log(chalk.grey('  You can enter `clean`,`cacheclr`,`cacheclean` to clean cached ajax data.'));
+        console.log();
     });
 
     server.on('error', function (err) {

@@ -75,8 +75,15 @@ class CommandContext {
 const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
 const originActionFn = Command.prototype.action;
+
+Command.DALAO_ENV = {
+    development: 'DEV',
+    worker: 'DALAO_WORKER',
+    master: 'DALAO_MASTER'
+};
+
 // Expose states so plugins can access
-Command.prototype.context = new CommandContext();
+Command.prototype.context = Command.context = new CommandContext();
 
 /**
  * @public
@@ -93,6 +100,29 @@ Command.prototype.use = function use(command, callback) {
  */
 Command.prototype.findCommand = function findCommand(subcommandName) {
     return this.commands.find(it => it._name === subcommandName);
+};
+
+
+/**
+ * @public
+ * Overwrite command action function
+ */
+Command.prototype.overwriteAction = function (overwriteFn) {
+    const self = this;
+    removeActionListener(this._name);
+    if (this._alias) {
+        removeActionListener(this._alias);
+    }
+    this.action(overwriteFn);
+
+    function removeActionListener(name) {
+        const listenerName = 'command:' + name;
+        const parent = self.parent || self;
+        const listeners = parent.listeners(listenerName);
+        if (listeners.length > 1) {
+            parent.removeListener(listenerName, listeners.pop());
+        }
+    }
 };
 
 
@@ -124,6 +154,7 @@ Command.prototype.enableCollectProxyData = function () {
 /**
  * @public
  * Return whether the server is collecting real proxy data
+ * * @returns {Boolean}
  */
 Command.prototype.isCollectingData = function () {
     return this.context.program._collectingData;
@@ -133,9 +164,20 @@ Command.prototype.isCollectingData = function () {
 /**
  * @public
  * Return whether the server is collecting client data
+ * * @returns {Boolean}
  */
 Command.prototype.isCollectingProxyData = function () {
     return this.context.program._collectingProxyData;
+};
+
+
+/**
+ * @public
+ * The program is a worker process
+ * @returns {Boolean}
+ */
+Command.prototype.isWorker = function () {
+    return process.env.DALAO_ENV === Command.DALAO_ENV.worker;
 };
 
 
@@ -166,6 +208,7 @@ Command.prototype.option = function optionWrapper(flags, description, fn, defaul
 };
 
 Command.prototype.action = function actionWrapper(callback) {
+    this._actionFn = callback;
     return originActionFn.call(this, (...args) => {
         this.options.forEach(option => {
             const optionAttributeName = option.attributeName();
@@ -266,6 +309,7 @@ Command.prototype.forwardSubcommands = function (fn) {
     });
     return this;
 };
+
 
 
 const entryProgram = new Command();
