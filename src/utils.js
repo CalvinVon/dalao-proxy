@@ -27,10 +27,10 @@ function addHttpProtocol(urlFragment) {
 
 
 function splitTargetAndPath(url) {
-    const { origin: target, pathname: path } = new URL(addHttpProtocol(url));
+    const { origin: target } = new URL(addHttpProtocol(url));
     return {
         target,
-        path
+        path: url.replace(target, '')
     };
 }
 
