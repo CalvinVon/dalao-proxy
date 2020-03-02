@@ -9,5 +9,9 @@
     "in parallel"
   ],
   "author": "Calvin",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "split": "^1.0.1",
+    "through2": "^3.0.1"
+  }
 }
