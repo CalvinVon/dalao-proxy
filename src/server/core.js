@@ -49,6 +49,9 @@ function _invokePluginMiddleware(plugin, method, context) {
                 }
             });
         }
+        else {
+            throw new Error(`${targetMethod} is not a middleware method`);
+        }
     });
 }
 
@@ -67,11 +70,25 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
         return;
     }
 
-    const allPluginPromises = plugins.map(plugin => {
-        return _invokePluginMiddleware(plugin, hookName, context);
+    // const allPluginPromises = plugins.map(plugin => {
+    //     return _invokePluginMiddleware(plugin, hookName, context);
+    // });
+
+    let callChain = Promise.resolve();
+    let chainInterrupted;
+    plugins.forEach(plugin => {
+        callChain = callChain
+            .then(() => _invokePluginMiddleware(plugin, hookName, context))
+            .catch(errorContext => {
+                chainInterrupted = errorContext;
+                return context;
+            })
     });
-    Promise.all(allPluginPromises)
+
+    callChain
         .then(() => {
+            if (chainInterrupted) throw chainInterrupted;
+            
             next.call(null, null, null, hookName);
         })
         .catch(ctx => {
