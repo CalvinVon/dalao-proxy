@@ -54,8 +54,7 @@ exports.launchMonitor = function (config, cb) {
         server.on('error', function (err) {
             server.close();
             if (/EADDRINUSE/i.test(err.message)) {
-                console.log(`  [monitor] Port ${port} already in use, change port to ${port}`);
-                port++;
+                console.log(`  [monitor] Port ${port} already in use, change port to ${++port}`);
                 server.listen(port);
             }
             else {

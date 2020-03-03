@@ -64,7 +64,8 @@ module.exports = {
         }
     },
     onPipeResponse(context, next) {
-        const { network } = this.context.server.address;
+        const { config } = context;
+        const serverAddress = this.context.server.address;
         const { rules } = this.config;
 
         if (!/(^text\/|^application\/(json|javascript|ecmascript|octet-stream))/.test(context.proxy.response.headers['content-type'])) {
@@ -82,8 +83,18 @@ module.exports = {
                         if (!template) {
                             template = fs.readFileSync(rule.templateSrc).toString();
                         }
+
+                        let addressPrefix;
+                        // server address
+                        if (serverAddress.network && config.host === '0.0.0.0') {
+                            addressPrefix = serverAddress.network.origin + URL_PREFIX;
+                        }
+                        else {
+                            addressPrefix = serverAddress.local.origin + URL_PREFIX;
+                        }
+
                         template = template.replace(/{{(.+)}}/g, (placeholder, file) => {
-                            return network.origin + URL_PREFIX + file;
+                            return addressPrefix + file;
                         });
                         context.chunk = context.chunk.replace(insertEndTag, template + insertEndTag);
                     }

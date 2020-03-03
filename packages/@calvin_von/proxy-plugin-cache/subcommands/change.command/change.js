@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const { ContentWrapper } = require('../../mock.command/mock');
+const { ContentWrapper, MOCK_FIELD_TEXT } = require('../../mock.command/mock');
 const { url2filename, filename2url } = require('../../utils');
 
 module.exports = function changeMockFile(file, options, config, parentName) {
@@ -23,6 +23,14 @@ module.exports = function changeMockFile(file, options, config, parentName) {
             if (err) {
                 process.exit(-1);
             }
+
+            if (parentName === 'mock') {
+                mockData[MOCK_FIELD_TEXT] = true;
+            }
+            else {
+                mockData[MOCK_FIELD_TEXT] = false;
+            }
+
             generateFile(mockData);
         })
     } catch (error) {

@@ -78,7 +78,7 @@ function parseRules(rawRules, presets) {
         ...rawRules
             .filter((rule, index) => {
                 if (!rule.test) {
-                    console.warn('[Plugin inject]: inject.rules.' + index + '.test can not be empty');
+                    console.warn('[Plugin inject]: inject.rules.' + index + '.test should not be empty');
                     return false;
                 }
                 if (!rule.template && !lookUpTemplateFile(rule.templateSrc)) {

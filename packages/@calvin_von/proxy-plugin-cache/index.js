@@ -1,7 +1,6 @@
 const path = require('path');
 const querystring = require('querystring');
 const chalk = require('chalk');
-const _ = require('lodash');
 const concat = require('concat-stream');
 const mime = require('mime-types');
 const moment = require('moment');
@@ -550,7 +549,7 @@ function setHeaders(target, headers) {
     for (const header in headers) {
         const _header = formatHeader(header);
         const value = headers[header];
-        if (value) {
+        if (value !== null || value !== undefined) {
             target.setHeader(_header, value);
         }
         else {
@@ -560,7 +559,6 @@ function setHeaders(target, headers) {
 }
 
 function formatHeader(string) {
-    // return string.split('-').map(item => _.upperFirst(item.toLowerCase())).join('-');
     return string.toLowerCase();
 }
 
