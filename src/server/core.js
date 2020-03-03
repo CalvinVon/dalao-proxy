@@ -600,7 +600,7 @@ function proxyRequestWrapper(config, corePlugins) {
             const rewriteHeaders = formatHeaders({
                 'Connection': 'close',
                 'Transfer-Encoding': 'chunked',
-                'Host': changeOrigin ? new URL(target).hostname : clientHeaders['Host'],
+                'Host': changeOrigin ? new URL(target).host : clientHeaders['host'],
                 'Content-Length': null
             });
 
@@ -652,13 +652,13 @@ function proxyRequestWrapper(config, corePlugins) {
         function setHeadersFor(target, headers) {
             for (const header in headers) {
                 const value = headers[header];
-                if (value) {
-                    if (typeof (value) === 'string' || Array.isArray(value)) {
-                        target.setHeader(header, value);
-                    }
+                if (value === null || value === undefined) {
+                    target.removeHeader(header);
                 }
                 else {
-                    target.removeHeader(header);
+                    if (typeof (value) === 'string' || typeof (value) === 'number' || Array.isArray(value)) {
+                        target.setHeader(header, value);
+                    }
                 }
             }
         }
