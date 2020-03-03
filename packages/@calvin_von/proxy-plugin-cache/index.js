@@ -549,7 +549,7 @@ function setHeaders(target, headers) {
     for (const header in headers) {
         const _header = formatHeader(header);
         const value = headers[header];
-        if (value) {
+        if (value !== null || value !== undefined) {
             target.setHeader(_header, value);
         }
         else {
