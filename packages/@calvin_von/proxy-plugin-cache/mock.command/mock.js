@@ -93,6 +93,10 @@ function questionUrl(method, options, config) {
         output: process.stdout
     });
 
+    rl.on('close', () => {
+        process.exit();
+    });
+
     const questions = [
         chalk.yellow('[Mock] Method: '),
         chalk.yellow('[Mock] Url: ') + config.mock.prefix,
