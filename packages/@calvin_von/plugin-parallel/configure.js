@@ -1,5 +1,8 @@
 const defaultOptions = {
-    commands: ['npm start']
+    commands: ['npm start'],
+    render: {
+        compensate: 0
+    }
 };
 
 function setting() {
@@ -11,9 +14,16 @@ function setting() {
 }
 
 function parser(rawUserConfig) {
-    if (rawUserConfig && Array.isArray(rawUserConfig.commands)) {
+    if (rawUserConfig) {
+        const { commands, render } = rawUserConfig;
         return {
-            commands: rawUserConfig.commands
+            commands: Array.isArray(commands)
+                ? commands
+                : defaultOptions.commands
+            ,
+            render: typeof (render) === 'object'
+                ? { ...defaultOptions.render, ...render }
+                : defaultOptions.render
         };
     }
     return defaultOptions;

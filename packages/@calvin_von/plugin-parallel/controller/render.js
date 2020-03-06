@@ -12,6 +12,7 @@ let windowHeight = stdout.rows;
 let selected = 0;
 let logs = [];
 let menu = [];
+let options = {};
 
 stdout.on('resize', () => {
     windowWidth = stdout.columns;
@@ -142,11 +143,12 @@ function run(opt) {
 
 
 function render(line) {
-    if (line.length > windowWidth) {
+    const maxWidth = windowWidth + options.render.compensate;
+    if (line.length > maxWidth) {
         let sliceStart = 0;
         while (sliceStart < line.length) {
-            logs.push(line.slice(sliceStart, sliceStart + windowWidth));
-            sliceStart += windowWidth;
+            logs.push(line.slice(sliceStart, sliceStart + maxWidth));
+            sliceStart += maxWidth;
         }
     }
     else {
@@ -156,6 +158,7 @@ function render(line) {
 };
 
 const Renderer = module.exports = {
+    setOptions: opts => options = opts,
     setMenu: menuList => menu = menuList,
     run,
     render,

@@ -6,7 +6,6 @@ const split = require('split');
 
 const Menu = require('./menu');
 const Renderer = require('./render');
-const path = require('path');
 
 const Controller = module.exports;
 let Command;
@@ -23,6 +22,7 @@ Controller.startWorkerProcess = function startWorkerProcess(program, register, c
         proxyWorker = spawnProxyProcess(startCmd);
 
         const menuList = createMenu(startCmd, config);
+        Renderer.setOptions(config);
         Renderer.setMenu(menuList);
         Renderer.run({
             onMenuSelect(item, replacer) {
@@ -69,6 +69,10 @@ function spawnProcess(cmd) {
             Renderer.render(prefix + output);
             next();
         }));
+
+    process.on('exit', () => {
+        worker.kill('SIGKILL');
+    });
 
     return worker;
 }
@@ -147,8 +151,9 @@ function createMenu(startCmd, config) {
     menuList.addChild(proxyMenu);
 
     config.commands.forEach(command => {
-        let worker = spawnProcess(command);
-        addExitListener(command, worker, () => worker = null);
+        // let worker = spawnProcess(command);
+        // addExitListener(command, worker, () => worker = null);
+        let worker;
         const menu = new Menu(command)
             .addStartChild(() => {
                 startProcessWrapper(command, worker, () => {
