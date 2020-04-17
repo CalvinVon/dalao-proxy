@@ -88,7 +88,7 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
     callChain
         .then(() => {
             if (chainInterrupted) throw chainInterrupted;
-
+            
             next.call(null, null, null, hookName);
         })
         .catch(ctx => {
