@@ -49,6 +49,9 @@ function _invokePluginMiddleware(plugin, method, context) {
                 }
             });
         }
+        else {
+            throw new Error(`${targetMethod} is not a middleware method`);
+        }
     });
 }
 
@@ -67,11 +70,25 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
         return;
     }
 
-    const allPluginPromises = plugins.map(plugin => {
-        return _invokePluginMiddleware(plugin, hookName, context);
+    // const allPluginPromises = plugins.map(plugin => {
+    //     return _invokePluginMiddleware(plugin, hookName, context);
+    // });
+
+    let callChain = Promise.resolve();
+    let chainInterrupted;
+    plugins.forEach(plugin => {
+        callChain = callChain
+            .then(() => _invokePluginMiddleware(plugin, hookName, context))
+            .catch(errorContext => {
+                chainInterrupted = errorContext;
+                return context;
+            })
     });
-    Promise.all(allPluginPromises)
+
+    callChain
         .then(() => {
+            if (chainInterrupted) throw chainInterrupted;
+
             next.call(null, null, null, hookName);
         })
         .catch(ctx => {
@@ -495,21 +512,37 @@ function proxyRequestWrapper(config, corePlugins) {
                         response: null
                     };
 
-                    // collect proxy request data
-                    if (program._collectingProxyData) {
-                        collectRequestData(context, context.proxy.requestStream, (err, data) => {
-                            context.proxy.data.error = err;
-                            context.proxy.data.request = data;
-                        });
-                    }
+                    const dataCollector = {
+                        onDataCollected(fn) {
+                            this._onDataCollectedFn = fn;
+                        },
+                        onProxyDataCollected(fn) {
+                            this._onProxyDataCollectedFn = fn;
+                        },
+                    };
+                    context.onDataCollected = dataCollector.onDataCollected.bind(dataCollector);
+                    context.onProxyDataCollected = dataCollector.onProxyDataCollected.bind(dataCollector);
+
 
                     // collect client request data
                     if (program._collectingData) {
                         collectRequestData(context, req, (err, data) => {
                             context.data.error = err;
                             context.data.request = data;
+                            dataCollector._onDataCollectedFn.call(null, context, data);
                         });
                     }
+
+
+                    // collect proxy request data
+                    if (program._collectingProxyData) {
+                        collectRequestData(context, context.proxy.requestStream, (err, data) => {
+                            context.proxy.data.error = err;
+                            context.proxy.data.request = data;
+                            dataCollector._onProxyDataCollectedFn.call(null, context, data);
+                        });
+                    }
+
                     Middleware_onProxySetup(context);
                 });
             })
@@ -542,6 +575,10 @@ function proxyRequestWrapper(config, corePlugins) {
         function collectRequestData(context, source, callback) {
             let error;
             const reqContentType = formatHeaders(req.headers)['content-type'];
+            source.on('error', error => {
+                callback(error);
+            });
+
             source.pipe(concat(buffer => {
                 const data = {
                     rawBuffer: buffer,

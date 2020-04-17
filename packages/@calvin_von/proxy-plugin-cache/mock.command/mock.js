@@ -77,7 +77,7 @@ exports.MockFileGenerator = function MockFileGenerator(method, url, options, con
 
 
     if (method && url) {
-        if (validators.method.call(null, method) && validators.url.call(null, method)) {
+        if (validators.method.call(null, method) && validators.url.call(null, url)) {
             generateFile(method, url, options, config);
         }
         process.exit(0);
@@ -91,6 +91,10 @@ function questionUrl(method, options, config) {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
+    });
+
+    rl.on('close', () => {
+        process.exit();
     });
 
     const questions = [
