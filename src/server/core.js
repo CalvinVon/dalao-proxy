@@ -88,7 +88,7 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
     callChain
         .then(() => {
             if (chainInterrupted) throw chainInterrupted;
-            
+
             next.call(null, null, null, hookName);
         })
         .catch(ctx => {
@@ -514,11 +514,13 @@ function proxyRequestWrapper(config, corePlugins) {
 
                     const dataCollector = {
                         onDataCollected(fn) {
-                            this._onDataCollectedFn = fn;
+                            this._onDataFn = fn;
                         },
                         onProxyDataCollected(fn) {
-                            this._onProxyDataCollectedFn = fn;
+                            this._onProxyDataFn = fn;
                         },
+                        _onDataFn: () => null,
+                        _onProxyDataFn: () => null
                     };
                     context.onDataCollected = dataCollector.onDataCollected.bind(dataCollector);
                     context.onProxyDataCollected = dataCollector.onProxyDataCollected.bind(dataCollector);
@@ -529,7 +531,9 @@ function proxyRequestWrapper(config, corePlugins) {
                         collectRequestData(context, req, (err, data) => {
                             context.data.error = err;
                             context.data.request = data;
-                            dataCollector._onDataCollectedFn.call(null, context, data);
+                            if (typeof dataCollector._onDataFn === 'function') {
+                                dataCollector._onDataFn.call(null, context, data);
+                            }
                         });
                     }
 
@@ -539,7 +543,9 @@ function proxyRequestWrapper(config, corePlugins) {
                         collectRequestData(context, context.proxy.requestStream, (err, data) => {
                             context.proxy.data.error = err;
                             context.proxy.data.request = data;
-                            dataCollector._onProxyDataCollectedFn.call(null, context, data);
+                            if (typeof dataCollector._onProxyDataFn === 'function') {
+                                dataCollector._onProxyDataFn.call(null, context, data);
+                            }
                         });
                     }
 
