@@ -1,0 +1,17 @@
+{
+  "name": "plugin-parallel",
+  "version": "1.0.0",
+  "description": "A dalao-proxy plugin",
+  "keywords": [
+    "dalao-proxy",
+    "plugin-plugin-parallel",
+    "multiple commands",
+    "in parallel"
+  ],
+  "author": "Calvin",
+  "license": "ISC",
+  "dependencies": {
+    "split": "^1.0.1",
+    "through2": "^3.0.1"
+  }
+}

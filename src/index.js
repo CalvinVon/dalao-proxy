@@ -67,7 +67,9 @@ class CommandContext {
             ConfigParser,
             BodyParser,
             Plugin,
-            Utils
+            Utils,
+            Command,
+            bin: require.resolve('../bin/dalao-proxy')
         };
     }
 }
@@ -77,7 +79,10 @@ const originOptionFn = Command.prototype.option;
 const originActionFn = Command.prototype.action;
 
 Command.DALAO_ENV = {
-    development: 'DEV',
+    development: 'DEV'
+};
+
+Command.DALAO_WORKER = {
     worker: 'DALAO_WORKER',
     master: 'DALAO_MASTER'
 };
@@ -177,7 +182,7 @@ Command.prototype.isCollectingProxyData = function () {
  * @returns {Boolean}
  */
 Command.prototype.isWorker = function () {
-    return process.env.DALAO_ENV === Command.DALAO_ENV.worker;
+    return process.env.DALAO_WORKER === Command.DALAO_WORKER.worker;
 };
 
 
