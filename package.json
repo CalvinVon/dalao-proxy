@@ -7,7 +7,6 @@
     "dalao-proxy": "bin/dalao-proxy"
   },
   "scripts": {
-    "start": "echo 'I am npm start'",
     "postinstall": "node scripts/post-install.js",
     "preuninstall": "node scripts/pre-uninstall.js"
   },
@@ -21,13 +20,10 @@
   "author": "Calvin",
   "license": "MIT",
   "repository": "https://github.com/CalvinVon/dalao-proxy.git",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "dependencies": {
     "chalk": "^2.4.2",
     "cli-spinner": "^0.2.10",
-    "cli-table3": "^0.5.1",
+    "cli-table3": "^0.6.0",
     "commander": "^4.0.1",
     "concat-stream": "^2.0.0",
     "ejs": "^3.0.1",
