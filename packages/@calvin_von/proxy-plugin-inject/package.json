@@ -1,11 +1,8 @@
 {
-  "name": "proxy-plugin-inject",
-  "version": "1.0.0",
+  "name": "@calvin_von/proxy-plugin-inject",
+  "version": "1.0.0-beta",
   "description": "A dalao-proxy plugin for inject scripts into html",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "dalao-proxy",
     "plugin",
@@ -17,7 +14,7 @@
   "dependencies": {
     "chalk": "^3.0.0",
     "console-probe": "^3.3.2",
-    "eruda": "^1.10.3",
+    "eruda": "^2.2.2",
     "mime": "^2.4.4",
     "ws": "^7.2.1"
   }

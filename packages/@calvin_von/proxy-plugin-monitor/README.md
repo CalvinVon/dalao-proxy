@@ -4,6 +4,9 @@ A [dalao-proxy](https://github.com/CalvinVon/dalao-proxy) plugin for request mon
 [![version](https://img.shields.io/npm/v/@calvin_von/proxy-plugin-monitor.svg)](https://www.npmjs.com/package/@calvin_von/proxy-plugin-monitor)
 [![](https://img.shields.io/npm/dt/@calvin_von/proxy-plugin-monitor.svg)](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/@calvin_von/proxy-plugin-monitor)
 
+> - 1.x version support dalao-proxy@0.x
+> - 2.x version support dalao-proxy@1.x
+
 ## Usage
 ### 1. Global Install
 Install `dalao-proxy` cli first
@@ -12,22 +15,29 @@ npm install -g dalao-proxy
 ```
 
 Add plugin
+
 ```bash
-$ dalao-proxy add-plugin @calvin_von/proxy-plugin-monitor
-> @calvin_von/proxy-plugin-monitor Install complete
+$ dalao-proxy plugin install -g @calvin_von/proxy-plugin-monitor
 ```
+
 
 Add config
 ```json
 {
     "monitor": {
         "open": true,
-        "cleanOnRestart": true
+        "cleanOnRestart": false,
+        "disableLogger": true,
+        "maxRecords": 100,
+        "editor": "code"
     }
 }
 ```
 - **`open`**: Auto open monitor page when start. (Default: `true`)
+- **`disableLogger`**: Enable disable proxy logger. (Default: `true`)
 - **`cleanOnRestart`**: Auto clean monitor data list when restart. (Default: `false`)
+- **`maxRecords`**: Set maximum records item. (Default: `100`)
+- **`editor`**: Default code editor. (Default: `code`)
 
 Start proxy
 ```bash
@@ -40,11 +50,11 @@ $ dalao-proxy start
 ### 2. Local Install
 ```bash
 $ npm install -D dalao-proxy
-$ npm install -D @calvin_von/proxy-plugin-monitor
+$ dalao-proxy plugin install -D @calvin_von/proxy-plugin-monitor
 ```
 Generate config json file
 ```bash
-$ npx dalao-proxy init
+$ npx dalao-proxy init -f
 ```
 
 Add plugin in config json file
