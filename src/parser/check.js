@@ -19,11 +19,11 @@ function _check (field, value, regexp, canIgnore = false) {
 
 const proxyTable = {
     // Supported Regexp
-    proxyPath: value => _check('proxyTable.[proxy]', value, /^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/),
+    proxyPath: value => _check('proxyTable.[proxy]', value, /^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/i),
     // proxyPath: value => _check('proxyTable.[proxy]', value, /^[\w-_^$\\\.\/()\[\]]+$/),
     
     // Support $n replacement
-    path: value => _check('proxyTable.path', value, /^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/),
+    path: value => _check('proxyTable.path', value, /^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/i),
     target: value => _check('proxyTable.target', value, REG_PROTOCOL_HOST_PORT, true),
 }
 
@@ -31,7 +31,7 @@ const proxyTable = {
 module.exports = {
     configFileName: value => _check('configFileName', value, /^\.?([^\\\/\:\*\?"<>\|\s]+\.)*[^\\\/\:\*\?"<>\|\s]+(\.js(on)?)?$/),
     watch: value => _check('watch', value, /^(true|false)$/),
-    host: value => _check('host', value, /^([a-z\u00a1-\uffff0-9%_-]+\.)*[a-z\u00a1-\uffff0-9%_-]+$/),
+    host: value => _check('host', value, /^([a-z\u00a1-\uffff0-9%_-]+\.)*[a-z\u00a1-\uffff0-9%_-]+$/i),
     port: value => _check('port', value, /^\d{2,5}$/),
     target: value => _check('target', value, REG_PROTOCOL_HOST_PORT),
     proxyTable
