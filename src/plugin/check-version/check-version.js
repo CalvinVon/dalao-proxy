@@ -14,6 +14,7 @@ const CheckVersion = module.exports;
  * @param {(ifNeedUpdate, versionMeta) => void} callback call on package has new version
  */
 CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callback) {
+    if (!currentVersion) return;
     const versionCmd = spawn('npm', ['view', package, 'version', 'time', '--json'], {
         stdio: 'pipe',
         shell: true,
