@@ -1,0 +1,16 @@
+{
+  "name": "plugin-network-latency",
+  "version": "1.0.0",
+  "description": "A dalao-proxy plugin for simulate network latency",
+  "keywords": [
+    "dalao-proxy",
+    "plugin",
+    "simulate network latency",
+    "plugin-network-latency"
+  ],
+  "author": "calvin_von",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.0.0"
+  }
+}
