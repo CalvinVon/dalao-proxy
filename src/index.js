@@ -104,7 +104,7 @@ Command.prototype.use = function use(command, callback) {
  * Find subcommand by name
  */
 Command.prototype.findCommand = function findCommand(subcommandName) {
-    return this.commands.find(it => it.name() === subcommandName || it.alias() === subcommandName);
+    return subcommandName && this.commands.find(it => it.name() === subcommandName || it.alias() === subcommandName);
 };
 
 
