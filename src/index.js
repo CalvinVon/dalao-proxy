@@ -104,7 +104,7 @@ Command.prototype.use = function use(command, callback) {
  * Find subcommand by name
  */
 Command.prototype.findCommand = function findCommand(subcommandName) {
-    return this.commands.find(it => it._name === subcommandName);
+    return this.commands.find(it => it.name() === subcommandName || it.alias() === subcommandName);
 };
 
 
@@ -250,7 +250,8 @@ Command.prototype.forwardSubcommands = function (fn) {
                 }
                 else {
                     var parsed = command.parseOptions(unknown);
-                    if (parsed.args.length) args = parsed.args.concat(args);
+                    // if (parsed.args.length) args = parsed.args.concat(args);
+                    if (parsed.args.length) args = args.concat(parsed.args);
                     unknown = parsed.unknown;
                 }
             }
