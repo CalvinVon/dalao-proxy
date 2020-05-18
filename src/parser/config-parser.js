@@ -20,8 +20,6 @@ const {
 const parseEmitter = new EventEmitter();
 exports.emitter = parseEmitter;
 
-let isWatching;
-
 function cleanRequireCache(fileName) {
     const id = fileName;
     const cache = require.cache;
@@ -140,12 +138,12 @@ function mergeConfig(baseConfig, fileConfig) {
     const baseConfig_plain = _.omit(baseConfig, EXTRA_FIELDS_ALL);
     const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS_ALL);
     const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
-    
+
     Object.keys(mergedConfig_plain).forEach(config => {
         const checkFn = CheckFunctions[config];
         checkFn && checkFn(mergedConfig_plain[config]);
     });
-    
+
     // merge extra fields
     const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
     const baseConfig_extra_arr = _.pick(baseConfig, EXTRA_FIELDS.arr);
@@ -321,7 +319,7 @@ exports.parse = function parse(command) {
     delete argsConfig.config;
 
     const { path: filePath, config: fileConfig } = parseFile(argsConfig.configFileName);
-    
+
     // replace fileConfig by argsConfig
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
     mergePluginsConfig(runtimeConfig, command.context.plugins);
@@ -336,30 +334,11 @@ exports.parse = function parse(command) {
 
     const currentCommand = command.context.command;
 
-    if (currentCommand && fs.existsSync(filePath) && !isWatching && runtimeConfig.watch) {
+    if (currentCommand && fs.existsSync(filePath) && runtimeConfig.watch) {
         fs.unwatchFile(filePath);
         fs.watchFile(filePath, function () {
             parseEmitter.emit('config:triggerParse:fileChange');
-            console.log('> 👳   dalao is watching at your config file');
-            console.log(chalk.yellow('> 😤   dalao find your config file has changed, reloading...'));
-
-            // reparse config file
-            const changedFileConfig = parseFile(filePath).config;
-            // replace fileConfig by argsConfig
-            runtimeConfig = _.assignWith({}, changedFileConfig, argsConfig, custom_assign);
-            mergePluginsConfig(runtimeConfig, command.context.plugins);
-            
-            const routeTable = parseRouter(runtimeConfig);
-            register._trigger('output', { routeTable }, value => {
-                command.context.output = value;
-
-                // emit event to reload proxy server
-                parseEmitter.emit('config:parsed', {
-                    path: filePath,
-                    config: runtimeConfig
-                });
-                isWatching = true;
-            });
+            console.log(chalk.yellow('> dalao find your config file has changed, reloading...'));
         });
     }
     // emit event to reload proxy server

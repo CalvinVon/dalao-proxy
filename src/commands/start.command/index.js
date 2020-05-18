@@ -22,10 +22,14 @@ module.exports = function startCommand(program) {
             // On config parsed
             parserEmitter.on('config:parsed', function () {
                 if (proxyServer) {
-                    proxyServer.close();
+                    proxyServer.close(() => {
+                        proxyServer = ProxyServer.createProxyServer(command);
+                    });
+                }
+                else {
+                    proxyServer = ProxyServer.createProxyServer(command);
                 }
 
-                proxyServer = ProxyServer.createProxyServer(command);
             });
         });
 };

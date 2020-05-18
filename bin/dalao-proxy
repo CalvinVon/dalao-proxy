@@ -15,6 +15,10 @@ const {
 parserEmitter.on('config:triggerParse:fileChange', () => {
     // reload plugins
     registerPlugins();
+    console.clear();
+    program.context.server.close(function () {
+        ConfigParser.parse(program);
+    });
 });
 
 // On config parsed
@@ -123,8 +127,11 @@ process.on('uncaughtException', function (err) {
         console.error(err);
         console.log(chalk.yellow(`
     Current version: ${baseConfig.version}
-    You may need to: 1.Update to the latest version by \`(sudo) npm i dalao-proxy@latest -g\`. 2.Look up your config file, check
-    if there is any syntax problem(s). 3.Create a bug issue on https://github.com/CalvinVon/dalao-proxy/issues.
+    You may need to:
+    1.Update to the latest version by \`(sudo) npm i dalao-proxy@latest -g\`.
+    2.Look up your config file, check if there is any problem(s) with installed plugins.
+    3.Create a bug issue on https://github.com/CalvinVon/dalao-proxy/issues.
+    
     dalao is sorry about this.`)
         );
     }

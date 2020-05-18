@@ -39,7 +39,6 @@ class Register extends EventEmitter {
      * @param {Function} callback return the value after `configure`
      */
     _trigger(field, value, callback) {
-        this.emit('context:' + field, value);
         const registerSetters = this.registerMapper[field] || [];
 
         let index = 0, total = registerSetters.length;
@@ -52,32 +51,27 @@ class Register extends EventEmitter {
 
         executeSetter(currentSetter, () => {
             callback(lastValue);
+            this.emit('context:' + field, lastValue);
         });
 
 
         function executeSetter(setter, cb) {
-            if (getType(setter, 'Function')) {
-                try {
-                    setter.call(null, lastValue, (err, returnValue) => {
-                        if (!err) {
-
-                            // keep corresponding type
-                            if (getType(returnValue) === getType(value)) {
-                                // remember last value after setter
-                                lastValue = returnValue;
-                            }
-                            else {
-                                console.warn(chalk.yellow(`Plugin warning: The plugin [${setter.plugin.id}] can't change the type of value while configuring the field [${field}].`));
-                            }
-                            next();
+            try {
+                setter.call(null, lastValue, (err, returnValue) => {
+                    if (!err) {
+                        // keep corresponding type
+                        if (getType(returnValue) === getType(value)) {
+                            // remember last value after setter
+                            lastValue = returnValue;
                         }
                         else {
-                            next();
+                            console.warn(chalk.yellow(`Plugin warning: The plugin [${setter.plugin.id}] can't change the type of value while configuring the field [${field}].`));
                         }
-                    });
-                } catch (error) {
+                    }
                     next();
-                }
+                });
+            } catch (error) {
+                next();
             }
 
             function next() {
@@ -108,6 +102,9 @@ class Register extends EventEmitter {
      *      - `callback(err, value)` must be called when done
      */
     configure(field, registerSetter) {
+        if (!getType(setter, 'Function')) {
+            throw new Error('registerSetter must be a function');
+        }
         if (this.registerMapper[field]) {
             this.registerMapper[field].push(registerSetter);
         }
@@ -260,10 +257,10 @@ class Plugin {
         else {
             rawPluginConfig = [this.context.config[optionsField]];
         }
-        
+
         const parser = this.parser = Plugin.resolveConfigParser(this);
         const parsedConfig = parser.apply(this, rawPluginConfig) || {};
-        
+
         // resolve plugin enable config
         // 
         parsedConfig[this.setting.enableField] = rawPluginConfig[0] && rawPluginConfig[0][this.setting.enableField];

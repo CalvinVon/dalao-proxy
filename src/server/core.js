@@ -433,7 +433,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         context.proxy.error = error;
                         res.writeHead(503, 'Service Unavailable');
                         res.write(error.message);
-                        res.end('Connect to server failed with code ' + error.code);
+                        res.end(' Connect to server failed with code ' + error.code);
                         resolve([context]);
                     });
 

@@ -20,11 +20,6 @@ function attachServerListener(program, server, config) {
             network: networkIp ? new URL(networkAddress) : null,
         };
 
-        // trigger field `server`
-        register._trigger('server', server, value => {
-            program.context.server = value;
-        });
-        
         config.port = port;
         console.log(chalk.green('\n> dalao has setup the Proxy for you 🚀\n'));
         console.log('> dalao is listening at: ');
@@ -32,6 +27,11 @@ function attachServerListener(program, server, config) {
         console.log('  - Network:  ' + chalk.green(networkAddress));
         console.log(chalk.grey('  You can enter `rs`,`restart`,`reload` to reload server anytime.'));
         console.log();
+
+        // trigger field `server`
+        register._trigger('server', server, value => {
+            program.context.server = value;
+        });
     });
 
     server.on('error', function (err) {
