@@ -1,6 +1,6 @@
 {
   "name": "plugin-network-latency",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A dalao-proxy plugin for simulate network latency",
   "keywords": [
     "dalao-proxy",

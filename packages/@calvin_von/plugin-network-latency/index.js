@@ -8,7 +8,6 @@ function work(context, config, callback) {
         time
     } = config;
     const url = context.request.url;
-    console.log('url: ', url);
     
 
     if (!time) {

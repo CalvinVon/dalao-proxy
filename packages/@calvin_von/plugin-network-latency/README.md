@@ -2,8 +2,8 @@
 A [dalao-proxy](https://github.com/CalvinVon/dalao-proxy) for simulate network latency.
 > only support dalao-proxy > 1.x
 
-[![version](https://img.shields.io/npm/v/@calvin_von/plugin-network-latency.svg)](https://www.npmjs.com/package/@calvin_von/plugin-network-latency)
-[![](https://img.shields.io/npm/dt/@calvin_von/plugin-network-latency.svg)](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/@calvin_von/plugin-network-latency)
+[![version](https://img.shields.io/npm/v/plugin-network-latency.svg)](https://www.npmjs.com/package/plugin-network-latency)
+[![](https://img.shields.io/npm/dt/plugin-network-latency.svg)](https://github.com/CalvinVon/dalao-proxy/tree/master/packages/plugin-network-latency)
 
 ## Usage
 Install `dalao-proxy` cli first
@@ -14,12 +14,12 @@ npm install -g dalao-proxy
 Install plugin
 - globally
     ```bash
-    $ dalao-proxy plugin install -g @calvin_von/plugin-network-latency
+    $ dalao-proxy plugin install -g plugin-network-latency
     ```
 
 - locally
     ```bash
-    $ dalao-proxy plugin install -D @calvin_von/plugin-network-latency
+    $ dalao-proxy plugin install -D plugin-network-latency
     ```
 
 Add config
