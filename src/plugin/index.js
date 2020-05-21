@@ -25,7 +25,7 @@ function isBuildIn(id) {
 
 
 function createUid() {
-    return (Date.now() + Math.random()).toString(16).substr(2);
+    return Math.random().toString(36).substr(2) + Date.now().toString(36);
 }
 
 class Register extends EventEmitter {
@@ -49,6 +49,8 @@ class Register extends EventEmitter {
         let index = 0, total = registerSetters.length;
         if (!total) {
             callback(value);
+            this.emit('context:' + field, value);
+            return;
         }
 
         let lastValue = value;
@@ -473,24 +475,6 @@ class PluginInterrupt {
 }
 
 
-// create plugins instances
-function instantiatedPlugins(program, pluginsNames) {
-    // program.context.plugins = [];
-    // register._reset();
-
-    pluginsNames.forEach(name => {
-        let plugin;
-        if (typeof(name) === 'string') {
-            plugin = new Plugin(name, program.context);
-        }
-        else if (Array.isArray(name)) {
-            const [pluginName, pluginSetting] = name;
-            plugin = new Plugin(pluginName, program.context, pluginSetting);
-        }
-        program.context.plugins.push(plugin);
-    });
-};
-
 function reloadPlugins(plugins) {
     plugins.forEach(plugin => {
         try {
@@ -512,6 +496,5 @@ module.exports = {
     PluginInterrupt,
     Register,
     register,
-    instantiatedPlugins,
     reloadPlugins
 };

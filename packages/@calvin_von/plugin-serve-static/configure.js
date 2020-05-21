@@ -5,11 +5,11 @@ const defaultOptions = {
 };
 
 function setting(pluginSetting) {
-    console.log('I am loaded', pluginSetting)
     return {
         defaultEnable: true,
         optionsField: 'serve',
         enableField: 'enable',
+        ...(pluginSetting || {})
     }
 }
 

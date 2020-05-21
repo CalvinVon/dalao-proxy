@@ -4,7 +4,7 @@ const chalk = require('chalk');
 const readline = require('readline');
 const baseConfig = require('../config');
 
-const { register, instantiatedPlugins, reloadPlugins } = require('../src/plugin');
+const { Plugin, register, reloadPlugins } = require('../src/plugin');
 const {
     program,
     ConfigParser,
@@ -144,7 +144,23 @@ process.on('uncaughtException', function (err) {
 function loadNewPlugins(config) {
     const loadedPlugins = program.context.plugins;
     reloadPlugins(loadedPlugins);
-    instantiatedPlugins(program, config.plugins.filter(name => !loadedPlugins.some(plugin => plugin.name === name)));
+
+    const newPluginNames = [...config.plugins];
+    loadedPlugins.forEach(plugin => {
+        const foundIndex = newPluginNames.findIndex(name => {
+            if (typeof (name) === 'string') {
+                return name === plugin.name;
+            }
+            else if (Array.isArray(name)) {
+                const [pluginName] = name;
+                return pluginName === plugin.name;
+            }
+        });
+
+        newPluginNames.splice(foundIndex, 1);
+    });
+
+    instantiatedPlugins(program, newPluginNames);
     ConfigParser.mergePluginsConfig(config, program.context.plugins);
 }
 
@@ -161,3 +177,21 @@ function registerPlugins() {
 
     loadNewPlugins(config);
 }
+
+// create plugins instances
+function instantiatedPlugins(program, pluginsNames) {
+    // program.context.plugins = [];
+    // register._reset();
+
+    pluginsNames.forEach(name => {
+        let plugin;
+        if (typeof(name) === 'string') {
+            plugin = new Plugin(name, program.context);
+        }
+        else if (Array.isArray(name)) {
+            const [pluginName, pluginSetting] = name;
+            plugin = new Plugin(pluginName, program.context, pluginSetting);
+        }
+        program.context.plugins.push(plugin);
+    });
+};
