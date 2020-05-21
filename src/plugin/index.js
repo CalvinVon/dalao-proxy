@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
-const { isDebugMode, getType } = require('../utils');
+const { isDebugMode, getType, uuid } = require('../utils');
 const PATH_INDEX = './index.js';
 const PATH_COMMANDER = './commander.js';
 const PATH_CONFIGURE = './configure.js';
@@ -21,6 +21,11 @@ function isNoOptionFileError(error) {
  */
 function isBuildIn(id) {
     return id.match(/^BuildIn\:plugin\/(.+)$/i);
+}
+
+
+function createUid() {
+    return (Date.now() + Math.random()).toString(16).substr(2);
 }
 
 class Register extends EventEmitter {
@@ -65,7 +70,7 @@ class Register extends EventEmitter {
                             lastValue = returnValue;
                         }
                         else {
-                            console.warn(chalk.yellow(`Plugin warning: The plugin [${setter.plugin.id}] can't change the type of value while configuring the field [${field}].`));
+                            console.warn(chalk.yellow(`Plugin warning: The plugin [${setter.plugin.name}] can't change the type of value while configuring the field [${field}].`));
                         }
                     }
                     next();
@@ -147,8 +152,10 @@ class Plugin {
      * @param {String} pluginName
      * @param {Object} context program.context
      */
-    constructor(pluginName, context) {
-        this.id = pluginName;
+    constructor(pluginName, context, setting) {
+        this.id = createUid();
+        this.name = pluginName;
+        this._pluginSetting = setting;
         this.meta = {};
         this.setting;
         this.config;
@@ -170,7 +177,7 @@ class Plugin {
                 commanderPath,
                 configurePath,
                 packagejsonPath
-            } = Plugin.resolvePluginPaths(this.id);
+            } = Plugin.resolvePluginPaths(this.name);
 
             this._indexPath = indexPath;
             this._packagejsonPath = packagejsonPath;
@@ -203,7 +210,7 @@ class Plugin {
 
         if (enable && !this.meta.enabled) {
             this.middleware = require(this._indexPath);
-            if (isBuildIn(this.id)) {
+            if (isBuildIn(this.name)) {
                 this.meta = { isBuildIn: true, version };
             }
             else {
@@ -270,7 +277,7 @@ class Plugin {
     static defaultSetting(plugin) {
         return {
             defaultEnable: true,
-            optionsField: plugin.id,
+            optionsField: plugin.name,
             enableField: 'enable',
         };
     }
@@ -324,7 +331,7 @@ class Plugin {
         if (configure && typeof configure === 'object') {
             const setting = configure.setting;
             if (typeof setting === 'function') {
-                return Object.assign({}, defaultSetting, setting.call(plugin));
+                return Object.assign({}, defaultSetting, setting.call(plugin, plugin._pluginSetting));
             }
             else {
                 return defaultSetting;
@@ -461,7 +468,7 @@ class PluginInterrupt {
     }
 
     toString() {
-        return `[Plugin ${this.plugin.id}:${this.lifehook}] ${this.message}`;
+        return `[Plugin ${this.plugin.name}:${this.lifehook}] ${this.message}`;
     }
 }
 
@@ -472,7 +479,15 @@ function instantiatedPlugins(program, pluginsNames) {
     // register._reset();
 
     pluginsNames.forEach(name => {
-        program.context.plugins.push(new Plugin(name, program.context));
+        let plugin;
+        if (typeof(name) === 'string') {
+            plugin = new Plugin(name, program.context);
+        }
+        else if (Array.isArray(name)) {
+            const [pluginName, pluginSetting] = name;
+            plugin = new Plugin(pluginName, program.context, pluginSetting);
+        }
+        program.context.plugins.push(plugin);
     });
 };
 

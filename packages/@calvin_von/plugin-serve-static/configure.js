@@ -4,7 +4,8 @@ const defaultOptions = {
     serveOptions: {},
 };
 
-function setting() {
+function setting(pluginSetting) {
+    console.log('I am loaded', pluginSetting)
     return {
         defaultEnable: true,
         optionsField: 'serve',

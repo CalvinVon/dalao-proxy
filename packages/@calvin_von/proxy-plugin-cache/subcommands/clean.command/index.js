@@ -20,20 +20,6 @@ module.exports = function CleanCommand(command, register, config, parentName) {
             console.log('Cache files has been cleaned.');
             process.exit(0);
         });
-
-    register.on('input', input => {
-        let matched;
-        if (matched = input.match(/\b(cacheclr|clean|cacheclean)\b(?:\s(\S+))?/)) {
-            const storeName = matched[2];
-            cleanCache({
-                config: config[parentName],
-                options: {
-                    storeName
-                }
-            });
-            console.log(chalk.green('  [plugin-cache] dalao cache has been cleaned!'));
-        }
-    });
 }
 
 function collectExtensions(value, previous) {

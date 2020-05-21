@@ -11,7 +11,8 @@ const findExtendedCommand = require('../find-extended-command');
 function analysisPlugin(plugin) {
     return {
         instance: plugin,
-        id: isBuildIn(plugin) ? plugin.id.replace('BuildIn:plugin/', '') : plugin.id,
+        id: plugin.id,
+        name: isBuildIn(plugin) ? plugin.name.replace('BuildIn:plugin/', '') : plugin.name,
         version: plugin.meta.version,
         description: isBuildIn(plugin) ? '📦  Build-in plugin' : plugin.meta.description,
         middlewares: Object.keys(plugin.middleware).filter(it => Plugin.AllMiddlewares.some(m => m === it)),
@@ -36,7 +37,7 @@ function analysisPluginList(runtimePlugins, options) {
     if (isGlobal) {
         const baseConfigFilePath = require('path').join(__dirname, '../../../../config/index.js');
         const config = require(baseConfigFilePath);
-        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.id === name));
+        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.name === name));
     }
 
 
@@ -67,6 +68,7 @@ function displayPluginTable(runtimePlugins, options) {
 
     const table = new Table({
         head: [
+            [true, chalk.yellow('Plugin Name')],
             [true, chalk.yellow('Plugin ID')],
             [true, chalk.white('Version')],
             [showDescription, chalk.white('Description')],
@@ -87,7 +89,7 @@ function displayPluginTable(runtimePlugins, options) {
         function wrapper([flag, output = '-']) {
             if (flag) {
                 const error = analyzedPlugin.instance.meta.error;
-                if (error && output !== analyzedPlugin.id) {
+                if (error && output !== analyzedPlugin.name) {
                     return disabledEmoji + '  ' + error.code;
                 }
                 else {
@@ -100,9 +102,11 @@ function displayPluginTable(runtimePlugins, options) {
         }
 
         table.push([
+            // Name
+            [true, analyzedPlugin.name],
             // ID
             [true, analyzedPlugin.id],
-            // version
+            // Version
             [true, analyzedPlugin.version],
             // Description
             [showDescription, analyzedPlugin.description || displayEmpty],
