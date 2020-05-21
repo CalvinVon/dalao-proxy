@@ -93,8 +93,8 @@ Command.prototype.context = Command.context = new CommandContext();
 /**
  * @public
  */
-Command.prototype.use = function use(command, callback) {
-    command.call(this, this, callback);
+Command.prototype.use = function use(command) {
+    command.call(this, this, register);
     return this;
 };
 

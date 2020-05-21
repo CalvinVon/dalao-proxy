@@ -102,7 +102,7 @@ class Register extends EventEmitter {
      *      - `callback(err, value)` must be called when done
      */
     configure(field, registerSetter) {
-        if (!getType(setter, 'Function')) {
+        if (!getType(registerSetter, 'Function')) {
             throw new Error('registerSetter must be a function');
         }
         if (this.registerMapper[field]) {
@@ -466,7 +466,8 @@ class PluginInterrupt {
 }
 
 
-function usePlugins(program, pluginsNames) {
+// create plugins instances
+function instantiatedPlugins(program, pluginsNames) {
     // program.context.plugins = [];
     // register._reset();
 
@@ -496,6 +497,6 @@ module.exports = {
     PluginInterrupt,
     Register,
     register,
-    usePlugins,
+    instantiatedPlugins,
     reloadPlugins
 };

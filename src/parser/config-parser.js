@@ -357,3 +357,5 @@ exports.parse = function parse(command) {
 exports.parsePlugins = function parsePlugins() {
     return parseFile(parsePathFromArgv());
 }
+
+exports.mergePluginsConfig = mergePluginsConfig;

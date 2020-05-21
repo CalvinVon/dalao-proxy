@@ -5,7 +5,9 @@ const parserEmitter = require('../../parser/config-parser').emitter;
 
 let proxyServer;
 
-module.exports = function startCommand(program) {
+module.exports = function startCommand(program, register) {
+    register.addLineCommand('rs', 'restart', 'reload');
+    
     program
         .version(baseConfig.version)
         .command('start')
