@@ -260,11 +260,11 @@ class Plugin {
 
         if (Array.isArray(optionsField)) {
             rawPluginConfig = optionsField.map(field => {
-                return this.context.config[field];
+                return this.context.rawConfig[field];
             });
         }
         else {
-            rawPluginConfig = [this.context.config[optionsField]];
+            rawPluginConfig = [this.context.rawConfig[optionsField]];
         }
 
         const parser = this.parser = Plugin.resolveConfigParser(this);
