@@ -1,6 +1,6 @@
 {
   "name": "dalao-proxy",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "description": "An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!",
   "main": "index.js",
   "bin": {
