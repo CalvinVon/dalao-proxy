@@ -157,7 +157,7 @@ class Plugin {
     constructor(pluginName, context, setting) {
         this.id = createUid();
         this.name = pluginName;
-        this._pluginSetting = setting;
+        this._pluginSetting = setting || {};
         this.meta = {};
         this.setting;
         this.config;
@@ -333,14 +333,14 @@ class Plugin {
         if (configure && typeof configure === 'object') {
             const setting = configure.setting;
             if (typeof setting === 'function') {
-                return Object.assign({}, defaultSetting, setting.call(plugin, plugin._pluginSetting));
+                return Object.assign({}, defaultSetting, setting.call(plugin, plugin._pluginSetting), plugin._pluginSetting);
             }
             else {
-                return defaultSetting;
+                return Object.assign({}, defaultSetting, plugin._pluginSetting);
             }
         }
         else {
-            return defaultSetting;
+            return Object.assign({}, defaultSetting, plugin._pluginSetting);
         }
     }
 
