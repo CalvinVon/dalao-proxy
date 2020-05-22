@@ -2,11 +2,6 @@ const LaunchServer = require('./static-server');
 
 module.exports = function (program, register) {
 
-    // register.configure('config', (value, next) => {
-    //     value.plugins.push('@calvin_von/proxy-plugin-cache');
-    //     next(value);
-    // });
-
     const plugin = this;
     program
         .command('serve [folder]')
