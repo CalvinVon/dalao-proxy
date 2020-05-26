@@ -256,15 +256,16 @@ class Plugin {
      */
     loadPluginConfig() {
         const optionsField = this.setting.optionsField;
-        let rawPluginConfig;
+        let rawConfig = this.context.rawConfig,
+            rawPluginConfig;
 
         if (Array.isArray(optionsField)) {
             rawPluginConfig = optionsField.map(field => {
-                return this.context.rawConfig[field];
+                return rawConfig && rawConfig[field];
             });
         }
         else {
-            rawPluginConfig = [this.context.rawConfig[optionsField]];
+            rawPluginConfig = [rawConfig && rawConfig[optionsField]];
         }
 
         const parser = this.parser = Plugin.resolveConfigParser(this);
