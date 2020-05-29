@@ -7,8 +7,8 @@ const STORE_NAME_PREFIX = '.store-';
 
 const CacheStore = module.exports;
 
-CacheStore.store = function (storeName, config, parentName) {
-    const dirname = config[parentName].dirname;
+CacheStore.store = function (storeName, config, options) {
+    const dirname = config.dirname;
     checkAndCreateFolder(dirname);
 
     const fileList = fs.readdirSync(dirname, { withFileTypes: true }).filter(file => !file.isDirectory());
@@ -30,8 +30,9 @@ CacheStore.store = function (storeName, config, parentName) {
     return subdirname.replace(STORE_NAME_PREFIX, '');
 };
 
-CacheStore.restore = function (storeName, config, parentName) {
-    const dirname = config[parentName].dirname;
+CacheStore.restore = function (storeName, config, options) {
+    const dirname = config.dirname;
+    const { delete: deleteAfterRestore } = options;
     checkAndCreateFolder(dirname);
 
     const subdirname = CacheStore.resolveStoreName(storeName);
@@ -45,17 +46,25 @@ CacheStore.restore = function (storeName, config, parentName) {
             const oldPath = path.join(subdirPath, file.name);
             const newPath = path.join(pwd, dirname, file.name);
             try {
-                fs.renameSync(oldPath, newPath);
+                if (deleteAfterRestore) {
+                    fs.renameSync(oldPath, newPath);
+                }
+                else {
+                    fs.copyFileSync(oldPath, newPath);
+                }
             } catch (error) {
                 console.error(error.message);
             }
         });
 
-        try {
-            fs.unlinkSync(subdirPath);
-        } catch (error) {
-            console.error(error.message);
+        if (deleteAfterRestore) {
+            try {
+                fs.unlinkSync(subdirPath);
+            } catch (error) {
+                console.error(error.message);
+            }
         }
+
         return true;
     }
     else {
@@ -63,8 +72,8 @@ CacheStore.restore = function (storeName, config, parentName) {
     }
 };
 
-CacheStore.list = function (config, parentName) {
-    const dirname = config[parentName].dirname;
+CacheStore.list = function (config, options) {
+    const dirname = config.dirname;
     checkAndCreateFolder(dirname);
 
     const fileList = fs.readdirSync(dirname, { withFileTypes: true });

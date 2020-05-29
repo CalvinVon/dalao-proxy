@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const mockCommand = require('./mock.command');
 const cacheCommand = require('./cache.command');
 const { cleanCache } = require('./subcommands/clean.command/clean');
+const { handleStore, handleRestore, handleListStore } = require('./subcommands/store.command/index');
 
 module.exports = function (program, register, config) {
     mockCommand.call(this, program, register, config);
@@ -9,10 +10,11 @@ module.exports = function (program, register, config) {
 
     program.enableCollectData();
 
-    register.addLineCommand('clr', 'clean', 'cacheclean');
+    register.addLineCommand('cache:clr', 'cache:clean');
+    register.addLineCommand('cache:store', 'cache:restore', 'cache:list');
     register.on('input', input => {
         let matched;
-        if (matched = input.match(/\b(clr|clean|cacheclean)\b(?:\s(\S+))?/)) {
+        if (matched = input.match(/\bcache\:(clr|clean|cacheclean)\b(?:\s(\S+))?/)) {
             const storeName = matched[2];
             cleanCache({
                 config: config['cache'],
@@ -21,6 +23,18 @@ module.exports = function (program, register, config) {
                 }
             });
             console.log(chalk.grey('[plugin-cache] cache files has been cleaned!\n'));
+        }
+        else if (matched = input.match(/\b(?:cache\:((?:re)?store|list))\b(?:\s+(\S+))?/)) {
+            const cmd = matched[1];
+            const storeName = matched[2];
+
+            const handlers = {
+                store: name => handleStore.call(null, name, config, 'cache'),
+                restore: name => handleRestore.call(null, name, config, 'cache'),
+                list: () => handleListStore.call(null, () => null, config, 'cache')
+            }[cmd];
+
+            handlers.call(null, storeName);
         }
     });
 };
