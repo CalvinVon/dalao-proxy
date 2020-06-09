@@ -1,4 +1,5 @@
 const chalk = require('chalk');
+const path = require('path');
 const mockCommand = require('./mock.command');
 const cacheCommand = require('./cache.command');
 const { cleanCache } = require('./subcommands/clean.command/clean');
@@ -36,6 +37,43 @@ module.exports = function (program, register, config) {
 
             handlers.call(null, storeName);
         }
+    });
+
+    register.configure('config', (config, callback) => {
+        config.plugins.push([
+            '@calvin_von/proxy-plugin-inject',
+            {
+                optionsField: 'cache__inject'
+            }
+        ]);
+
+        config['cache__inject'] = {
+            rules: [
+                {
+                    test: /^\/$|.html?$/,
+                    serves: {
+                        'cache-switcher-ui.js': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.js'),
+                    },
+                    template: `
+                        <script src="{{cache-switcher-ui.js}}"></script>
+                        <script>
+                            new window.cacheSwitcherUI.default('#app');
+                        </script>
+                    `,
+                    insert: 'body'
+                },
+                {
+                    test: /^\/$|.html?$/,
+                    serves: {
+                        'cache-switcher-ui.css': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.css'),
+                    },
+                    template: `<link rel="stylesheet" href="{{cache-switcher-ui.css}}"></link>`,
+                    insert: 'head'
+                }
+            ]
+        };
+
+        callback(null, config);
     });
 };
 

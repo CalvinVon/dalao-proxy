@@ -50,6 +50,11 @@ const mockDefaults = {
     "enable": true
 };
 
+const cacheUiDefaults = {
+
+};
+
+
 
 
 /**
@@ -59,7 +64,7 @@ const mockDefaults = {
 function setting() {
     return {
         defaultEnable: true,
-        optionsField: ['cache', 'mock'],
+        optionsField: ['cache', 'mock', 'cache-ui'],
         enableField: 'enable',
     };
 }

@@ -256,24 +256,24 @@ class Plugin {
      */
     loadPluginConfig() {
         const optionsField = this.setting.optionsField;
-        let rawConfig = this.context.rawConfig,
-            rawPluginConfig;
+        let config = this.context.config,
+            pluginConfig;
 
         if (Array.isArray(optionsField)) {
-            rawPluginConfig = optionsField.map(field => {
-                return rawConfig && rawConfig[field];
+            pluginConfig = optionsField.map(field => {
+                return config && config[field];
             });
         }
         else {
-            rawPluginConfig = [rawConfig && rawConfig[optionsField]];
+            pluginConfig = [config && config[optionsField]];
         }
 
         const parser = this.parser = Plugin.resolveConfigParser(this);
-        const parsedConfig = parser.apply(this, rawPluginConfig) || {};
+        const parsedConfig = parser.apply(this, pluginConfig) || {};
 
         // resolve plugin enable config
         // 
-        parsedConfig[this.setting.enableField] = rawPluginConfig[0] && rawPluginConfig[0][this.setting.enableField];
+        parsedConfig[this.setting.enableField] = pluginConfig[0] && pluginConfig[0][this.setting.enableField];
         return parsedConfig;
     }
 
