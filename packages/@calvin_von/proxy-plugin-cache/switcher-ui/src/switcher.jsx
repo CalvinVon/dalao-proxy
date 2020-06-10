@@ -1,5 +1,6 @@
-import Popover from 'ant-design-vue/es/popover';
-import 'ant-design-vue/es/popover/style/index.css';
+import { Popover } from 'ant-design-vue';
+
+import ControllerMenu from './controller-menu';
 import './style.scss';
 
 const storageKey = '__cache_switcher_ui_position__';
@@ -8,14 +9,13 @@ export default {
     name: 'plugin-switcher',
     component: {
         Popover,
+        ControllerMenu,
     },
     render() {
         return (
             <div class="plugin-cache-ui-switcher">
                 <Popover visible={this.active} placement="left">
-                    <div slot="content" class="swicher-ui-content">
-                        Cache Mock Switcher
-                    </div>
+                    <ControllerMenu slot="content" />
 
                     <div class={["switcher-handler", { active: this.active }]}
                         onclick={this.onclick}
@@ -30,7 +30,7 @@ export default {
         return {
             dragging: false,
             holding: false,
-            active: false,
+            active: true,
             position: {}
         }
     },

@@ -1,4 +1,5 @@
 .plugin-cache-ui-switcher {
+
     .switcher-handler {
         position: fixed;
         bottom: 10px;
@@ -9,7 +10,7 @@
         width: $width;
         height: $width;
         border-radius: $width;
-        
+
         background-color: rgba(0, 0, 0, 0.4);
         border: 5px solid #e0e0e0;
         color: white;
@@ -31,14 +32,73 @@
 
         @keyframes movement {
             $shadow-color: grey;
+
             0% {
                 box-shadow: 0 0 1px $shadow-color;
             }
+
             50% {
                 box-shadow: 0 0 5px $shadow-color;
             }
+
             100% {
                 box-shadow: 0 0 1px $shadow-color;
+            }
+        }
+    }
+
+
+    &.ui-swicher__content {
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .controller-group {
+            position: relative;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 16px 0;
+
+            &__title {
+                position: absolute;
+                top: -15px;
+                left: 6px;
+                padding: 0 8px 0 4px;
+                background-color: #fff;
+            }
+        }
+
+        .controller-item {
+            $item-height: 32px;
+            $label-width: 80px;
+            height: $item-height;
+
+            &__label {
+                float: left;
+
+                width: $label-width;
+                height: 100%;
+                line-height: $item-height;
+                padding-right: 8px;
+                
+                text-align: right;
+            }
+
+            &__children {
+                margin-left: $label-width;
+                height: 100%;
+                line-height: $item-height;
+
+                .ant-input-number {
+                    margin-top: 6px;
+                    width: 60px;
+                }
+                .ant-select {
+                    margin-top: 6px;
+                }
             }
         }
     }

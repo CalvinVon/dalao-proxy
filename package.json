@@ -1,1 +1,44 @@
-{"name":"dalao-proxy","version":"1.0.0-alpha.5","description":"An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!","main":"index.js","bin":{"dalao-proxy":"bin/dalao-proxy"},"scripts":{"postinstall":"node scripts/post-install.js","preuninstall":"node scripts/pre-uninstall.js"},"keywords":["HTTP","Proxy","Cache","Mock","Plugin"],"author":"Calvin","license":"MIT","repository":"https://github.com/CalvinVon/dalao-proxy.git","dependencies":{"chalk":"^2.4.2","cli-spinner":"^0.2.10","cli-table3":"^0.6.0","commander":"^4.0.1","concat-stream":"^2.0.0","ejs":"^3.0.1","lodash":"^4.17.15","moment":"^2.24.0","npm":"^6.14.4","request":"^2.88.0","through2":"^3.0.1"},"devDependencies":{"@babel/core":"^7.2.2","@babel/preset-env":"^7.3.1","babel-loader":"^8.0.5","webpack":"^4.29.0","webpack-cli":"^3.2.1","webpack-dev-server":"^3.1.14"}}
+{
+    "name": "dalao-proxy",
+    "version": "1.0.0-alpha.6",
+    "description": "An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!",
+    "main": "index.js",
+    "bin": {
+        "dalao-proxy": "bin/dalao-proxy"
+    },
+    "scripts": {
+        "postinstall": "node scripts/post-install.js",
+        "preuninstall": "node scripts/pre-uninstall.js"
+    },
+    "keywords": [
+        "HTTP",
+        "Proxy",
+        "Cache",
+        "Mock",
+        "Plugin"
+    ],
+    "author": "Calvin",
+    "license": "MIT",
+    "repository": "https://github.com/CalvinVon/dalao-proxy.git",
+    "dependencies": {
+        "chalk": "^2.4.2",
+        "cli-spinner": "^0.2.10",
+        "cli-table3": "^0.6.0",
+        "commander": "^4.0.1",
+        "concat-stream": "^2.0.0",
+        "ejs": "^3.0.1",
+        "lodash": "^4.17.15",
+        "moment": "^2.24.0",
+        "npm": "^6.14.4",
+        "request": "^2.88.0",
+        "through2": "^3.0.1"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.2.2",
+        "@babel/preset-env": "^7.3.1",
+        "babel-loader": "^8.0.5",
+        "webpack": "^4.29.0",
+        "webpack-cli": "^3.2.1",
+        "webpack-dev-server": "^3.1.14"
+    }
+}
