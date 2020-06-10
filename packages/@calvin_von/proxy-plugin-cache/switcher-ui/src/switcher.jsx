@@ -2,6 +2,8 @@ import Popover from 'ant-design-vue/es/popover';
 import 'ant-design-vue/es/popover/style/index.css';
 import './style.scss';
 
+const storageKey = '__cache_switcher_ui_position__';
+
 export default {
     name: 'plugin-switcher',
     component: {
@@ -10,15 +12,16 @@ export default {
     render() {
         return (
             <div class="plugin-cache-ui-switcher">
-                <Popover visible={this.visible} placement="left">
+                <Popover visible={this.active} placement="left">
                     <div slot="content" class="swicher-ui-content">
                         Cache Mock Switcher
                     </div>
 
-                    <div class="switcher-handler"
+                    <div class={["switcher-handler", { active: this.active }]}
                         onclick={this.onclick}
+                        ontouchmove={this.onclick}
                         onmousedown={this.onmousedown}
-                        style={this.style}>D</div>
+                        style={this.style}></div>
                 </Popover>
             </div >
         );
@@ -27,7 +30,7 @@ export default {
         return {
             dragging: false,
             holding: false,
-            visible: false,
+            active: false,
             position: {}
         }
     },
@@ -40,7 +43,13 @@ export default {
             }
         }
     },
+    watch: {
+        position(newV) {
+            localStorage.setItem(storageKey, JSON.stringify(newV));
+        }
+    },
     mounted() {
+        this.position = JSON.parse(localStorage.getItem(storageKey)) || {};
         window.addEventListener('mousemove', this.onmousemove);
         window.addEventListener('mouseup', this.onmouseup);
     },
@@ -52,10 +61,10 @@ export default {
     methods: {
         onclick() {
             if (!this.dragging) {
-                this.visible = !this.visible;
+                this.active = !this.active;
             }
         },
-        onmousedown(e) {
+        onmousedown() {
             this.holding = true;
         },
 
