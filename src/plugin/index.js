@@ -134,6 +134,8 @@ class Register extends EventEmitter {
 
 const register = new Register();
 const configure = Register.prototype.configure;
+const modifiedPluginIds = new Set();
+let modifiedPlugins = [];
 
 /**
  * @class Plugin
@@ -206,9 +208,18 @@ class Plugin {
      * Try to load plugin middleware, commander
      */
     load() {
-        this.setting = this.loadSetting();
-        this.config = this.loadPluginConfig();
-        const enable = Plugin.resolveEnable(this);
+        const setting = this.setting = this.loadSetting();
+        const config = this.loadPluginConfig();
+        const enable = Plugin.resolveEnable(config, setting);
+
+        this.config = new Proxy(config, {
+            set: () => {
+                modifiedPluginIds.add(this.id);
+                modifiedPlugins.push(this);
+                return true;
+            },
+            get: () => config
+        });
 
         if (enable && !this.meta.enabled) {
             this.middleware = require(this._indexPath);
@@ -255,17 +266,25 @@ class Plugin {
      * Resolve plugin config from `setting.configField`
      */
     loadPluginConfig() {
+        const loadFromParsedConfig = modifiedPluginIds.has(this.id);
         const optionsField = this.setting.optionsField;
-        let config = this.context.config,
-            pluginConfig;
+        let pluginConfig;
 
-        if (Array.isArray(optionsField)) {
-            pluginConfig = optionsField.map(field => {
-                return config && config[field];
-            });
+        if (loadFromParsedConfig) {
+            pluginConfig = this.config;
         }
         else {
-            pluginConfig = [config && config[optionsField]];
+            // load from fresh raw config
+            let config = this.context.rawConfig;
+
+            if (Array.isArray(optionsField)) {
+                pluginConfig = optionsField.map(field => {
+                    return config && config[field];
+                });
+            }
+            else {
+                pluginConfig = [config && config[optionsField]];
+            }
         }
 
         const parser = this.parser = Plugin.resolveConfigParser(this);
@@ -274,6 +293,7 @@ class Plugin {
         // resolve plugin enable config
         // 
         parsedConfig[this.setting.enableField] = pluginConfig[0] && pluginConfig[0][this.setting.enableField];
+
         return parsedConfig;
     }
 
@@ -362,8 +382,7 @@ class Plugin {
         }
     }
 
-    static resolveEnable(plugin) {
-        const { setting, config } = plugin;
+    static resolveEnable(config, setting) {
         let pluginEnable;
         const userEnable = pluginEnable = config[setting.enableField];
         if (userEnable === undefined) {
@@ -444,6 +463,9 @@ class Plugin {
     }
 }
 
+Plugin.modifiedPluginIds = modifiedPluginIds;
+Plugin.modifiedPlugins = modifiedPlugins;
+
 Plugin.AllMiddlewares = [
     'beforeCreate',
     'onRequest',
@@ -476,20 +498,23 @@ class PluginInterrupt {
 }
 
 
-function reloadPlugins(plugins) {
-    plugins.forEach(plugin => {
-        try {
-            plugin.load();
-        } catch (error) {
-            let pluginErrResult;
-            if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
-                console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
+function reloadPlugins() {
+    modifiedPlugins.forEach(plugin => {
+            try {
+                plugin.load();
+            } catch (error) {
+                let pluginErrResult;
+                if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+                    console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
+                }
+                else {
+                    console.error(error);
+                }
             }
-            else {
-                console.error(error);
-            }
-        }
-    });
+        });
+
+    modifiedPluginIds.clear();
+    modifiedPlugins = [];
 }
 
 module.exports = {

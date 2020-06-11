@@ -12,13 +12,20 @@ const {
     commands: Commands,
 } = require('../src');
 
+let reloading;
+
+// trigger reload when file change
 parserEmitter.on('config:triggerParse:fileChange', () => {
-    // reload plugins
-    registerPlugins();
-    console.clear();
-    program.context.server.close(function () {
-        ConfigParser.parse(program);
-    });
+    if (!reloading) {
+        reloading = true;
+        // reload plugins
+        setForceReloadAllPlugins();
+        registerPlugins();
+        console.clear();
+        program.context.server.close(function () {
+            ConfigParser.parse(program);
+        });
+    }
 });
 
 // On config parsed
@@ -41,6 +48,7 @@ parserEmitter.on('config:parsed', function (configObject) {
             console.log(chalk.yellow('> parsed user configuration'));
             console.log(program.context.config);
         }
+        reloading = false;
     });
 });
 
@@ -92,14 +100,19 @@ if (program.context.command) {
 
             if (program.context.commandName === 'start') {
                 if (/\b(restart|rs|reload)\b/.test(runtimeCmd)) {
+                    // trigger reload when user input
                     console.clear();
                     console.log(chalk.green('\n> dalao is reloading...'));
 
-                    registerPlugins();
-
-                    program.context.server.close(function () {
-                        ConfigParser.parse(program);
-                    });
+                    if (!reloading) {
+                        reloading = true;
+                        setForceReloadAllPlugins();
+                        registerPlugins();
+    
+                        program.context.server.close(function () {
+                            ConfigParser.parse(program);
+                        });
+                    }
                 }
             }
         });
@@ -141,9 +154,19 @@ process.on('uncaughtException', function (err) {
 });
 
 
+// add all loaded plugins to reload list
+function setForceReloadAllPlugins() {
+    const loadedPlugins = program.context.plugins;
+    loadedPlugins.forEach(plugin => {
+        if (!Plugin.modifiedPluginIds.has(plugin.id)) {
+            Plugin.modifiedPlugins.push(plugin);
+        }
+    });
+}
+
 function loadNewPlugins(config) {
     const loadedPlugins = program.context.plugins;
-    reloadPlugins(loadedPlugins);
+    reloadPlugins();
 
     const newPluginNames = [...config.plugins];
     loadedPlugins.forEach(plugin => {
@@ -192,6 +215,7 @@ function instantiatedPlugins(program, pluginsNames) {
             const [pluginName, pluginSetting] = name;
             plugin = new Plugin(pluginName, program.context, pluginSetting);
         }
+        program.context.pluginIds.add(plugin.id);
         program.context.plugins.push(plugin);
     });
 };
