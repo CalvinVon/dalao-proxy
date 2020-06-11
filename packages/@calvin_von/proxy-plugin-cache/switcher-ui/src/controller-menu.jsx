@@ -18,28 +18,31 @@ export default {
     render() {
         return (
             <div class="plugin-cache-ui-switcher ui-swicher__content">
-                <h3>Plugin Cache Switcher</h3>
 
-                {
-                    this.syncLoading ?
-                        (
-                            <div class="swicher-status">
-                                Synchronizing
-                                <Icon type="sync" spin={this.syncLoading} />
-                            </div>
-                        )
-                        :
-                        (
-                            <div class="swicher-status">
-                                <Button type="link" onclick={this.syncConfig}>
-                                    Sync
-                                    <Icon type="sync" />
-                                </Button>
-                            </div>
-                        )
-                }
+                <div class="ui-switcher-controller__header">
+                    <h3 class="header-title">Plugin Cache Switcher</h3>
 
-                <div class="swicher-ui-controller">
+                    {
+                        this.syncLoading ?
+                            (
+                                <div class="swicher-status">
+                                    Synchronizing
+                                    <Icon type="sync" spin={this.syncLoading} />
+                                </div>
+                            )
+                            :
+                            (
+                                <div class="swicher-status">
+                                    <Button type="link" onclick={this.syncConfig}>
+                                        Sync
+                    <Icon type="sync" />
+                                    </Button>
+                                </div>
+                            )
+                    }
+                </div>
+
+                <div class="ui-switcher-controller">
                     {/* Cache */}
                     <div class="controller-group">
                         <h3 class="controller-group__title">Cache switcher</h3>

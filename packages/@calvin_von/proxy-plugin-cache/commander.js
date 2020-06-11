@@ -73,7 +73,6 @@ module.exports = function (program, register, config) {
             ]
         };
 
-        config.cache.a = 1;
         callback(null, config);
     });
 };

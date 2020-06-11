@@ -78,11 +78,25 @@ export default {
                 this.position = { x, y };
             }
         },
-        onmouseup() {
+        onmouseup(e) {
+
             this.holding = false;
             setTimeout(() => {
                 this.dragging = false;
             });
+
+            // if click handler
+            if (e.path.some(el => el.className === 'plugin-cache-ui-switcher')) {
+                return;
+            }
+            else if (
+                (!this.dragging || !this.holding)
+                &&
+                (e.path.every(el => el.className !== 'plugin-cache-ui-switcher ui-swicher__content'))
+            ) {
+                this.active = false;
+            }
+
         }
     }
 }

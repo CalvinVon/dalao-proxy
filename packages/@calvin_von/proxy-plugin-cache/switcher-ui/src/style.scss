@@ -1,4 +1,13 @@
 .plugin-cache-ui-switcher {
+    %clear-float {
+        &::after {
+            content: '';
+            clear: both;
+            display: block;
+            zoom: 1;
+        }
+    }
+
     .switcher-handler {
         position: fixed;
         bottom: 10px;
@@ -52,13 +61,39 @@
             padding: 0;
         }
 
+        .ui-switcher-controller {
+            max-height: 80vh;
+            overflow-y: auto;
+
+            @extend %clear-float;
+
+            &__header {
+                @extend %clear-float;
+
+                .header-title {
+                    float: left;
+                    height: 32px;
+                    line-height: 32px;
+                    margin: 0;
+                }
+
+                .swicher-status {
+                    text-align: right;
+                }
+            }
+        }
+
         .controller-group {
             position: relative;
+            max-width: 50vw;
+            float: left;
+
+            padding: 10px;
+            margin: 16px 8px;
+            margin-bottom: 32px;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            padding: 10px;
-            margin: 16px 0;
-            margin-bottom: 32px;
+            background: #fbfbfb;
 
             &__title {
                 position: absolute;
@@ -122,11 +157,13 @@
 
                 &.no-label {
                     margin-left: 16px;
+                    @extend %clear-float;
                 }
 
                 .ant-input-number {
                     margin-top: 6px;
                 }
+
                 .ant-select {
                     margin-top: 6px;
                 }
@@ -135,9 +172,11 @@
                     .ant-input {
                         width: 85%;
                     }
+
                     .ant-input-number {
                         width: 85%;
                     }
+
                     .ant-checkbox-wrapper {
                         width: 15%;
                         text-align: right;
@@ -147,6 +186,7 @@
                 // embeded gruop
                 .controller-group {
                     margin-bottom: 0;
+
                     &__title {
                         font-size: 14px;
                         font-weight: 400;
@@ -157,11 +197,13 @@
                         $embeded-label-width: 80px;
                         min-height: $item-height;
                         margin: 0;
+
                         &__label {
                             width: $embeded-label-width;
                             height: $item-height;
                             margin: 0;
                         }
+
                         &__children {
                             width: 60%;
                             margin-left: $embeded-label-width;
@@ -169,6 +211,7 @@
                             .ant-input-number {
                                 margin-top: 0;
                             }
+
                             .ant-select {
                                 margin-top: 0;
                                 width: 100%;
@@ -190,6 +233,7 @@
                 color: #bdbdbd;
                 cursor: pointer;
                 user-select: none;
+
                 &:hover {
                     color: #1890ff;
                 }
