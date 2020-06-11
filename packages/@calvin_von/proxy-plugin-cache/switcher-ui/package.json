@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "ant-design-vue": "^1.6.2",
+    "axios": "^0.19.2",
     "vue": "^2.6.11"
   }
 }

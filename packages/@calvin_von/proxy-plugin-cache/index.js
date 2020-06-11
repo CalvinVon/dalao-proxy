@@ -6,6 +6,8 @@ const mime = require('mime-types');
 const moment = require('moment');
 const fs = require('fs');
 
+const SwitcherUIServer = require('./switcher-ui/server');
+
 const {
     MOCK_FIELD_TEXT,
     HEADERS_FIELD_TEXT,
@@ -41,6 +43,10 @@ function cleanRequireCache(fileName) {
 }
 
 module.exports = {
+    onRequest(context, next) {
+        SwitcherUIServer.handle.call(this, context, next);
+    },
+    
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { response, request } = context;

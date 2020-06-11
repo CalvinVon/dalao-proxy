@@ -1,5 +1,4 @@
 .plugin-cache-ui-switcher {
-
     .switcher-handler {
         position: fixed;
         bottom: 10px;
@@ -22,7 +21,6 @@
         user-select: none;
 
         transition: background-color 0.5s ease;
-
 
         &:hover,
         &.active {
@@ -47,7 +45,6 @@
         }
     }
 
-
     &.ui-swicher__content {
         ul {
             list-style: none;
@@ -61,6 +58,7 @@
             border-radius: 4px;
             padding: 10px;
             margin: 16px 0;
+            margin-bottom: 32px;
 
             &__title {
                 position: absolute;
@@ -69,21 +67,51 @@
                 padding: 0 8px 0 4px;
                 background-color: #fff;
             }
+
+            &__actions {
+                position: absolute;
+                top: -8px;
+                right: 6px;
+                padding: 0 8px 0 4px;
+                line-height: 15px;
+                background-color: #fff;
+
+                .action-icon {
+                    display: inline-block;
+                    margin-right: 4px;
+
+                    height: 15px;
+                    width: 15px;
+                    line-height: 10px;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    border: 1px solid transparent;
+
+                    cursor: pointer;
+                    text-align: center;
+                    transition: border-color 0.4s ease;
+
+                    &:hover {
+                        border-color: #bdbdbd;
+                    }
+                }
+            }
         }
 
         .controller-item {
             $item-height: 32px;
             $label-width: 80px;
-            height: $item-height;
+            min-height: $item-height;
+            margin-bottom: 8px;
 
             &__label {
                 float: left;
 
                 width: $label-width;
                 height: 100%;
-                line-height: $item-height;
+                margin-top: 6px;
                 padding-right: 8px;
-                
+
                 text-align: right;
             }
 
@@ -92,12 +120,88 @@
                 height: 100%;
                 line-height: $item-height;
 
+                &.no-label {
+                    margin-left: 16px;
+                }
+
                 .ant-input-number {
                     margin-top: 6px;
-                    width: 60px;
                 }
                 .ant-select {
                     margin-top: 6px;
+                }
+
+                .input-with-checkbox {
+                    .ant-input {
+                        width: 85%;
+                    }
+                    .ant-input-number {
+                        width: 85%;
+                    }
+                    .ant-checkbox-wrapper {
+                        width: 15%;
+                        text-align: right;
+                    }
+                }
+
+                // embeded gruop
+                .controller-group {
+                    margin-bottom: 0;
+                    &__title {
+                        font-size: 14px;
+                        font-weight: 400;
+                    }
+
+                    .controller-item {
+                        $item-height: 24px;
+                        $embeded-label-width: 80px;
+                        min-height: $item-height;
+                        margin: 0;
+                        &__label {
+                            width: $embeded-label-width;
+                            height: $item-height;
+                            margin: 0;
+                        }
+                        &__children {
+                            width: 60%;
+                            margin-left: $embeded-label-width;
+
+                            .ant-input-number {
+                                margin-top: 0;
+                            }
+                            .ant-select {
+                                margin-top: 0;
+                                width: 100%;
+                            }
+                        }
+                    }
+                }
+            }
+
+            &--desc {
+                font-size: 12px;
+                color: #9e9e9e;
+                line-height: 20px;
+                margin: 0;
+            }
+
+            &--hidden-indicator {
+                text-align: center;
+                color: #bdbdbd;
+                cursor: pointer;
+                user-select: none;
+                &:hover {
+                    color: #1890ff;
+                }
+
+                .ant-icon-arrow .anticon {
+                    transition: all 0.5s ease;
+                }
+
+                .up {
+                    .ant-icon-arrow .anticon {
+                        transform: rotateX(180deg);
+                    }
                 }
             }
         }

@@ -15,7 +15,7 @@ export default {
         return (
             <div class="plugin-cache-ui-switcher">
                 <Popover visible={this.active} placement="left">
-                    <ControllerMenu slot="content" />
+                    <ControllerMenu parent={this} slot="content" />
 
                     <div class={["switcher-handler", { active: this.active }]}
                         onclick={this.onclick}
@@ -30,7 +30,7 @@ export default {
         return {
             dragging: false,
             holding: false,
-            active: true,
+            active: false,
             position: {}
         }
     },
