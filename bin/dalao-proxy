@@ -3,14 +3,16 @@
 const chalk = require('chalk');
 const readline = require('readline');
 const baseConfig = require('../config');
-
-const { Plugin, register, reloadPlugins } = require('../src/plugin');
 const {
     program,
     ConfigParser,
     parserEmitter,
     commands: Commands,
 } = require('../src');
+
+const { defineProxy } = require('../src/utils');
+const { Plugin, register, reloadPlugins } = require('../src/plugin');
+
 
 let reloading;
 
@@ -36,13 +38,14 @@ parserEmitter.on('config:parsed', function (configObject) {
         value: true
     });
     program.context.config = config;
+    // program.context.config = config;
 
     // trigger field `config`
     register._trigger('config', config, value => {
         program.context.config = value;
 
         // support adding other new plugins during the plugin loading
-        loadNewPlugins(value);
+        loadPlugins(value);
 
         if (config.debug) {
             console.log(chalk.yellow('> parsed user configuration'));
@@ -159,12 +162,13 @@ function setForceReloadAllPlugins() {
     const loadedPlugins = program.context.plugins;
     loadedPlugins.forEach(plugin => {
         if (!Plugin.modifiedPluginIds.has(plugin.id)) {
+            Plugin.modifiedPluginIds.add(plugin.id);
             Plugin.modifiedPlugins.push(plugin);
         }
     });
 }
 
-function loadNewPlugins(config) {
+function loadPlugins(config) {
     const loadedPlugins = program.context.plugins;
     reloadPlugins();
 
@@ -198,7 +202,7 @@ function registerPlugins() {
     program.context.config = config;
     program.context.configPath = path;
 
-    loadNewPlugins(config);
+    loadPlugins(config);
 }
 
 // create plugins instances

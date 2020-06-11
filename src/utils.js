@@ -135,6 +135,43 @@ function getType(value, type) {
 }
 
 
+function defineProxy(target, opt) {
+    const { setter, getter } = opt || {};
+    const isObject = getType(target, 'Object');
+    const isArray = getType(target, 'Array');
+
+    let _target;
+    if (isObject) {
+        _target = { ...target };
+    }
+    else if (isArray) {
+        _target = [...target];
+    }
+    else {
+        return target;
+    }
+
+    for (const key in _target) {
+        const value = _target[key];
+        _target[key] = defineProxy(value, opt);
+    }
+    return new Proxy(_target, {
+        set: function (t, p, v) {
+            if (typeof setter === 'function' && t[p] !== v) {
+                setter.call(this, t, p, v);
+            }
+            return Reflect.set(t, p, v);
+        },
+        get: function (t, p) {
+            if (typeof getter === 'function') {
+                getter.call(this, t, p, v);
+            }
+            return Reflect.get(t, p);
+        }
+    })
+}
+
+
 function printWelcome(version) {
     let str = '';
     str += ' ___    __    _      __    ___       ___   ___   ___   _     _    \n';
@@ -161,5 +198,6 @@ module.exports = {
     transformPath,
     fixJson,
     getIPv4Address,
-    getType
+    getType,
+    defineProxy
 }

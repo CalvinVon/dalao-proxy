@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
-const { isDebugMode, getType, uuid } = require('../utils');
+const { isDebugMode, getType, defineProxy } = require('../utils');
 const PATH_INDEX = './index.js';
 const PATH_COMMANDER = './commander.js';
 const PATH_CONFIGURE = './configure.js';
@@ -78,6 +78,7 @@ class Register extends EventEmitter {
                     next();
                 });
             } catch (error) {
+                console.warn(`Error occurred when configure field '${field}'`, error);
                 next();
             }
 
@@ -212,13 +213,13 @@ class Plugin {
         const config = this.loadPluginConfig();
         const enable = Plugin.resolveEnable(config, setting);
 
-        this.config = new Proxy(config, {
-            set: () => {
-                modifiedPluginIds.add(this.id);
-                modifiedPlugins.push(this);
-                return true;
-            },
-            get: () => config
+        this.config = defineProxy(config, {
+            setter: () => {
+                if (!modifiedPluginIds.has(this.id)) {
+                    modifiedPluginIds.add(this.id);
+                    modifiedPlugins.push(this);
+                }
+            }
         });
 
         if (enable && !this.meta.enabled) {
@@ -271,7 +272,12 @@ class Plugin {
         let pluginConfig;
 
         if (loadFromParsedConfig) {
-            pluginConfig = this.config;
+            if (Array.isArray(optionsField)) {
+                pluginConfig = optionsField.map(field => this.config[field]);
+            }
+            else {
+                pluginConfig = [this.config];
+            }
         }
         else {
             // load from fresh raw config
@@ -493,28 +499,28 @@ class PluginInterrupt {
     }
 
     toString() {
-        return `[Plugin ${this.plugin.name}:${this.lifehook}] ${this.message}`;
+        return `[Plugin ${this.plugin.name}(${this.plugin.id}):${this.lifehook}] ${this.message}`;
     }
 }
 
 
 function reloadPlugins() {
-    modifiedPlugins.forEach(plugin => {
-            try {
-                plugin.load();
-            } catch (error) {
-                let pluginErrResult;
-                if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
-                    console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
-                }
-                else {
-                    console.error(error);
-                }
+    Plugin.modifiedPlugins.forEach(plugin => {
+        try {
+            plugin.load();
+        } catch (error) {
+            let pluginErrResult;
+            if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
+                console.log(chalk.red(`${pluginErrResult[0]}. Please check if module '${pluginErrResult[1]}' is installed`));
             }
-        });
+            else {
+                console.error(error);
+            }
+        }
+    });
 
-    modifiedPluginIds.clear();
-    modifiedPlugins = [];
+    Plugin.modifiedPluginIds.clear();
+    Plugin.modifiedPlugins = modifiedPlugins = [];
 }
 
 module.exports = {
