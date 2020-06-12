@@ -215,6 +215,8 @@ class Plugin {
 
         this.config = defineProxy(config, {
             setter: () => {
+                Plugin.readConfigSource = 'parsedConfig';
+
                 if (!modifiedPluginIds.has(this.id)) {
                     modifiedPluginIds.add(this.id);
                     modifiedPlugins.push(this);
@@ -267,31 +269,42 @@ class Plugin {
      * Resolve plugin config from `setting.configField`
      */
     loadPluginConfig() {
-        const loadFromParsedConfig = modifiedPluginIds.has(this.id);
-        const optionsField = this.setting.optionsField;
         let pluginConfig;
 
-        if (loadFromParsedConfig) {
-            if (Array.isArray(optionsField)) {
-                pluginConfig = optionsField.map(field => this.config[field]);
-            }
-            else {
-                pluginConfig = [this.config];
-            }
-        }
-        else {
-            // load from fresh raw config
+        const optionsField = this.setting.optionsField;
+        const loadFromRawConfig = () => {
             let config = this.context.rawConfig;
 
             if (Array.isArray(optionsField)) {
-                pluginConfig = optionsField.map(field => {
+                return optionsField.map(field => {
                     return config && config[field];
                 });
             }
             else {
-                pluginConfig = [config && config[optionsField]];
+                return [config && config[optionsField]];
             }
+        };
+
+        const loadFromParsedConfig = () => {
+            if (Array.isArray(optionsField)) {
+                return optionsField.map(field => this.config[field]);
+            }
+            else {
+                return [this.config];
+            }
+        };
+
+        // read config from rawConfig
+        // always when raw config file content changes
+        if (Plugin.readConfigSource === 'rawConfig') {
+            pluginConfig = loadFromRawConfig();
         }
+        // read config from parsed config object
+        // always when plugin has been modified
+        else {
+            pluginConfig = loadFromParsedConfig();
+        }
+
 
         const parser = this.parser = Plugin.resolveConfigParser(this);
         const parsedConfig = parser.apply(this, pluginConfig) || {};
@@ -469,6 +482,8 @@ class Plugin {
     }
 }
 
+Plugin.readConfigSource = 'rawConfig';
+
 Plugin.modifiedPluginIds = modifiedPluginIds;
 Plugin.modifiedPlugins = modifiedPlugins;
 
@@ -518,6 +533,8 @@ function reloadPlugins() {
             }
         }
     });
+
+    Plugin.readConfigSource = 'rawConfig';
 
     Plugin.modifiedPluginIds.clear();
     Plugin.modifiedPlugins = modifiedPlugins = [];

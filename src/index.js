@@ -2,11 +2,13 @@ const { Command, Option } = require('commander');
 const CommandContext = require('./context');
 const ConfigParser = require('./parser/config-parser');
 const { register } = require('./plugin');
+const Runtime = require('./runtime');
 
 
 const originCommandFn = Command.prototype.command;
 const originOptionFn = Command.prototype.option;
 const originActionFn = Command.prototype.action;
+
 
 Command.DALAO_ENV = {
     development: 'DEV'
@@ -19,6 +21,15 @@ Command.DALAO_WORKER = {
 
 // Expose states so plugins can access
 Command.prototype.context = Command.context = new CommandContext();
+
+/**
+ * @public
+ */
+Command.prototype.reload = function reloadProgram() {
+    Runtime.reloadProgram(this.context.program);
+};
+
+
 
 /**
  * @public
@@ -270,6 +281,7 @@ const entryProgram = new Command();
 entryProgram.context.program = entryProgram;
 exports.program = entryProgram;
 
+exports.Runtime = Runtime;
 exports.CommandContext = CommandContext;
 exports.ConfigParser = ConfigParser;
 exports.parserEmitter = ConfigParser.emitter;

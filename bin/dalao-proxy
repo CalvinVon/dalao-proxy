@@ -5,53 +5,41 @@ const readline = require('readline');
 const baseConfig = require('../config');
 const {
     program,
+    Runtime,
     ConfigParser,
     parserEmitter,
     commands: Commands,
 } = require('../src');
 
-const { defineProxy } = require('../src/utils');
-const { Plugin, register, reloadPlugins } = require('../src/plugin');
+const { register } = require('../src/plugin');
 
-
-let reloading;
 
 // trigger reload when file change
-parserEmitter.on('config:triggerParse:fileChange', () => {
-    if (!reloading) {
-        reloading = true;
-        // reload plugins
-        setForceReloadAllPlugins();
-        registerPlugins();
-        console.clear();
-        program.context.server.close(function () {
-            ConfigParser.parse(program);
-        });
-    }
+parserEmitter.on('config:triggerParse:fileChange', function fileChangeHandler() {
+    program.reload();
 });
 
 // On config parsed
-parserEmitter.on('config:parsed', function (configObject) {
+parserEmitter.on('config:parsed', function configParsedHandler(configObject) {
     const { config } = configObject;
     Object.defineProperty(config, '[[parsed]]', {
         enumerable: false,
         value: true
     });
     program.context.config = config;
-    // program.context.config = config;
 
     // trigger field `config`
     register._trigger('config', config, value => {
         program.context.config = value;
 
         // support adding other new plugins during the plugin loading
-        loadPlugins(value);
+        Runtime.loadPlugins(program, value);
 
         if (config.debug) {
             console.log(chalk.yellow('> parsed user configuration'));
             console.log(program.context.config);
         }
-        reloading = false;
+        Runtime.setReloading(false);
     });
 });
 
@@ -72,7 +60,7 @@ program
     .use(Commands.pluginManager)
 
     // Register commands from plugins
-    .use(registerPlugins)
+    .use(Runtime.registerPlugins)
 
     // Parse command and options
     .parse(process.argv);
@@ -107,15 +95,7 @@ if (program.context.command) {
                     console.clear();
                     console.log(chalk.green('\n> dalao is reloading...'));
 
-                    if (!reloading) {
-                        reloading = true;
-                        setForceReloadAllPlugins();
-                        registerPlugins();
-    
-                        program.context.server.close(function () {
-                            ConfigParser.parse(program);
-                        });
-                    }
+                    program.reload();
                 }
             }
         });
@@ -155,71 +135,3 @@ process.on('uncaughtException', function (err) {
         );
     }
 });
-
-
-// add all loaded plugins to reload list
-function setForceReloadAllPlugins() {
-    const loadedPlugins = program.context.plugins;
-    loadedPlugins.forEach(plugin => {
-        if (!Plugin.modifiedPluginIds.has(plugin.id)) {
-            Plugin.modifiedPluginIds.add(plugin.id);
-            Plugin.modifiedPlugins.push(plugin);
-        }
-    });
-}
-
-function loadPlugins(config) {
-    const loadedPlugins = program.context.plugins;
-    reloadPlugins();
-
-    const newPluginNames = [...config.plugins];
-    loadedPlugins.forEach(plugin => {
-        const foundIndex = newPluginNames.findIndex(name => {
-            if (typeof (name) === 'string') {
-                return name === plugin.name;
-            }
-            else if (Array.isArray(name)) {
-                const [pluginName] = name;
-                return pluginName === plugin.name;
-            }
-        });
-
-        newPluginNames.splice(foundIndex, 1);
-    });
-
-    instantiatedPlugins(program, newPluginNames);
-    ConfigParser.mergePluginsConfig(config, program.context.plugins);
-}
-
-
-function registerPlugins() {
-    const { rawConfig, config, path } = ConfigParser.parsePlugins();
-    Object.defineProperty(config, '[[parsed]]', {
-        enumerable: false,
-        value: false
-    });
-    program.context.rawConfig = rawConfig;
-    program.context.config = config;
-    program.context.configPath = path;
-
-    loadPlugins(config);
-}
-
-// create plugins instances
-function instantiatedPlugins(program, pluginsNames) {
-    // program.context.plugins = [];
-    // register._reset();
-
-    pluginsNames.forEach(name => {
-        let plugin;
-        if (typeof(name) === 'string') {
-            plugin = new Plugin(name, program.context);
-        }
-        else if (Array.isArray(name)) {
-            const [pluginName, pluginSetting] = name;
-            plugin = new Plugin(pluginName, program.context, pluginSetting);
-        }
-        program.context.pluginIds.add(plugin.id);
-        program.context.plugins.push(plugin);
-    });
-};
