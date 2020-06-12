@@ -57,7 +57,9 @@ module.exports = function (program, register, config) {
                     template: `
                         <script src="{{cache-switcher-ui.js}}"></script>
                         <script>
-                            new window.cacheSwitcherUI.default('#app');
+                            window.addEventListener('load', function() {
+                                new window.cacheSwitcherUI.default('${config.cache.ui.container}');
+                            });
                         </script>
                     `,
                     insert: 'body'

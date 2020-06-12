@@ -1,6 +1,8 @@
 const fs = require('fs');
 const querystring = require('querystring');
 const concat = require('concat-stream');
+const { cleanCache } = require('../subcommands/clean.command/clean');
+const { store: storeFiles } = require('../subcommands/store.command/store');
 const baseURL = '/__plugin_ui_switcher__';
 
 module.exports = {
@@ -12,14 +14,30 @@ module.exports = {
 
             switch (request.url) {
                 case baseURL + '/sync-config':
-                    bodyParse(sync)
-                    // sync();
+                    sync.call(this, context);
+                    break;
+
+                case baseURL + '/reload-server':
+                    reload.call(this, context);
+                    break;
+
+                case baseURL + '/upload-config':
+                    bodyParse.call(this, updateConfig);
+                    break;
+
+                case baseURL + '/clean':
+                    bodyParse.call(this, clean);
+                    break;
+
+                case baseURL + '/store':
+                    bodyParse.call(this, store);
                     break;
 
                 default:
+                    respond(context.response, 'No handler found')
                     break;
             }
-            
+
 
             next('plugin ui swicher api');
         }
@@ -42,7 +60,7 @@ module.exports = {
                 data.body = BodyParser.parse(contentType, buffer, {
                     noRawFileData: true
                 });
-                cb(context, data);
+                cb.call(this, context, data);
             }));
         }
     }
@@ -50,11 +68,48 @@ module.exports = {
 
 
 
-function sync(context, data) {
+function sync(context) {
     respond(context.response, context.config.cache);
+}
+
+function updateConfig(context, data) {
+    const { rawConfig, configPath } = this.context;
+
+    const newRawConfig = Object.assign({}, rawConfig, data.body);
+    const fileContent = 'module.exports = ' + JSON.stringify(newRawConfig, null, 4);
+    fs.writeFile(configPath, fileContent, err => {
+        err && console.warn('[Plugin Cache] ui-switcher update config failed: ', err);
+        respond(context.response, 'update OK');
+    })
+
+}
+
+function reload(context) {
+    respond(context.response, 'command OK');
+    context.response.on('finish', () => {
+        this.context.program.reload();
+    });
+}
+
+function clean(context, data) {
+    const { target, options } = data.body;
+    cleanCache({
+        options: options || {},
+        config: this.config[target]
+    });
+    respond(context.response, 'command OK');
+}
+
+function store(context, data) {
+    const { target, name } = data.body;
+    storeFiles(name, this.config[target])
+    respond(context.response, 'command OK');
 }
 
 function respond(response, data) {
     response.writeHead(200, { 'Content-Type': 'application/json' })
-    response.end(JSON.stringify(data));
+    response.end(JSON.stringify({
+        code: 200,
+        data
+    }));
 }

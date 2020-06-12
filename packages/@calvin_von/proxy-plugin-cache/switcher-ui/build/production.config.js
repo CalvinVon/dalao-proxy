@@ -7,7 +7,8 @@ module.exports = merge(baseConfig, {
     mode: 'production',
     output: {
         library: 'cacheSwitcherUI',
-        libraryTarget: 'umd'
+        libraryTarget: 'umd',
+        globalObject: 'typeof self !== \'undefined\' ? self : this',
     },
     module: {
         rules: [

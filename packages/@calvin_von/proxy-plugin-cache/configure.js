@@ -51,7 +51,8 @@ const mockDefaults = {
 };
 
 const cacheUiDefaults = {
-
+    enable: true,
+    container: '#app'
 };
 
 
@@ -257,10 +258,14 @@ function configWarn(message) {
 
 module.exports = {
     setting,
-    parser(cacheOptions, mockOptions) {
+    parser(cacheOptions, mockOptions, uiOptions) {
         return {
             cache: cacheParser(cacheOptions),
-            mock: mockParser(mockOptions)
+            mock: mockParser(mockOptions),
+            ui: {
+                ...cacheUiDefaults,
+                ...(uiOptions || {})
+            }
         };
     }
 };

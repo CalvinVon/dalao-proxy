@@ -85,8 +85,16 @@ export default {
                 this.dragging = false;
             });
 
+            const isIncluded = el => {
+                if (el instanceof SVGElement) {
+                    return true;
+                }
+
+                return (el.className || '').match(/plugin-cache-ui-switcher|ant/);
+            };
+
             // if click handler
-            if (e.path.some(el => el.className === 'plugin-cache-ui-switcher')) {
+            if (e.path.some(isIncluded)) {
                 return;
             }
             else if (

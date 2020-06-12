@@ -22,24 +22,46 @@ export default {
                 <div class="ui-switcher-controller__header">
                     <h3 class="header-title">Plugin Cache Switcher</h3>
 
-                    {
-                        this.syncLoading ?
-                            (
-                                <div class="swicher-status">
-                                    Synchronizing
-                                    <Icon type="sync" spin={this.syncLoading} />
-                                </div>
-                            )
-                            :
-                            (
-                                <div class="swicher-status">
-                                    <Button type="link" onclick={this.syncConfig}>
-                                        Sync
-                    <Icon type="sync" />
-                                    </Button>
-                                </div>
-                            )
-                    }
+                    <div class="swicher-status">
+                        {
+                            this.sync.error ?
+                                <span class="status-error">Sync error </span>
+                                : null
+                        }
+
+                        <Button
+                            type="link"
+                            onclick={this.syncConfig}
+                            disabled={this.sync.loading}>
+                            <Icon type="sync" spin={this.sync.loading} />
+                            {this.sync.loading ? 'Synchronizing' : 'Sync'}
+                        </Button>
+
+                        {
+                            this.upload.error ?
+                                <span class="status-error">Save error</span>
+                                : null
+                        }
+
+                        <Button
+                            type="link"
+                            onclick={this.uploadConfig}
+                            disabled={this.upload.loading}>
+                            {
+                                this.upload.loading ?
+                                    <Icon type="sync" spin />
+                                    : <Icon type="check" />
+                            }
+                            {this.upload.loading ? 'Saving' : 'Save'}
+                        </Button>
+
+                        <Button
+                            type="link"
+                            onclick={this.reloadServer}>
+                            <Icon type="reload" />
+                            Reload server
+                        </Button>
+                    </div>
                 </div>
 
                 <div class="ui-switcher-controller">
@@ -73,13 +95,13 @@ export default {
                                             size="small"
                                             vModel={this.cache.maxAgeUnit}>
                                             <Select.Option value="seconds">
-                                                sec
+                                                seconds
                                             </Select.Option>
                                             <Select.Option value="minutes">
-                                                min
+                                                minutes
                                             </Select.Option>
                                             <Select.Option value="hours">
-                                                hour
+                                                hours
                                             </Select.Option>
                                         </Select>
                                     </Input.Group>
@@ -116,6 +138,24 @@ export default {
                                                     <p class="controller-item--desc">Use line breaks to enter multiple types</p>
                                                 </div>
                                             </li>
+
+                                            {
+                                                this.cache.filters.length ? null :
+                                                    <li class="controller-item">
+                                                        <div class="controller-item__label">
+                                                            <span>Filters</span>
+                                                        </div>
+                                                        <div class="controller-item__children">
+                                                            <Button
+                                                                size="small"
+                                                                type="link"
+                                                                onclick={() => this.newFilter(null)}>
+                                                                <Icon type="plus" /> Add filters
+                                                            </Button>
+                                                            <p class="controller-item--desc">Click add button to add filters</p>
+                                                        </div>
+                                                    </li>
+                                            }
 
                                             <li class="controller-item">
                                                 <div class="controller-item__children no-label">
@@ -160,45 +200,125 @@ export default {
                             </li>
                         </ul>
                     </div>
+
+
+                    {/* Clean */}
+                    {
+                        this.hiddenFields.groups ? null :
+                            <div class="controller-group">
+                                <h3 class="controller-group__title">Files Clean</h3>
+                                <ul class="controller-group__wrapper">
+
+                                    <li class="controller-item">
+                                        <div class="controller-item__label">
+                                            <span>Cache</span>
+                                        </div>
+                                        <div class="controller-item__children">
+                                            <Button size="small" onclick={this.cleanCacheHandler}>clean</Button>
+                                            <Checkbox vModel={this.cacheOptions.mock}>include mocked cache files</Checkbox>
+                                            <p class="controller-item--desc">Cached files will be removed</p>
+                                        </div>
+                                    </li>
+
+                                    <li class="controller-item">
+                                        <div class="controller-item__label">
+                                            <span>Mock</span>
+                                        </div>
+                                        <div class="controller-item__children">
+                                            <Button size="small" onclick={this.cleanMockHandler}>clean</Button>
+                                            <p class="controller-item--desc">Mocked files will be removed</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                    }
+
+                    {/* Store */}
+                    {
+                        this.hiddenFields.groups ? null :
+                            <div class="controller-group">
+                                <h3 class="controller-group__title">Files Store</h3>
+                                <ul class="controller-group__wrapper">
+
+                                    <li class="controller-item">
+                                        <div class="controller-item__label">
+                                            <span>Cache</span>
+                                        </div>
+                                        <div class="controller-item__children">
+                                            <div class="button-with-input">
+                                                <Button size="small" onclick={this.storeCacheHandler}>store</Button>
+                                                <Input size="small"
+                                                    placeholder="Input store name"
+                                                    vModel={this.storeNames.cache} />
+                                            </div>
+                                            <p class="controller-item--desc">Cached files will be stored {this.storeNames.cache ? `into ${this.storeNames.cache}` : ''}</p>
+                                        </div>
+                                    </li>
+
+                                    <li class="controller-item">
+                                        <div class="controller-item__label">
+                                            <span>Mock</span>
+                                        </div>
+                                        <div class="controller-item__children">
+                                            <div class="button-with-input">
+                                                <Button size="small" onclick={this.storeMockHandler}>store</Button>
+                                                <Input size="small"
+                                                    placeholder="Input store name"
+                                                    vModel={this.storeNames.mock} />
+                                            </div>
+                                            <p class="controller-item--desc">Cached files will be stored {this.storeNames.mock ? `into ${this.storeNames.mock}` : ''}</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                    }
+
+                    <div class="controller-item--hidden-indicator" onclick={() => this.hiddenFields.groups = !this.hiddenFields.groups}>
+                        <div class={{ 'up': !this.hiddenFields.groups }}>
+                            <ArrowDownIcon />
+                        </div>
+                    </div>
+
                 </div>
-            </div>
+            </div >
         );
     },
     data() {
         return {
-            syncLoading: false,
+            // loadings
+            sync: {
+                loading: false,
+                error: null
+            },
+            upload: {
+                loading: false,
+                error: null
+            },
+
             fastMaxAgeSwitcher: 0,
             hiddenFields: {
                 cache: true,
-                mock: true,
+                groups: true,
             },
+
+            // states
             cache: {
                 enable: true,
                 maxAgeNumber: 0,
                 maxAgeUnit: 'seconds',
                 contentType: ["application/json"],
-                filters: [
-                    {
-                        "field": null,
-                        "value": 200,
-                        "custom": null,
-                        "applyRoute": "*",
-                        "when": "response",
-                        "where": "status"
-                    },
-                    {
-                        "field": "code",
-                        "value": 200,
-                        "custom": null,
-                        "applyRoute": "*",
-                        "when": "response",
-                        "where": "data"
-                    }
-                ]
+                filters: []
             },
             mock: {
                 enable: true,
                 prefix: ''
+            },
+            cacheOptions: {
+                mock: false
+            },
+            storeNames: {
+                cache: '',
+                mock: ''
             }
         }
     },
@@ -214,6 +334,9 @@ export default {
                 this.parent.position.x++;
             }
         }
+    },
+    created() {
+        this.syncConfig();
     },
     methods: {
 
@@ -315,6 +438,11 @@ export default {
 
         newFilter(filter) {
             this.cache.filters.push({
+                when: 'response',
+                where: 'status',
+                field: '',
+                value: 200,
+                applyRoute: '*',
                 ...filter
             });
         },
@@ -352,14 +480,65 @@ export default {
 
         // requests
         async syncConfig() {
-            this.syncLoading = true;
+            this.sync.loading = true;
             try {
-                await request.sync();
+                const { cache, mock } = await request.sync();
+                this.cache = cache;
+                this.mock = mock;
+                this.cacheMaxAgeNumberChange(this.cache.maxAgeNumber);
+                this.sync.error = false;
             } catch (error) {
+                this.sync.error = true;
+                console.log('[Plugin Cache UI switcher]: sync error: ', error);
                 console.error('error: ', error);
             } finally {
-                this.syncLoading = false;
+                this.sync.loading = false;
             }
-        }
+        },
+
+        async uploadConfig() {
+            this.upload.loading = true;
+            try {
+                await request.upload({
+                    cache: { ...this.cache },
+                    mock: { ...this.mock },
+                });
+                this.upload.error = false;
+            } catch (error) {
+                this.upload.error = true;
+                console.log('[Plugin Cache UI switcher]: save config error: ', error);
+                console.error('error: ', error);
+            } finally {
+                this.upload.loading = false;
+            }
+        },
+
+        async reloadServer() {
+            await request.reload();
+        },
+
+        async cleanCacheHandler() {
+            await request.cleanFiles({
+                target: 'cache',
+                options: this.cacheOptions
+            });
+        },
+        async cleanMockHandler() {
+            await request.cleanFiles({
+                target: 'mock'
+            });
+        },
+        async storeCacheHandler() {
+            await request.storeFiles({
+                target: 'cache',
+                name: this.storeNames.cache
+            });
+        },
+        async storeMockHandler() {
+            await request.storeFiles({
+                target: 'mock',
+                name: this.storeNames.mock
+            });
+        },
     }
 }
