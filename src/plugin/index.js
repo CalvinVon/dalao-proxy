@@ -290,7 +290,7 @@ class Plugin {
                 return optionsField.map(field => this.config[field]);
             }
             else {
-                return [this.config];
+                return [this.context.config[optionsField]];
             }
         };
 

@@ -45,8 +45,15 @@ function registerPlugins(program) {
 
 
 function loadPlugins(program, config) {
+    let firstLoad;
     const loadedPlugins = program.context.plugins;
-    reloadPlugins();
+    if (loadedPlugins.length) {
+        firstLoad = false;
+        reloadPlugins();
+    }
+    else {
+        firstLoad = true;
+    }
 
     const newPluginNames = [...config.plugins];
     loadedPlugins.forEach(plugin => {
@@ -63,6 +70,14 @@ function loadPlugins(program, config) {
         newPluginNames.splice(foundIndex, 1);
     });
 
+    if (firstLoad) {
+        Plugin.readConfigSource = 'rawConfig';
+    }
+    else {
+        // new child plugins should read parsed config
+        // cause the config of child plugin is setted from parent
+        Plugin.readConfigSource = 'parsedConfig';
+    }
     instantiatedPlugins(program, newPluginNames);
     ConfigParser.mergePluginsConfig(config, program.context.plugins);
 }
