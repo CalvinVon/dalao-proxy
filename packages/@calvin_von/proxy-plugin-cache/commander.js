@@ -58,6 +58,7 @@ module.exports = function (program, register, config) {
                         <script src="{{cache-switcher-ui.js}}"></script>
                         <script>
                             window.addEventListener('load', function() {
+                                console.log('window.cacheSwitcherUI: ', window.cacheSwitcherUI);
                                 new window.cacheSwitcherUI.default('${config.cache.ui.container}');
                             });
                         </script>

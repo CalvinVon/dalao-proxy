@@ -63,8 +63,7 @@
 
         .ui-switcher-controller {
             max-height: 80vh;
-            // max-width: 60vw;
-            max-width: 400px * 2;
+            max-width: 80vw;
             overflow-y: auto;
 
             @extend %clear-float;
