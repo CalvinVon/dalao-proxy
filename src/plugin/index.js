@@ -137,6 +137,7 @@ const register = new Register();
 const configure = Register.prototype.configure;
 const modifiedPluginIds = new Set();
 let modifiedPlugins = [];
+const runtimeChildPluginConfigs = [];
 
 /**
  * @class Plugin
@@ -175,6 +176,7 @@ class Plugin {
         this._packagejsonPath;
         this._configurePath;
         this._commanderPath;
+        this._isRuntimeChildPlugin;
 
         try {
             const {
@@ -215,8 +217,6 @@ class Plugin {
 
         this.config = defineProxy(config, {
             setter: () => {
-                Plugin.readConfigSource = 'parsedConfig';
-
                 if (!modifiedPluginIds.has(this.id)) {
                     modifiedPluginIds.add(this.id);
                     modifiedPlugins.push(this);
@@ -294,15 +294,14 @@ class Plugin {
             }
         };
 
-        // read config from rawConfig
-        // always when raw config file content changes
-        if (Plugin.readConfigSource === 'rawConfig') {
-            pluginConfig = loadFromRawConfig();
-        }
         // read config from parsed config object
         // always when plugin has been modified
-        else {
+        if (modifiedPluginIds.has(this.id) || isRuntimeChildPlugin(this)) {
             pluginConfig = loadFromParsedConfig();
+        }
+        // read config from rawConfig
+        else {
+            pluginConfig = loadFromRawConfig();
         }
 
 
@@ -410,6 +409,33 @@ class Plugin {
         return pluginEnable;
     }
 
+    static resolvePluginSettingFromConfig(configName) {
+        if (typeof (configName) === 'string') {
+            return {
+                name: configName,
+                setting: null
+            };
+        }
+        else if (Array.isArray(configName)) {
+            const [pluginName, pluginSetting] = configName;
+            return {
+                name: pluginName,
+                setting: pluginSetting
+            };
+        }
+        else {
+            console.warn(chalk.red('[' + configName + '] is not a valid plugin name format'));
+            return {};
+        }
+    }
+
+    static isSamePluginConfig(configNameA, configNameB) {
+        const { name: nameA, setting: settingA } = Plugin.resolvePluginSettingFromConfig(configNameA);
+        const { name: nameB, setting: settingB } = Plugin.resolvePluginSettingFromConfig(configNameB);
+
+        return nameA === nameB && isSameOptionField(settingA.optionsField, settingB.optionsField);
+    }
+
 
     /**
      * @private
@@ -482,8 +508,7 @@ class Plugin {
     }
 }
 
-Plugin.readConfigSource = 'rawConfig';
-
+Plugin.runtimeChildPluginConfigs = runtimeChildPluginConfigs;
 Plugin.modifiedPluginIds = modifiedPluginIds;
 Plugin.modifiedPlugins = modifiedPlugins;
 
@@ -519,7 +544,51 @@ class PluginInterrupt {
 }
 
 
-function reloadPlugins() {
+function isRuntimeChildPlugin(plugin) {
+    if (plugin._isRuntimeChildPlugin) {
+        return true;
+    }
+
+    for (const config of runtimeChildPluginConfigs) {
+        const { name, setting } = Plugin.resolvePluginSettingFromConfig(config);
+        if (plugin.name === name && isSameOptionField(plugin.setting.optionsField, setting.optionsField)) {
+            plugin._isRuntimeChildPlugin = true;
+            return true;
+        }
+    }
+}
+
+function isSameOptionField(f1, f2) {
+    const ff1 = Array.isArray(f1) ? f1.join('') : f1;
+    const ff2 = Array.isArray(f2) ? f2.join('') : f2;
+    return ff1 === ff2;
+};
+
+
+/**
+ * Watch config.plugins fields
+ */
+function watchPluginConfig(config) {
+    config.plugins = defineProxy(config.plugins, {
+        setter(t, p, v) {
+            if (!isNaN(p) && p > t.length - 1) {
+                // new runtime child plugin
+                let found;
+                runtimeChildPluginConfigs.forEach(config => {
+                    if (Plugin.isSamePluginConfig(config, v)) {
+                        found = true;
+                    }
+                });
+                if (!found) {
+                    runtimeChildPluginConfigs.push(v);
+                }
+            }
+        }
+    });
+}
+
+
+function reloadModifiedPlugins() {
     Plugin.modifiedPlugins.forEach(plugin => {
         try {
             plugin.load();
@@ -534,8 +603,6 @@ function reloadPlugins() {
         }
     });
 
-    Plugin.readConfigSource = 'rawConfig';
-
     Plugin.modifiedPluginIds.clear();
     Plugin.modifiedPlugins = modifiedPlugins = [];
 }
@@ -545,5 +612,6 @@ module.exports = {
     PluginInterrupt,
     Register,
     register,
-    reloadPlugins
+    watchPluginConfig,
+    reloadModifiedPlugins
 };

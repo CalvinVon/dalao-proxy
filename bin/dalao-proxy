@@ -11,12 +11,12 @@ const {
     commands: Commands,
 } = require('../src');
 
-const { register } = require('../src/plugin');
+const { register, watchPluginConfig } = require('../src/plugin');
 
 
 // trigger reload when file change
 parserEmitter.on('config:triggerParse:fileChange', function fileChangeHandler() {
-    program.reload();
+    program.reload(true);
 });
 
 // On config parsed
@@ -26,6 +26,8 @@ parserEmitter.on('config:parsed', function configParsedHandler(configObject) {
         enumerable: false,
         value: true
     });
+
+    watchPluginConfig(config);
     program.context.config = config;
 
     // trigger field `config`

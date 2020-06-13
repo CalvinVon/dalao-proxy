@@ -135,6 +135,13 @@ function getType(value, type) {
 }
 
 
+/**
+ * defineProxy
+ * @param {any} target proxy target
+ * @param {Object} [opt]
+ * @param {Function} [opt.setter] trigger when set value
+ * @param {Function} [opt.getter] trigger when get value
+ */
 function defineProxy(target, opt) {
     const { setter, getter } = opt || {};
     const isObject = getType(target, 'Object');

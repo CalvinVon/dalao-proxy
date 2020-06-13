@@ -25,8 +25,8 @@ Command.prototype.context = Command.context = new CommandContext();
 /**
  * @public
  */
-Command.prototype.reload = function reloadProgram() {
-    Runtime.reloadProgram(this.context.program);
+Command.prototype.reload = function reloadProgram(...args) {
+    Runtime.reloadProgram(this.context.program, ...args);
 };
 
 
