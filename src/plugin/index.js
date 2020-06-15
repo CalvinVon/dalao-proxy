@@ -403,7 +403,7 @@ class Plugin {
     static resolveEnable(config, setting) {
         let pluginEnable;
         const userEnable = pluginEnable = config[setting.enableField];
-        if (userEnable === undefined) {
+        if (userEnable === undefined || userEnable === null) {
             config[setting.enableField] = pluginEnable = setting.defaultEnable;
         }
         return pluginEnable;
