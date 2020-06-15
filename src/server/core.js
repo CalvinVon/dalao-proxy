@@ -111,7 +111,7 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
  * @param {String} enc
  * @param {Function} callback
  */
-function _invokePipeAllPlugin(hookName, context, chunk, enc, callback) {
+function _invokePipeAllPlugin(hookName, context, chunk, enc, transform, callback) {
 
     let total = plugins.length;
     if (!total) {
@@ -132,7 +132,8 @@ function _invokePipeAllPlugin(hookName, context, chunk, enc, callback) {
         hook.call(plugin, {
             ...context,
             chunk: lastValue,
-            enc
+            enc,
+            transform
         }, (err, returnValue) => {
             if (!err) {
                 lastValue = returnValue;
@@ -441,47 +442,93 @@ function proxyRequestWrapper(config, corePlugins) {
                         resolve(Promise.all(waitingList));
                     });
 
+                    /**
+                     *  Buffer pipeline stream data
+                     *  so that the last chunk flag is added when the last data flows in.
+                     *  Plugin.onPipeRequest/onPipeResponse can tell the timing of the last piece of data.
+                     */
+                    let delayRequestPipeHandler;
+                    let delayResponsePipeHandler;
+
                     const xReqStream = req
-                        .pipe(
-                            through(function (chunk, enc, callback) {
-
-                                /**
-                                 * Middleware: on request pipe proxy request
-                                 * @lifecycle onPipeRequest
-                                 * @param {Object} context
-                                 * @param {Buffer} chunk
-                                 * @param {String} enc
-                                 * @param {Function} next
-                                 */
-                                _invokePipeAllPlugin('onPipeRequest', context, chunk, enc, (err, value) => {
-                                    this.push(err ? chunk : value);
+                        .pipe(through(
+                            function (chunk, enc, callback) {
+                                if (delayRequestPipeHandler) {
+                                    delayRequestPipeHandler(callback);
+                                }
+                                else {
                                     callback();
-                                });
+                                }
 
-                            })
-                        );
+                                delayRequestPipeHandler = (callback, isLastChunk) => {
+                                    context.isLastChunk = isLastChunk;
+                                    /**
+                                     * Middleware: on request pipe proxy request
+                                     * @lifecycle onPipeRequest
+                                     * @param {Object} context
+                                     * @param {Buffer} chunk
+                                     * @param {String} enc
+                                     * @param {Function} next
+                                     */
+                                    _invokePipeAllPlugin('onPipeRequest', context, chunk, enc, this, (err, value) => {
+                                        this.push(err ? chunk : value);
+                                        callback();
+                                    });
+                                }
+
+                            },
+                            function (callback) {
+                                if (delayRequestPipeHandler) {
+                                    delayRequestPipeHandler(callback, true);
+                                }
+                                else {
+                                    callback();
+                                }
+                            }
+                        ));
 
                     const xResOriginStream = xReqStream
                         .pipe(x);
 
-                    const xResStream = xResOriginStream
-                        .pipe(
-                            through(function (chunk, enc, callback) {
 
-                                /**
-                                 * Middleware: on proxy response pipe response
-                                 * @lifecycle onPipeResponse
-                                 * @param {Object} context
-                                 * @param {Buffer} chunk
-                                 * @param {String} enc
-                                 * @param {Function} next
-                                 */
-                                _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, (err, value) => {
-                                    this.push(err ? chunk : value);
+
+                    const xResStream = xResOriginStream
+                        .pipe(through(
+                            function (chunk, enc, callback) {
+                                if (delayResponsePipeHandler) {
+                                    delayResponsePipeHandler(callback);
+                                }
+                                else {
                                     callback();
-                                });
-                            })
-                        );
+                                }
+
+                                delayResponsePipeHandler = (callback, isLastChunk) => {
+                                    context.isLastChunk = isLastChunk;
+                                    /**
+                                * Middleware: on proxy response pipe response
+                                * @lifecycle onPipeResponse
+                                * @param {Object} context
+                                * @param {Buffer} chunk
+                                * @param {String} enc
+                                * @param {TransformStream} transform
+                                * @param {Function} next
+                                */
+                                    _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, this, (err, value) => {
+                                        this.push(err ? chunk : value);
+                                        callback();
+                                    });
+                                };
+
+                            },
+                            function (callback) {
+                                if (delayResponsePipeHandler) {
+                                    delayResponsePipeHandler(callback, true);
+                                }
+                                else {
+                                    callback();
+                                }
+                            }
+                        ));
 
                     xResStream.pipe(res);
 
