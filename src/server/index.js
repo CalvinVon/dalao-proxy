@@ -4,6 +4,7 @@ const URL = require('url').URL;
 const dalaoProxy = require('./core');
 const { getIPv4Address } = require('../utils');
 const register = require('../plugin').register;
+const { connections } = require('../runtime');
 
 // attach server to port
 function attachServerListener(program, server, config) {
@@ -47,6 +48,13 @@ function attachServerListener(program, server, config) {
         else {
             console.error(err);
         }
+    });
+
+    server.on('connection', function (connection) {
+        connections.add(connection);
+        connection.on('close', () => {
+            connections.delete(connection);
+        });
     });
 
     server.listen(port, host);

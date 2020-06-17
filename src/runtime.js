@@ -1,6 +1,10 @@
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, reloadModifiedPlugins } = require('./plugin');
 
+// * Why collect connections?
+// When HTTP server reloads, node.js would keep all existing connections,
+// which will cause the reloading very slow
+const connections = new Set();
 let reloading;
 
 function reloadProgram(program, reloadLoadedPlugins) {
@@ -10,6 +14,12 @@ function reloadProgram(program, reloadLoadedPlugins) {
         
         if (reloadLoadedPlugins) {
             reloadAllPlugins(program);
+        }
+
+
+        for (const connection of connections) {
+            // clean all existing connections
+            connection.destroy();
         }
 
         program.context.server.close(function () {
@@ -82,4 +92,5 @@ module.exports = {
     loadPlugins,
     reloadAllPlugins,
     instantiatedPlugins,
+    connections
 };

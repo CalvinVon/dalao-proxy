@@ -505,14 +505,14 @@ function proxyRequestWrapper(config, corePlugins) {
                                 delayResponsePipeHandler = (callback, isLastChunk) => {
                                     context.isLastChunk = isLastChunk;
                                     /**
-                                * Middleware: on proxy response pipe response
-                                * @lifecycle onPipeResponse
-                                * @param {Object} context
-                                * @param {Buffer} chunk
-                                * @param {String} enc
-                                * @param {TransformStream} transform
-                                * @param {Function} next
-                                */
+                                    * Middleware: on proxy response pipe response
+                                    * @lifecycle onPipeResponse
+                                    * @param {Object} context
+                                    * @param {Buffer} chunk
+                                    * @param {String} enc
+                                    * @param {TransformStream} transform
+                                    * @param {Function} next
+                                    */
                                     _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, this, (err, value) => {
                                         this.push(err ? chunk : value);
                                         callback();
