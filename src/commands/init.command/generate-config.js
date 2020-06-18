@@ -3,7 +3,7 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const { CommandContext } = require('../../../src');
+const { program } = require('../../../src');
 const { Plugin } = require('../../plugin');
 const defaultConfig = require('../../../config');
 const custom_assign = require('../../utils').custom_assign;
@@ -26,7 +26,6 @@ let defaultAnswers = [
     defaultConfig.host,
     defaultConfig.port,
     defaultConfig.target,
-    // defaultConfig.cache,
     true,
 ];
 
@@ -126,10 +125,21 @@ function addPluginConfig(config) {
 
     const fileConfig = require(configFilePath);
 
-    const plugin = new Plugin(pluginName, new CommandContext());
-    const pluginConfigField = plugin.setting.optionsField;
+    const plugin = new Plugin(pluginName, program.context);
     const pluginDefaultConfig = plugin.parser({});
-    fileConfig[pluginConfigField] = pluginDefaultConfig;
+    const pluginConfigField = plugin.setting.optionsField;
+
+    if (Array.isArray(pluginConfigField)) {
+        console.warn(chalk.yellow('Init warning: this plugin(' + pluginName + ') contains multiple options fields(' + pluginConfigField.join(', ') + '), \n'
+            + 'We are trying to generate the corresponding configuration for you as much as possible, but it is not guaranteed to\n'
+            + 'be correct, please find the corresponding plugin configuration document.\n'));
+        for (const field of pluginConfigField) {
+            fileConfig[field] = pluginDefaultConfig[field];
+        }
+    }
+    else {
+        fileConfig[pluginConfigField] = pluginDefaultConfig;
+    }
 
     const saveFileExtention = inJsFormat ? '.js' : '.json';
     const saveFileWrapper = context => inJsFormat ? `module.exports = ${context};` : context;
@@ -137,7 +147,7 @@ function addPluginConfig(config) {
     const fileContent = saveFileWrapper(JSON.stringify(fileConfig, null, 4));
     const filePath = configFilePath.replace(path.extname(configFilePath), '') + saveFileExtention;
     fs.writeFileSync(filePath, fileContent);
-    
+
     console.log(chalk.green(`> Config for plugin \`${pluginName}\` updated in field \`${pluginConfigField}\` of \`${filePath}\`.`));
     console.log(chalk.grey('  More config about the plugin, please use the command ') + chalk.yellow(`\`dalao-proxy plugin config ${pluginName}.\`\n`));
 }

@@ -452,7 +452,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
                     const xReqStream = req
                         .pipe(through(
-                            function (chunk, enc, callback) {
+                            function (chunk, encode, callback) {
                                 if (delayRequestPipeHandler) {
                                     delayRequestPipeHandler(callback);
                                 }
@@ -460,26 +460,40 @@ function proxyRequestWrapper(config, corePlugins) {
                                     callback();
                                 }
 
-                                delayRequestPipeHandler = (callback, isLastChunk) => {
-                                    context.isLastChunk = isLastChunk;
-                                    /**
-                                     * Middleware: on request pipe proxy request
-                                     * @lifecycle onPipeRequest
-                                     * @param {Object} context
-                                     * @param {Buffer} chunk
-                                     * @param {String} enc
-                                     * @param {Function} next
-                                     */
-                                    _invokePipeAllPlugin('onPipeRequest', context, chunk, enc, this, (err, value) => {
-                                        this.push(err ? chunk : value);
-                                        callback();
-                                    });
-                                }
+                                delayRequestPipeHandler = ((ctx, chk, enc) => {
+                                    return (cb, isLastChunk) => {
+                                        ctx.isLastChunk = isLastChunk;
+                                        /**
+                                        * Middleware: on proxy response pipe request
+                                        * @lifecycle onPipeRequest
+                                        * @param {Object} ctx
+                                        * @param {Buffer} chunk
+                                        * @param {String} enc
+                                        * @param {TransformStream} transform
+                                        * @param {Function} next
+                                        */
+                                        _invokePipeAllPlugin('onPipeRequest', ctx, chk, enc, this, (err, value) => {
+                                            this.push(err ? chk : value);
+                                            cb();
+                                        });
+                                    }
+                                }).call(null, context, chunk, encode);
 
                             },
                             function (callback) {
                                 if (delayRequestPipeHandler) {
-                                    delayRequestPipeHandler(callback, true);
+                                    /**
+                                     * Help!
+                                     * Looking for a more elegant solution!
+                                     * 
+                                     * If using synchronize call may cause the last chunk, not in the right order,
+                                     * except the plugins implement the pipe API using async `next` calling.
+                                     * Still not very clear with the reason.
+                                     */
+                                    setImmediate(() => {
+                                        delayRequestPipeHandler(callback, true);
+                                        delayRequestPipeHandler = null;
+                                    });
                                 }
                                 else {
                                     callback();
@@ -494,7 +508,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
                     const xResStream = xResOriginStream
                         .pipe(through(
-                            function (chunk, enc, callback) {
+                            function (chunk, encode, callback) {
                                 if (delayResponsePipeHandler) {
                                     delayResponsePipeHandler(callback);
                                 }
@@ -502,27 +516,40 @@ function proxyRequestWrapper(config, corePlugins) {
                                     callback();
                                 }
 
-                                delayResponsePipeHandler = (callback, isLastChunk) => {
-                                    context.isLastChunk = isLastChunk;
-                                    /**
-                                    * Middleware: on proxy response pipe response
-                                    * @lifecycle onPipeResponse
-                                    * @param {Object} context
-                                    * @param {Buffer} chunk
-                                    * @param {String} enc
-                                    * @param {TransformStream} transform
-                                    * @param {Function} next
-                                    */
-                                    _invokePipeAllPlugin('onPipeResponse', context, chunk, enc, this, (err, value) => {
-                                        this.push(err ? chunk : value);
-                                        callback();
-                                    });
-                                };
+                                delayResponsePipeHandler = ((ctx, chk, enc) => {
+                                    return (cb, isLastChunk) => {
+                                        ctx.isLastChunk = isLastChunk;
+                                        /**
+                                        * Middleware: on proxy response pipe response
+                                        * @lifecycle onPipeResponse
+                                        * @param {Object} ctx
+                                        * @param {Buffer} chunk
+                                        * @param {String} enc
+                                        * @param {TransformStream} transform
+                                        * @param {Function} next
+                                        */
+                                        _invokePipeAllPlugin('onPipeResponse', ctx, chk, enc, this, (err, value) => {
+                                            this.push(err ? chk : value);
+                                            cb();
+                                        });
+                                    }
+                                }).call(null, context, chunk, encode);
 
                             },
                             function (callback) {
                                 if (delayResponsePipeHandler) {
-                                    delayResponsePipeHandler(callback, true);
+                                    /**
+                                     * Help!
+                                     * Looking for a more elegant solution!
+                                     * 
+                                     * If using synchronize call may cause the last chunk, not in the right order,
+                                     * except the plugins implement the pipe API using async `next` calling.
+                                     * Still not very clear with the reason.
+                                     */
+                                    setImmediate(() => {
+                                        delayResponsePipeHandler(callback, true);
+                                        delayResponsePipeHandler = null;
+                                    });
                                 }
                                 else {
                                     callback();
