@@ -46,12 +46,13 @@ module.exports = {
     onRequest(context, next) {
         SwitcherUIServer.handle.call(this, context, next);
     },
-    
+
     beforeProxy(context, next) {
         const SUPPORTED_EXTENSIONS = ['.js', '.json'];
         const { response, request } = context;
         const { method, url } = request;
         const logger = context.config.logger;
+        const enableCORS = this.config.mock.cors;
 
         const { BodyParser, Utils } = this.context.exports;
         const userConfigHeaders = context.config.headers;
@@ -68,12 +69,35 @@ module.exports = {
         try {
             checkAndCreateFolder(mockDirname);
             checkAndCreateFolder(cacheDirname);
+
             const mockSearchName = path.resolve(process.cwd(), `./${mockDirname}/${url2filename(method, url)}`);
             const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
 
             if (mockEnable) {
                 tryLoadLocalFile(mockSearchName, false, () => {
-                    tryLoadLocalFile(cacheSearchName, true, next);
+                    tryLoadLocalFile(cacheSearchName, true, () => {
+                        // enable CORS, respond OPTIONS request
+                        if (enableCORS && method === 'OPTIONS') {
+                            const headers = mergeHeaders(userConfigHeaders, {
+                                'X-MOCK-CORS': true
+                            });
+                            setHeaders(response, headers);
+                            response.writeHead(200);
+                            response.end();
+                            context.cache = {
+                                data: null,
+                                rawData: '',
+                                type: 'text/plain',
+                                size: 0
+                            };
+
+                            logMatchedPath('[MOCK CORS]');
+                            next('Hit mock CORS');
+                        }
+                        else {
+                            next();
+                        }
+                    });
                 });
             }
             else {
@@ -87,6 +111,12 @@ module.exports = {
         }
 
 
+        /**
+         * Try to load file from local files
+         * @param {string} searchFilePath file pathlike
+         * @param {boolean} searchCacheFile is searching cache files or mocked files
+         * @param {Function} missCallback called when not found
+         */
         function tryLoadLocalFile(searchFilePath, searchCacheFile, missCallback) {
             let targetFilePath,
                 hasFoundFile,
@@ -228,9 +258,9 @@ module.exports = {
 
                 /**
                  * Universal handle responding
-                 * @param {Object} jsonContent content in JSON object format
-                 * @param {String} fileContent content in string format
-                 * @param {Boolean} [noCollectRequestData] if skip collect request data
+                 * @param {object} jsonContent content in JSON object format
+                 * @param {string} fileContent content in string format
+                 * @param {boolean} [noCollectRequestData] if skip collect request data
                  */
                 function handleRespond(jsonContent, fileContent, noCollectRequestData) {
                     const cachedTimeStamp = jsonContent['CACHE_TIME'];
@@ -540,7 +570,12 @@ module.exports = {
 
 
 function mergeHeaders(userConfigHeaders, ...headers) {
-    const headerMergeList = [];
+    const headerMergeList = [{
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
+        'access-control-allow-credentials': true,
+        'access-control-allow-headers': 'Authorization, Token',
+    }];
     if (typeof (userConfigHeaders.response) === 'object') {
         headerMergeList.push(formatHeaders(userConfigHeaders.response));
     }
@@ -555,11 +590,13 @@ function setHeaders(target, headers) {
     for (const header in headers) {
         const _header = formatHeader(header);
         const value = headers[header];
-        if (value !== null || value !== undefined) {
-            target.setHeader(_header, value);
+        if (value === null || value === undefined) {
+            target.removeHeader(_header);
         }
         else {
-            target.removeHeader(_header);
+            if (typeof ('' + value) === 'string' || typeof (value) === 'boolean' || Array.isArray(value)) {
+                target.setHeader(_header, value);
+            }
         }
     }
 }

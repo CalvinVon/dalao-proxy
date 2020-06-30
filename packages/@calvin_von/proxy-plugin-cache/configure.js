@@ -47,6 +47,7 @@ const cacheDefaults = {
 const mockDefaults = {
     "dirname": "mocks",
     "prefix": "",
+    "cors": true,
     "enable": true
 };
 

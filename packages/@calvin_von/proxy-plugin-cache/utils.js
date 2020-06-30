@@ -1,6 +1,8 @@
 const path = require('path');
 const fs = require('fs');
 
+const DELIMITER = '_';
+
 function checkAndCreateFolder (dirname) {
     const pwd = process.cwd();
     const fullDirname = path.resolve(pwd, dirname);
@@ -14,14 +16,14 @@ function checkAndCreateFolder (dirname) {
 function url2filename(method, url) {
     return method.toUpperCase()
         + url.split('/')
-            .join('_')
+            .join(DELIMITER)
             .replace(/\?.+/, '')
             .replace(/#.+/, '')
         + (url === '/' ? '.html' : '')
 }
 
 function filename2url(filename) {
-    const parts = filename.split('_');
+    const parts = filename.split(DELIMITER);
     const method = parts.shift();
     const url = '/' + parts.join('/');
     return {
