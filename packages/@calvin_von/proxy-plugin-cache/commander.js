@@ -54,14 +54,12 @@ module.exports = function (program, register, config) {
                     serves: {
                         'cache-switcher-ui.js': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.js'),
                     },
-                    template: `
-                        <script src="{{cache-switcher-ui.js}}"></script>
-                        <script>
-                            window.addEventListener('load', function() {
-                                console.log('window.cacheSwitcherUI: ', window.cacheSwitcherUI);
-                                new window.cacheSwitcherUI.default('${config.cache.ui.container}');
-                            });
-                        </script>
+                    template: `<script src="{{cache-switcher-ui.js}}"></script>
+<script>
+    window.addEventListener('load', function() {
+        new window.cacheSwitcherUI.default('${config.cache.ui.container}');
+    });
+</script>
                     `,
                     insert: 'body'
                 },

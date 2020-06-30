@@ -12,6 +12,7 @@
   "author": "Calvin",
   "license": "ISC",
   "dependencies": {
+    "@calvin_von/proxy-plugin-inject": "^1.0.0-beta",
     "chalk": "^4.0.0",
     "concat-stream": "^2.0.0",
     "mime-types": "^2.1.27",
