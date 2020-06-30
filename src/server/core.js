@@ -1,6 +1,5 @@
 const chalk = require('chalk');
 const request = require('request');
-const _ = require('lodash');
 const through = require('through2');
 const concat = require('concat-stream');
 
@@ -70,9 +69,6 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
         return;
     }
 
-    // const allPluginPromises = plugins.map(plugin => {
-    //     return _invokePluginMiddleware(plugin, hookName, context);
-    // });
 
     let callChain = Promise.resolve();
     let chainInterrupted;
@@ -204,11 +200,11 @@ function proxyRequestWrapper(config, corePlugins) {
         let matched;
 
         res.setHeader('Via', 'dalao-proxy/' + version);
-        res.setHeader('Access-Control-Allow-Origin', requestHost);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-        res.setHeader('Access-Control-Allow-Credentials', true);
-        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
         res.setHeader('Connection', 'close');
+        // res.setHeader('Access-Control-Allow-Origin', requestHost);
+        // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+        // res.setHeader('Access-Control-Allow-Credentials', true);
+        // res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
 
         Promise.resolve()
             .then(() => {
@@ -430,6 +426,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     });
 
                     x.on('error', error => {
+                        setResponseHeaders(res);
                         logger && console.error(chalk.red(`> Cannot to proxy ${method.toUpperCase()} [${matchedPath}] to [${proxyUrl}]: ${error.message}`));
                         context.proxy.error = error;
                         res.writeHead(503, 'Service Unavailable');
@@ -486,7 +483,7 @@ function proxyRequestWrapper(config, corePlugins) {
                                      * Help!
                                      * Looking for a more elegant solution!
                                      * 
-                                     * If using synchronize call may cause the last chunk, not in the right order,
+                                     * If using synchronize call may cause the last chunk not in the right order,
                                      * except the plugins implement the pipe API using async `next` calling.
                                      * Still not very clear with the reason.
                                      */
@@ -542,7 +539,7 @@ function proxyRequestWrapper(config, corePlugins) {
                                      * Help!
                                      * Looking for a more elegant solution!
                                      * 
-                                     * If using synchronize call may cause the last chunk, not in the right order,
+                                     * If using synchronize call may cause the last chunk not in the right order,
                                      * except the plugins implement the pipe API using async `next` calling.
                                      * Still not very clear with the reason.
                                      */
@@ -727,7 +724,11 @@ function proxyRequestWrapper(config, corePlugins) {
                 mergeList.push(formatHeaders(userHeaders.request));
             }
             else if (typeof (userHeaders) === 'object') {
-                mergeList.push(formatHeaders(userHeaders));
+                mergeList.push(formatHeaders({
+                    ...userHeaders,
+                    response: null,
+                    request: null
+                }));
             }
 
             setHeadersFor(proxyRequest, Object.assign({}, clientHeaders, ...mergeList));
@@ -754,7 +755,11 @@ function proxyRequestWrapper(config, corePlugins) {
                 mergeList.push(formatHeaders(userHeaders.response));
             }
             else if (typeof (userHeaders) === 'object') {
-                mergeList.push(formatHeaders(userHeaders));
+                mergeList.push(formatHeaders({
+                    ...userHeaders,
+                    response: null,
+                    request: null
+                }));
             }
 
             const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList);
