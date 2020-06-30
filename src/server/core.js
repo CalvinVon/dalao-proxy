@@ -195,16 +195,11 @@ function proxyRequestWrapper(config, corePlugins) {
 
         const serverHost = host === '0.0.0.0' ? 'localhost' : host;
         const { method, url } = req;
-        const { host: requestHost } = req.headers;
         const _request = request[method.toLowerCase()];
         let matched;
 
         res.setHeader('Via', 'dalao-proxy/' + version);
         res.setHeader('Connection', 'close');
-        // res.setHeader('Access-Control-Allow-Origin', requestHost);
-        // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-        // res.setHeader('Access-Control-Allow-Credentials', true);
-        // res.setHeader('Access-Control-Allow-Headers', 'Authorization, Token');
 
         Promise.resolve()
             .then(() => {
@@ -724,11 +719,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 mergeList.push(formatHeaders(userHeaders.request));
             }
             else if (typeof (userHeaders) === 'object') {
-                mergeList.push(formatHeaders({
-                    ...userHeaders,
-                    response: null,
-                    request: null
-                }));
+                mergeList.push(formatHeaders(userHeaders));
             }
 
             setHeadersFor(proxyRequest, Object.assign({}, clientHeaders, ...mergeList));
@@ -741,7 +732,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 'Transfer-Encoding': 'chunked',
                 'Connection': 'close',
                 'Via': 'dalao-proxy/' + version,
-                'Access-Control-Allow-Origin': requestHost,
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
                 'Access-Control-Allow-Credentials': true,
                 'Access-Control-Allow-Headers': 'Authorization, Token',
@@ -755,11 +746,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 mergeList.push(formatHeaders(userHeaders.response));
             }
             else if (typeof (userHeaders) === 'object') {
-                mergeList.push(formatHeaders({
-                    ...userHeaders,
-                    response: null,
-                    request: null
-                }));
+                mergeList.push(formatHeaders(userHeaders));
             }
 
             const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList);
@@ -778,7 +765,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     target.removeHeader(header);
                 }
                 else {
-                    if (typeof (value) === 'string' || typeof (value) === 'number' || Array.isArray(value)) {
+                    if (typeof (''+value) === 'string' || typeof (value) === 'boolean' || Array.isArray(value)) {
                         target.setHeader(header, value);
                     }
                 }
