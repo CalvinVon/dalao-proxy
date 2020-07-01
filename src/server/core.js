@@ -16,7 +16,8 @@ const {
     addHttpProtocol,
     splitTargetAndPath,
     transformPath,
-    fixJson
+    fixJson,
+    getType
 } = require('../utils');
 
 
@@ -421,7 +422,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     });
 
                     x.on('error', error => {
-                        setResponseHeaders(res);
+                        setResponseHeaders();
                         logger && console.error(chalk.red(`> Cannot to proxy ${method.toUpperCase()} [${matchedPath}] to [${proxyUrl}]: ${error.message}`));
                         context.proxy.error = error;
                         res.writeHead(503, 'Service Unavailable');
@@ -728,15 +729,16 @@ function proxyRequestWrapper(config, corePlugins) {
         // set headers for response
         function setResponseHeaders(headers) {
             const mergeList = [];
-            const rewriteHeaders = formatHeaders({
-                'Transfer-Encoding': 'chunked',
-                'Connection': 'close',
-                'Via': 'dalao-proxy/' + version,
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
-                'Access-Control-Allow-Credentials': true,
-                'Access-Control-Allow-Headers': 'Authorization, Token',
-            });
+            const origin = formatHeaders(req.headers)['origin'];
+            const rewriteHeaders = {
+                'transfer-encoding': 'chunked',
+                'connection': 'close',
+                'via': 'dalao-proxy/' + version,
+                'access-control-allow-origin': origin ? addHttpProtocol(origin) : '*',
+                'access-control-allow-methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
+                'access-control-allow-credentials': true,
+                'access-control-allow-headers': 'Content-Type, Authorization, Token',
+            };
 
             const proxyResponseHeaders = formatHeaders(headers);
 
@@ -749,11 +751,11 @@ function proxyRequestWrapper(config, corePlugins) {
                 mergeList.push(formatHeaders(userHeaders));
             }
 
-            const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList);
+            const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList, {
+                'content-encoding': null,
+                'content-length': null,
+            });
 
-            // response has been decoded
-            delete formattedHeaders['content-encoding'];
-            delete formattedHeaders['content-length'];
             setHeadersFor(res, formattedHeaders);
         }
 
@@ -765,7 +767,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     target.removeHeader(header);
                 }
                 else {
-                    if (typeof (''+value) === 'string' || typeof (value) === 'boolean' || Array.isArray(value)) {
+                    if (getType(value, ['String', 'Number', 'Boolean', 'Array'])) {
                         target.setHeader(header, value);
                     }
                 }

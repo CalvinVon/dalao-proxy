@@ -129,7 +129,12 @@ function getIPv4Address() {
 
 function getType(value, type) {
     if (type) {
-        return Object.prototype.toString.call(value) === `[object ${type}]`;
+        if (Array.isArray(type)) {
+            return type.some(tp => Object.prototype.toString.call(value) === `[object ${tp}]`);
+        }
+        else {
+            return Object.prototype.toString.call(value) === `[object ${type}]`;
+        }
     }
     return Object.prototype.toString.call(value);
 }
