@@ -42,7 +42,14 @@ function cleanRequireCache(fileName) {
     }
 }
 
+
+let BodyParser, Utils;
+
 module.exports = {
+    beforeCreate() {
+        BodyParser = this.context.exports.BodyParser;
+        Utils = this.context.exports.Utils;
+    },
     onRequest(context, next) {
         SwitcherUIServer.handle.call(this, context, next);
     },
@@ -54,7 +61,6 @@ module.exports = {
         const logger = context.config.logger;
         const enableCORS = this.config.mock.cors;
 
-        const { BodyParser, Utils } = this.context.exports;
         const userConfigHeaders = context.config.headers;
         const {
             dirname: cacheDirname,
@@ -79,7 +85,7 @@ module.exports = {
                         // enable CORS, respond OPTIONS request
                         if (enableCORS && method === 'OPTIONS') {
                             const headers = mergeHeaders(userConfigHeaders, {
-                                'X-MOCK-CORS': true
+                                'x-mock-cors': true
                             });
                             setHeaders(response, headers);
                             response.writeHead(200);
@@ -382,6 +388,27 @@ module.exports = {
             }
         }
 
+        function mergeHeaders(userConfigHeaders, ...headers) {
+            const origin = formatHeaders(request.headers)['origin'];
+            const headerMergeList = [
+                request.headers,
+                {
+                    'access-control-allow-origin': origin ? Utils.addHttpProtocol(origin) : '*',
+                    'access-control-allow-methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
+                    'access-control-allow-credentials': true,
+                    'access-control-allow-headers': 'Content-Type, Authorization, Token',
+                }
+            ];
+            if (typeof (userConfigHeaders.response) === 'object') {
+                headerMergeList.push(formatHeaders(userConfigHeaders.response));
+            }
+            else if (typeof (userConfigHeaders) === 'object') {
+                headerMergeList.push(formatHeaders(userConfigHeaders));
+            }
+            headerMergeList.push(...headers.map(formatHeaders));
+            return Object.assign({}, ...headerMergeList, { request: null, response: null });
+        }
+
 
         function collectRealRequestData(cb) {
             request.pipe(concat(buffer => {
@@ -569,23 +596,6 @@ module.exports = {
 
 
 
-function mergeHeaders(userConfigHeaders, ...headers) {
-    const headerMergeList = [{
-        'access-control-allow-origin': '*',
-        'access-control-allow-methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
-        'access-control-allow-credentials': true,
-        'access-control-allow-headers': 'Authorization, Token',
-    }];
-    if (typeof (userConfigHeaders.response) === 'object') {
-        headerMergeList.push(formatHeaders(userConfigHeaders.response));
-    }
-    else if (typeof (userConfigHeaders) === 'object') {
-        headerMergeList.push(formatHeaders(userConfigHeaders));
-    }
-    headerMergeList.push(...headers.map(formatHeaders));
-    return Object.assign({}, ...headerMergeList, { request: null, response: null });
-}
-
 function setHeaders(target, headers) {
     for (const header in headers) {
         const _header = formatHeader(header);
@@ -594,7 +604,7 @@ function setHeaders(target, headers) {
             target.removeHeader(_header);
         }
         else {
-            if (typeof ('' + value) === 'string' || typeof (value) === 'boolean' || Array.isArray(value)) {
+            if (Utils.getType(value, ['String', 'Number', 'Boolean', 'Array'])) {
                 target.setHeader(_header, value);
             }
         }

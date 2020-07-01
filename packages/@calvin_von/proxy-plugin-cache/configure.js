@@ -101,7 +101,8 @@ function mockParser(mockOptions) {
         return {
             prefix: parsePrefix(mockOptions.prefix),
             dirname: parseMockDirname(mockOptions.dirname),
-            enable: typeof mockOptions.enable === 'undefined' ? mockDefaults.enable : mockOptions.enable
+            enable: typeof mockOptions.enable === 'undefined' ? mockDefaults.enable : mockOptions.enable,
+            cors: typeof mockOptions.cors === 'undefined' ? mockDefaults.cors : mockOptions.cors,
         };
     }
     else {
