@@ -740,7 +740,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 'access-control-allow-headers': 'Content-Type, Authorization, Token',
             };
 
-            const proxyResponseHeaders = formatHeaders(headers);
+            const proxyResponseHeaders = formatHeaders(headers || {});
 
             // originalHeaders < rewriteHeaders < userHeaders
             mergeList.push(rewriteHeaders);
