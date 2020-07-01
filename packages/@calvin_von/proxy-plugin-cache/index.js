@@ -240,7 +240,8 @@ module.exports = {
                     const presetHeaders = {
                         'Content-Type': contentType,
                         'X-Cache-Response': 'true',
-                        'X-Cache-File': encodeURIComponent(targetFilePath)
+                        'X-Cache-File': encodeURIComponent(targetFilePath),
+                        'Content-Length': null
                     };
                     const headers = mergeHeaders(userConfigHeaders, presetHeaders);
                     setHeaders(response, headers);
@@ -287,10 +288,11 @@ module.exports = {
                             'X-Cache-Response': 'true',
                             'X-Cache-Expire-Time': 'permanently valid',
                             'X-Cache-Rest-Time': 'forever',
-                            'X-Cache-File': encodeURIComponent(targetFilePath)
+                            'X-Cache-File': encodeURIComponent(targetFilePath),
+                            'Content-Length': null
                         };
 
-                        const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
+                        const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
                         setHeaders(response, headers);
 
                         response.writeHead(respondStatus, {
@@ -300,7 +302,8 @@ module.exports = {
                         if (noCollectRequestData) {
                             jsonContent.REAL_REQUEST_DATA = context.data.request;
                             const fileContent = JSON.stringify(jsonContent, null, 4);
-                            response.end(fileContent);
+                            response.write(fileContent);
+                            response.end();
                         }
                         else {
                             collectRealRequestDataAndRespond();
@@ -334,14 +337,16 @@ module.exports = {
                                 'X-Cache-Response': 'true',
                                 'X-Cache-Expire-Time': expireTime,
                                 'X-Cache-Rest-Time': restTime,
+                                'Content-Length': null
                             };
-                            const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders)
+                            const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
                             setHeaders(response, headers);
 
                             if (noCollectRequestData) {
                                 jsonContent.REAL_REQUEST_DATA = context.data.request;
                                 const fileContent = JSON.stringify(jsonContent, null, 4);
-                                response.end(fileContent);
+                                response.write(fileContent);
+                                response.end();
                             }
                             else {
                                 collectRealRequestDataAndRespond();
@@ -377,7 +382,8 @@ module.exports = {
                         collectRealRequestData(data => {
                             jsonContent.REAL_REQUEST_DATA = data;
                             const fileContent = JSON.stringify(jsonContent, null, 4);
-                            response.end(fileContent);
+                            response.write(fileContent);
+                            response.end();
                         });
                     }
                 }
