@@ -9,7 +9,7 @@
   "dependencies": {
     "ant-design-vue": "^1.2.4",
     "core-js": "^2.6.5",
-    "highlight.js": "^9.15.6",
+    "highlight.js": "^10.1.2",
     "minireset.css": "0.0.4",
     "vue": "^2.6.10",
     "vue-clipboard2": "^0.3.1",
