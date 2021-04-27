@@ -243,7 +243,8 @@ module.exports = {
                         'Content-Type': contentType,
                         'X-Cache-Response': 'true',
                         'X-Cache-File': encodeURIComponent(targetFilePath),
-                        'Content-Length': null
+                        'Content-Length': null,
+                        'Content-Encoding': null
                     };
                     const headers = mergeHeaders(userConfigHeaders, presetHeaders);
                     setHeaders(response, headers);
@@ -291,7 +292,8 @@ module.exports = {
                             'X-Cache-Expire-Time': 'permanently valid',
                             'X-Cache-Rest-Time': 'forever',
                             'X-Cache-File': encodeURIComponent(targetFilePath),
-                            'Content-Length': null
+                            'Content-Length': null,
+                            'Content-Encoding': null
                         };
 
                         const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
@@ -339,7 +341,8 @@ module.exports = {
                                 'X-Cache-Response': 'true',
                                 'X-Cache-Expire-Time': expireTime,
                                 'X-Cache-Rest-Time': restTime,
-                                'Content-Length': null
+                                'Content-Length': null,
+                                'Content-Encoding': null
                             };
                             const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
                             setHeaders(response, headers);
