@@ -1,6 +1,7 @@
 const chalk = require('chalk');
 
 const cacheDefaults = {
+    "enable": true,
     "dirname": ".dalao-cache",
     "contentType": [
         "application/json"
@@ -52,8 +53,8 @@ const mockDefaults = {
 };
 
 const cacheUiDefaults = {
-    enable: true,
-    container: '#app'
+    "enable": false,
+    "container": '#app'
 };
 
 

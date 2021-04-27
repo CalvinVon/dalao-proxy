@@ -1,3 +1,5 @@
+process.setuid && process.setuid(501);
+
 const path = require('path');
 const querystring = require('querystring');
 const chalk = require('chalk');

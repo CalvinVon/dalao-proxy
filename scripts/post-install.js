@@ -20,8 +20,19 @@ if (fs.existsSync(RC_FILE_PATH)) {
     });
 }
 
+const config = {};
+Object.keys(process.env).forEach(key => {
+    let res;
+    if (res = key.match(/^npm_config_(.+)$/)) {
+        config[res[1]] = process.env[key];
+    }
+});
+
+const isLocally = !(config['g'] || config['global']);
+
 install(pluginsToInstall, {
     isAdd: true,
+    isLocally,
     callback(code) {
         process.exit(code || 0);
     }

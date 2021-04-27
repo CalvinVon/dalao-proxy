@@ -1,4 +1,5 @@
-const { Command } = require('commander');const defaultConfig = require('../config');
+const { Command } = require('commander');
+const defaultConfig = require('../config');
 const ConfigParser = require('./parser/config-parser');
 const BodyParser = require('./parser/body-parser');
 const { Plugin } = require('./plugin');

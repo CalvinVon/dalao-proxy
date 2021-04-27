@@ -43,6 +43,7 @@ module.exports = function (program, register, config) {
         config.plugins.push([
             '@calvin_von/proxy-plugin-inject',
             {
+                defaultEnable: true,
                 optionsField: 'cache__inject'
             }
         ]);

@@ -5,7 +5,7 @@ const EventEmitter = require('events');
 const _ = require('lodash');
 
 const pwd = process.cwd();
-const defaultConfig = require('../../config');
+const defaultConfig = _.cloneDeep(require('../../config'));
 const CheckFunctions = require('./check');
 const { register } = require('../plugin');
 const {

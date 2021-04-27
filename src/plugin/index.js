@@ -317,7 +317,7 @@ class Plugin {
 
     static defaultSetting(plugin) {
         return {
-            defaultEnable: true,
+            defaultEnable: plugin.defaultEnable || false,
             optionsField: plugin.name,
             enableField: 'enable',
         };

@@ -17,7 +17,6 @@ let questionObjs = [
     { label: 'Proxy server host', value: 'host', text: true, radio: false },
     { label: 'Proxy server port', value: 'port', text: true, radio: false },
     { label: 'Proxy target server address', value: 'target', text: true, radio: false },
-    { label: 'Enable cache response', value: 'cache', text: false, radio: true },
 ];
 
 // default answers

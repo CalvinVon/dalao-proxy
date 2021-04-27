@@ -2,15 +2,16 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+
 function installPlugins(pluginNames, options) {
-    const displayPluginNames = displayNames(pluginNames);
     const {
         isAdd = true,
         isLocally = false,
         callback = new Function()
     } = options || {};
 
-    console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s)...`);
+    const displayPluginNames = displayNames(pluginNames);
+    console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s) ${isLocally ? '' : 'globally'}...`);
 
     const installCmd = spawn(
         'npm',
@@ -23,7 +24,7 @@ function installPlugins(pluginNames, options) {
             stdio: 'inherit',
             shell: true,
             env: process.env,
-            cwd: process.cwd()
+            cwd: process.cwd(),
         }
     );
 
@@ -60,7 +61,9 @@ function displayNames(names) {
 }
 
 // sync plugins to inner config file
-function syncInnerConfig(pluginNames, { isAdd, before, after }) {
+function syncInnerConfig(names, { isAdd, before, after }) {
+    // remove versions
+    const pluginNames = names.map(it => it.replace(/@(\d\.?(-.+)?)*$/, ''));
     const baseConfigFilePath = path.join(__dirname, '../../../../config/index.js');
     const config = require(baseConfigFilePath);
     const pluginList = config.plugins;
@@ -104,5 +107,5 @@ module.exports = {
 
     uninstall: function (pluginNames, options) {
         installPlugins(pluginNames, { isAdd: false, ...options });
-    }
+    },
 }
