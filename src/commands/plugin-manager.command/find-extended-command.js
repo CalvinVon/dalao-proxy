@@ -7,7 +7,7 @@ module.exports = function findExtendedCommand(loadFunc) {
 
     testProgram
         .use(function () {
-            loadFunc(this, testRegister);
+            loadFunc(this, testRegister, {});
         });
 
     return {
