@@ -1,7 +1,8 @@
 const path = require('path');
+const { version } = require('./package.json');
 
 module.exports = function (program, register, pluginConfig) {
-  if (pluginConfig.enable) {
+  if (pluginConfig && pluginConfig.enable) {
     register.configure('config', (config, callback) => {
       config.plugins.push([
         '@calvin_von/proxy-plugin-inject',
@@ -20,6 +21,7 @@ module.exports = function (program, register, pluginConfig) {
             },
             template: `
               <script>window.__hijackConfig = ${(JSON.stringify({
+              version,
               host: config.host,
               proxyTable: config.proxyTable,
               hijack: config.requestHijack,

@@ -1,6 +1,6 @@
-const { proxyTable, hijack } = window.__hijackConfig || {};
+const { proxyTable, hijack, version } = window.__hijackConfig || {};
 if (!proxyTable || !hijack || !hijack.enable) {
-  console.warn('[plugin-hijack] initialize failed');
+  log('[plugin-hijack] initialize failed');
 }
 
 const { rewrite: _rewrite, useSmartInfer, prefix } = hijack;
@@ -15,41 +15,6 @@ if (useSmartInfer && (!rewrite || !Array.isArray(rewrite) || !rewrite.length)) {
     });
   });
 }
-
-const originFetch = fetch;
-
-const wrappedFetch = new Proxy(originFetch, {
-  apply(target, thisArg, args) {
-    console.log('[plugin-hijack] parameters asign to ', target, ' is ', args);
-    const input = args[0];
-    if (typeof input === 'string') {
-      let url = input;
-
-      if (Array.isArray(rewrite) && rewrite.length) {
-        rewrite.forEach(({ from, to }) => {
-          const replaceText = to;
-          const reg = new RegExp(from);
-          url = url.replace(reg, replaceText);
-        });
-      }
-      else {
-        url = splitTargetAndPath(input).path;
-      }
-
-
-      if (prefix && !HTTP_PROTOCOL_REG.test(url)) {
-        url = prefix + url;
-      }
-      return Reflect.apply(originFetch, thisArg, [url, args[1]]);
-    }
-    return Reflect.apply(originFetch, thisArg, args);
-  }
-});
-
-window.fetch = wrappedFetch;
-console.log('[plugin-hijack] `window.fetch` has been hijacked');
-
-
 
 const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
 
@@ -71,3 +36,78 @@ function splitTargetAndPath(url) {
     path: url.replace(target, '')
   };
 }
+
+
+function rewriteUrl(url) {
+  let newUrl = url;
+  if (Array.isArray(rewrite) && rewrite.length) {
+    rewrite.forEach(({ from, to }) => {
+      const replaceText = to;
+      const reg = new RegExp(from);
+      newUrl = newUrl.replace(reg, replaceText);
+    });
+  }
+  else {
+    newUrl = splitTargetAndPath(newUrl).path;
+  }
+
+
+  if (prefix && !HTTP_PROTOCOL_REG.test(newUrl)) {
+    newUrl = prefix + newUrl;
+  }
+
+  return newUrl.replace(/^\/\//, '/');
+}
+
+function log(...message) {
+  console.log(
+    `%c Plugin Request Hijack ${version} %c`,
+    'background: #3f51b5 ; padding: 1px; border-radius: 3px;  color: #fff',
+    'background:transparent',
+    ...message
+  );
+}
+
+
+function hijackFetch() {
+  const originFetch = window.fetch;
+  const wrappedFetch = new Proxy(originFetch, {
+    apply(target, thisArg, args) {
+      log('parameters asign to ', target, ' is ', args);
+      const input = args[0];
+      if (typeof input === 'string') {
+        let url = rewriteUrl(input);
+
+        return Reflect.apply(originFetch, thisArg, [url, args[1]]);
+      }
+      return Reflect.apply(originFetch, thisArg, args);
+    }
+  });
+
+  window.fetch = wrappedFetch;
+  log('`window.fetch` has been hijacked');
+}
+
+function hijackXHR() {
+  const originXMR = window.XMLHttpRequest;
+
+  class HijackedXMLHttpRequest extends XMLHttpRequest {
+    open(method, url, ...args) {
+      log('parameters asign to ', this, ' is ', [method, url, ...args]);
+      super.open(method, rewriteUrl(url), ...args);
+    }
+  }
+
+  const wrappedXMR = new Proxy(originXMR, {
+    construct(target, argumentsList, newTarget) {
+      return Reflect.construct(target, argumentsList, HijackedXMLHttpRequest);
+    }
+  });
+
+  window.XMLHttpRequest = wrappedXMR;
+  log('`window.XMLHttpRequest` has been hijacked');
+
+}
+
+hijackFetch();
+hijackXHR();
