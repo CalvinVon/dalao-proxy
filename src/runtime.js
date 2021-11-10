@@ -79,8 +79,10 @@ function instantiatedPlugins(program, pluginsNames) {
     pluginsNames.forEach(configName => {
         const { name, setting } = Plugin.resolvePluginSettingFromConfig(configName);
         const plugin = new Plugin(name, program.context, setting);
-        program.context.pluginIds.add(plugin.id);
-        program.context.plugins.push(plugin);
+        if (!plugin.meta.error) {
+            program.context.pluginIds.add(plugin.id);
+            program.context.plugins.push(plugin);
+        }
     });
 };
 

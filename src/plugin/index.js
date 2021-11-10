@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const path = require('path');
 const EventEmitter = require('events');
 const { version } = require('../../config');
-const { isDebugMode, getType, defineProxy } = require('../utils');
+const { getType, defineProxy } = require('../utils');
 const PATH_INDEX = './index.js';
 const PATH_COMMANDER = './commander.js';
 const PATH_CONFIGURE = './configure.js';
@@ -349,19 +349,10 @@ class Plugin {
             resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, PATH_PACKAGE);
         }
         else {
-            if (isDebugMode()) {
-                const devPath = path.resolve(__dirname, '../../packages/', pluginName);
-                resolvedPaths.indexPath = path.resolve(devPath, PATH_INDEX);
-                resolvedPaths.configurePath = path.resolve(devPath, PATH_CONFIGURE);
-                resolvedPaths.commanderPath = path.resolve(devPath, PATH_COMMANDER);
-                resolvedPaths.packagejsonPath = path.resolve(devPath, PATH_PACKAGE);
-            }
-            else {
-                resolvedPaths.indexPath = pluginName;
-                resolvedPaths.configurePath = path.join(pluginName, PATH_CONFIGURE);
-                resolvedPaths.commanderPath = path.join(pluginName, PATH_COMMANDER);
-                resolvedPaths.packagejsonPath = path.join(pluginName, PATH_PACKAGE);
-            }
+            resolvedPaths.indexPath = require.resolve(pluginName);
+            resolvedPaths.configurePath = path.join(pluginName, PATH_CONFIGURE);
+            resolvedPaths.commanderPath = path.join(pluginName, PATH_COMMANDER);
+            resolvedPaths.packagejsonPath = path.join(pluginName, PATH_PACKAGE);
         }
         return resolvedPaths;
     }
