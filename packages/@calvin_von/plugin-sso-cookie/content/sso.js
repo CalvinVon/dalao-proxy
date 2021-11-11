@@ -40,10 +40,13 @@ SSOAuth.authSSO = async () => {
     const params = new url.URLSearchParams({
       "username": user.username,
       "password": user.password,
-      "redirect_uri": "https://mis-test.diditaxi.com.cn/auth?app_id=1842&version=1.0&jumpto=http://boss-test.intra.xiaojukeji.com&callback_index=0",
+      // "redirect_uri": "https://mis-test.diditaxi.com.cn/auth?app_id=1842&version=1.0&jumpto=http://boss-test.intra.xiaojukeji.com&callback_index=0",
+      // "redirect_uri": "https://mis-test.diditaxi.com.cn/auth?app_id=1842&version=1.0&jumpto=http://boss-test.intra.xiaojukeji.com&callback_index=0",
+      // redirect_uri: "http://passport.qatest.didichuxing.com/passport/login/v5/signInByPassword"
     });
 
-    const { data: loginData } = await request('https://me-test.xiaojukeji.com/user_login', {
+    // const { data: loginData } = await request('https://me-test.xiaojukeji.com/user_login', {
+    const { data: loginData } = await request('http://passport.qatest.didichuxing.com/passport/login/v5/signInByPassword', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
