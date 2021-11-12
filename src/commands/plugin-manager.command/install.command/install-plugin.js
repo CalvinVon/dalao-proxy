@@ -13,13 +13,18 @@ function installPlugins(pluginNames, options) {
     const displayPluginNames = displayNames(pluginNames);
     console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s) ${isLocally ? '' : 'globally'}...`);
 
+    const args = [
+        isAdd ? 'install' : 'uninstall',
+        isLocally ? '-D' : '-g',
+        ...pluginNames
+    ];
+
+    if (!isLocally) {
+        args.unshift('npm');
+    }
     const installCmd = spawn(
-        'npm',
-        [
-            isAdd ? 'install' : 'uninstall',
-            isLocally ? '-D' : '-g',
-            ...pluginNames
-        ],
+        isLocally ? 'npm' : 'sudo',
+        args,
         {
             stdio: 'inherit',
             shell: true,

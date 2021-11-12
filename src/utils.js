@@ -197,30 +197,18 @@ function printWelcome(version) {
     console.log('\n');
 };
 
+function getUserInfo() {
+    const userInfo = os.userInfo();
+    const { SUDO_UID, SUDO_GID, SUDO_USER } = process.env;
 
-/**
- * change `uid` of the `process`
- */
-function changeProcessUid(uid, gid, _process = process) {
-    const hasUid = _process.setgid && _process.setuid && _process.getuid;
-    if (hasUid) {
-        try {
-            _process.setuid(uid);
-            _process.setgid(gid);
-        } catch (error) {
-            console.log(chalk.yellow('Switching user failed.'));
-            throw error;
-        }
-    }
+    userInfo.origin = {
+        uid: parseInt(SUDO_UID) || userInfo.uid,
+        gid: parseInt(SUDO_GID) || userInfo.gid,
+        username: SUDO_USER || userInfo.username,
+    };
+    userInfo.sudo = userInfo.uid !== userInfo.origin.uid;
+    return userInfo;
 }
-
-/**
- * set `uid` of the `process` to root
- */
-function setAsRootUser(_process = process) {
-    changeProcessUid(0, 0, _process);
-}
-
 
 module.exports = {
     printWelcome,
@@ -236,6 +224,5 @@ module.exports = {
     getIPv4Address,
     getType,
     defineProxy,
-    changeProcessUid,
-    setAsRootUser
+    getUserInfo,
 }
