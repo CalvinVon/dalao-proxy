@@ -1,20 +1,7 @@
-const { proxyTable, hijack, version } = window.__hijackConfig || {};
-if (!proxyTable || !hijack || !hijack.enable) {
-  log('[plugin-hijack] initialize failed');
-}
+const { hijack, version } = window.__hijackConfig || {};
 
-const { rewrite: _rewrite, useSmartInfer, prefix } = hijack;
-const rewrite = _rewrite || [];
+const { rewrite, smartInfer, prefix } = hijack;
 
-if (useSmartInfer && (!rewrite || !Array.isArray(rewrite) || !rewrite.length)) {
-  Object.keys(proxyTable).forEach(key => {
-    const { target } = proxyTable[key];
-    rewrite.push({
-      from: target,
-      to: key
-    });
-  });
-}
 
 const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
 
@@ -62,7 +49,7 @@ function rewriteUrl(url) {
 function log(...message) {
   console.log(
     `%c Plugin Request Hijack ${version} %c`,
-    'background: #3f51b5 ; padding: 1px; border-radius: 3px;  color: #fff',
+    'background: #f57c00 ; padding: 1px; border-radius: 3px;  color: #fff',
     'background:transparent',
     ...message
   );
@@ -73,11 +60,11 @@ function hijackFetch() {
   const originFetch = window.fetch;
   const wrappedFetch = new Proxy(originFetch, {
     apply(target, thisArg, args) {
-      log('parameters asign to ', target, ' is ', args);
       const input = args[0];
       if (typeof input === 'string') {
         let url = rewriteUrl(input);
-
+        
+        log(`Request sent to [${input}] by fetch has been rewritten to [${url}]`);
         return Reflect.apply(originFetch, thisArg, [url, args[1]]);
       }
       return Reflect.apply(originFetch, thisArg, args);
@@ -85,7 +72,7 @@ function hijackFetch() {
   });
 
   window.fetch = wrappedFetch;
-  log('`window.fetch` has been hijacked');
+  log('[window.fetch] hijack succeed!');
 }
 
 function hijackXHR() {
@@ -93,20 +80,20 @@ function hijackXHR() {
 
   class HijackedXMLHttpRequest extends XMLHttpRequest {
     open(method, url, ...args) {
-      log('parameters asign to ', this, ' is ', [method, url, ...args]);
-      super.open(method, rewriteUrl(url), ...args);
+      const newUrl = rewriteUrl(url);
+      log(`Request sent to [${url}] by XHR has been rewritten to [${newUrl}]`);
+      super.open(method, newUrl, ...args);
     }
   }
 
   const wrappedXMR = new Proxy(originXMR, {
-    construct(target, argumentsList, newTarget) {
+    construct(target, argumentsList) {
       return Reflect.construct(target, argumentsList, HijackedXMLHttpRequest);
     }
   });
 
   window.XMLHttpRequest = wrappedXMR;
-  log('`window.XMLHttpRequest` has been hijacked');
-
+  log('[window.XMLHttpRequest] hijack succeed!');
 }
 
 hijackFetch();

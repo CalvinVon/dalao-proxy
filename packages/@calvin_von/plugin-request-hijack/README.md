@@ -35,7 +35,7 @@ Add config
 "requestHijack": {
     "enable": true,
     "prefix": "",
-    "useSmartInfer": true,
+    "smartInfer": true,
     "rewrite": [
         { "from": "...", "to": "...", }
     ]
@@ -56,9 +56,9 @@ $ dalao-proxy start
 
 Add prefix for all rewrite urls.
 
-### useSmartInfer
+### smartInfer
 
-If `rewrite` not provided, `useSmartInfer` set to `true` will auto infer rewrite config from `proxyTable` of base config.
+If `rewrite` not provided, `smartInfer` set to `true` will auto infer rewrite config from `proxyTable` of base config.
 
 ### rewrite
 

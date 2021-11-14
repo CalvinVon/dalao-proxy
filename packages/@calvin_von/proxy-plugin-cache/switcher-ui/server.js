@@ -69,7 +69,7 @@ module.exports = {
 
 
 function sync(context) {
-    respond(context.response, context.config.cache);
+    respond(context.response, context.config);
 }
 
 function updateConfig(context, data) {

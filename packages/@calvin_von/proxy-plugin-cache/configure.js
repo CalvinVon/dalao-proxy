@@ -58,21 +58,6 @@ const cacheUiDefaults = {
 };
 
 
-
-
-/**
- * Configure plugin setting
- * @description Define plugin configuration field in config file.
- */
-function setting() {
-    return {
-        defaultEnable: true,
-        optionsField: ['cache', 'mock', 'cache-ui'],
-        enableField: 'enable',
-    };
-}
-
-
 /**
  * Parser raw cache options
  * @param {any} cacheOptions
@@ -260,12 +245,16 @@ function configWarn(message) {
 }
 
 module.exports = {
-    setting,
+    setting: {
+        defaultEnable: true,
+        optionsField: ['cache', 'mock', 'cache-ui'],
+        enableField: 'enable',
+    },
     parser(cacheOptions, mockOptions, uiOptions) {
         return {
             cache: cacheParser(cacheOptions),
             mock: mockParser(mockOptions),
-            ui: {
+            ['cache-ui']: {
                 ...cacheUiDefaults,
                 ...(uiOptions || {})
             }

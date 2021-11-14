@@ -1,5 +1,3 @@
-process.setuid && process.setuid(501);
-
 const path = require('path');
 const querystring = require('querystring');
 const chalk = require('chalk');
@@ -7,6 +5,7 @@ const concat = require('concat-stream');
 const mime = require('mime-types');
 const moment = require('moment');
 const fs = require('fs');
+const { setAsOriginalUser, restoreProcessUser } = require('@dalao-proxy/utils');
 
 const SwitcherUIServer = require('./switcher-ui/server');
 
@@ -20,6 +19,7 @@ const {
     checkAndCreateFolder,
     url2filename
 } = require('./utils');
+
 
 function cleanRequireCache(fileName) {
     const id = fileName;
@@ -456,6 +456,7 @@ module.exports = {
     },
 
     afterProxy(context) {
+        setAsOriginalUser();
         const logger = context.config.logger;
         const {
             dirname: cacheDirname,
@@ -602,6 +603,8 @@ module.exports = {
             console.error(error);
             console.error(chalk.red(` > An error occurred (${error.message}) while caching response data.`));
         }
+
+        restoreProcessUser();
     },
 }
 

@@ -15,7 +15,8 @@
     "chalk": "^2.4.2",
     "concat-stream": "^2.0.0",
     "mime-types": "^2.1.27",
-    "moment": "^2.26.0"
+    "moment": "^2.26.0",
+    "@dalao-proxy/utils": "^1.0.0-alpha"
   },
   "scripts": {
     "postinstall": "scripts/post-install.js"
