@@ -1,7 +1,8 @@
 const chalk = require('chalk');
 const path = require('path');
+const { pluginResolver } = require('@dalao-proxy/utils');
 const EventEmitter = require('events');
-const { version } = require('../../config');
+const defaultConfig = require('../../config');
 const { getType, defineProxy } = require('../utils');
 const PATH_INDEX = './index.js';
 const PATH_COMMANDER = './commander.js';
@@ -140,35 +141,42 @@ let modifiedPlugins = [];
 const runtimeChildPluginConfigs = [];
 
 /**
- * @class Plugin
- * @member {String} id plugin id
- * @member {Object} setting plugin universal setting
- * @member {Object} middleware middlewares for core proxy
- * @member {Function} configure exported function to configure plugin behavior
- * @member {Object} config parsed plugin config object
- * @member {Object} parser plugin config parser
- * @member {Function} commander exported function to extends commands
- * @member {Object} context program context
- * @member {Object} meta plugin package meta info
- * @member {Boolean} meta.enabled plugin is enabled
- * @member {Boolean} meta.error plugin runtime error
+ * @typedef {{
+ *  defaultEnable?: boolean;
+ *  enableField?: string;
+ *  optionsField: string | string[];
+ *  depsField?: string[];
+ * }} PluginSetting
  */
 class Plugin {
     /**
-     * @param {String} pluginName
-     * @param {Object} context program.context
+     * @param {string} pluginName
+     * @param {import('../context')} context
+     * @param {PluginSetting} setting
      */
     constructor(pluginName, context, setting) {
         this.id = createUid();
+        /**
+         * @type {string}
+         */
         this.name = pluginName;
-        this._pluginSetting = setting || {};
+        /**
+         * @type {PluginSetting}
+         */
+        this._overrideSetting = setting || {};
         this.meta = {};
+        /**
+         * @type {PluginSetting}
+         */
         this.setting;
         this.config;
         this.parser;
         this.configure = null;
         this.middleware = {};
         this.commander = null;
+        /**
+         * @type {import('../context')}
+         */
         this.context = context;
         this.register = register;
 
@@ -227,7 +235,7 @@ class Plugin {
         if (enable && !this.meta.enabled) {
             this.middleware = require(this._indexPath);
             if (isBuildIn(this.name)) {
-                this.meta = { isBuildIn: true, version };
+                this.meta = { isBuildIn: true, version: defaultConfig.version };
             }
             else {
                 this.meta = require(this._packagejsonPath);
@@ -272,9 +280,7 @@ class Plugin {
         let pluginConfig;
 
         const optionsField = this.setting.optionsField;
-        const loadFromRawConfig = () => {
-            let config = this.context.rawConfig;
-
+        const loadConfig = (config) => {
             if (Array.isArray(optionsField)) {
                 return optionsField.map(field => {
                     return config && config[field];
@@ -285,31 +291,35 @@ class Plugin {
             }
         };
 
-        const loadFromParsedConfig = () => {
-            if (Array.isArray(optionsField)) {
-                return optionsField.map(field => this.config[field]);
-            }
-            else {
-                return [this.context.config[optionsField]];
-            }
-        };
 
-        // read config from parsed config object
-        // always when plugin has been modified
-        if (modifiedPluginIds.has(this.id) || isRuntimeChildPlugin(this)) {
-            pluginConfig = loadFromParsedConfig();
+        // child plugin alaways read from parsed config
+        // because the config is provided by parent plugin
+        if (isRuntimeChildPlugin(this)) {
+            pluginConfig = loadConfig(this.context.config);
         }
-        // read config from rawConfig
         else {
-            pluginConfig = loadFromRawConfig();
+            // read config from parsed config object
+            // always when plugin has been modified
+            if (modifiedPluginIds.has(this.id)) {
+                pluginConfig = loadConfig(this.context.config);
+            }
+            // read config from rawConfig
+            else {
+                pluginConfig = loadConfig(this.context.rawConfig);
+            }
         }
 
 
+        const parserFnArgs = [...pluginConfig];
+        if (this.setting.depsField) {
+            this.setting.depsField.forEach(depField => {
+                parserFnArgs.push(this.context.config[depField]);
+            })
+        }
         const parser = this.parser = Plugin.resolveConfigParser(this);
-        const parsedConfig = parser.apply(this, pluginConfig) || {};
+        const parsedConfig = parser.apply(this, parserFnArgs) || {};
 
         // resolve plugin enable config
-        // 
         parsedConfig[this.setting.enableField] = pluginConfig[0] && pluginConfig[0][this.setting.enableField];
 
         return parsedConfig;
@@ -349,10 +359,11 @@ class Plugin {
             resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, PATH_PACKAGE);
         }
         else {
-            resolvedPaths.indexPath = require.resolve(pluginName);
-            resolvedPaths.configurePath = path.join(pluginName, PATH_CONFIGURE);
-            resolvedPaths.commanderPath = path.join(pluginName, PATH_COMMANDER);
-            resolvedPaths.packagejsonPath = path.join(pluginName, PATH_PACKAGE);
+            const basePath = pluginResolver(pluginName);
+            resolvedPaths.indexPath = path.join(basePath, PATH_INDEX);
+            resolvedPaths.configurePath = path.join(basePath, PATH_CONFIGURE);
+            resolvedPaths.commanderPath = path.join(basePath, PATH_COMMANDER);
+            resolvedPaths.packagejsonPath = path.join(basePath, PATH_PACKAGE);
         }
         return resolvedPaths;
     }
@@ -363,14 +374,14 @@ class Plugin {
         if (configure && typeof configure === 'object') {
             const setting = configure.setting;
             if (typeof setting === 'function') {
-                return Object.assign({}, defaultSetting, setting.call(plugin, plugin._pluginSetting), plugin._pluginSetting);
+                return Object.assign({}, defaultSetting, setting.call(plugin), plugin._overrideSetting);
             }
             else {
-                return Object.assign({}, defaultSetting, plugin._pluginSetting);
+                return Object.assign({}, defaultSetting, setting, plugin._overrideSetting);
             }
         }
         else {
-            return Object.assign({}, defaultSetting, plugin._pluginSetting);
+            return Object.assign({}, defaultSetting, plugin._overrideSetting);
         }
     }
 
@@ -404,19 +415,22 @@ class Plugin {
         if (typeof (configName) === 'string') {
             return {
                 name: configName,
-                setting: null
+                setting: {}
             };
         }
         else if (Array.isArray(configName)) {
             const [pluginName, pluginSetting] = configName;
             return {
                 name: pluginName,
-                setting: pluginSetting
+                setting: pluginSetting || {}
             };
         }
         else {
             console.warn(chalk.red('[' + configName + '] is not a valid plugin name format'));
-            return {};
+            return {
+                name: configName,
+                setting: {}
+            };
         }
     }
 

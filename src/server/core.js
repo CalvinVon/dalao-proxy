@@ -656,7 +656,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
         /**
          * Collect request data
-         * @param {CommandContext} context
+         * @param {Context} context
          * @param {ReadableStream<Buffer>} source
          * @param {Function} callback
          */

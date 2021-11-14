@@ -168,19 +168,23 @@ function mergeConfig(baseConfig, fileConfig) {
 }
 
 
+/**
+ * @param {import('../plugin').Plugin[]} plugins
+ */
 function mergePluginsConfig(targetConfig, plugins) {
     plugins.forEach(plugin => {
-        let field;
         if (Array.isArray(plugin.setting.optionsField)) {
-            field = plugin.setting.optionsField[0];
-            plugin.setting.optionsField.forEach(field => delete targetConfig[field]);
+            plugin.setting.optionsField.forEach(field => {
+                targetConfig[field] = plugin.config[field];
+            });
         }
         else {
-            field = plugin.setting.optionsField;
-        }
-        if (field) {
+            const field = plugin.setting.optionsField;
             targetConfig[field] = plugin.config;
         }
+        // if (field) {
+        //     targetConfig[field] = plugin.config;
+        // }
     });
 }
 

@@ -1,69 +1,4 @@
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-
-
-function installPlugins(pluginNames, options) {
-    const {
-        isAdd = true,
-        isLocally = false,
-        callback = new Function()
-    } = options || {};
-
-    const displayPluginNames = displayNames(pluginNames);
-    console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s) ${isLocally ? '' : 'globally'}...`);
-
-    const args = [
-        isAdd ? 'install' : 'uninstall',
-        isLocally ? '-D' : '-g',
-        ...pluginNames
-    ];
-
-    if (!isLocally) {
-        args.unshift('npm');
-    }
-    const installCmd = spawn(
-        isLocally ? 'npm' : 'sudo',
-        args,
-        {
-            stdio: 'inherit',
-            shell: true,
-            env: process.env,
-            cwd: process.cwd(),
-        }
-    );
-
-    installCmd.on('exit', code => {
-        if (code) {
-            console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install failed with code ${code}`);
-        }
-        else {
-            console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install completed`);
-            if (!isLocally) {
-                syncInnerConfig(pluginNames, options);
-            }
-            console.log(`🎉  Plugin ${displayPluginNames} ${isAdd ? '' : 'un'}installed successfully!\n`);
-        }
-
-        installCmd.kill();
-        callback();
-    });
-    installCmd.on('error', (code, signal) => {
-        console.log(code, signal)
-        console.log(`> ${displayPluginNames} ${isAdd ? '' : 'un'}install failed with code ${code}`);
-        installCmd.kill();
-        callback(code);
-    });
-}
-
-function displayNames(names) {
-    if (names.length > 3) {
-        return '[' + names.slice(0, 3).join('], [') + ']' + ` and ${names.length - 3} more plugin`;
-    }
-    else {
-        return '[' + names.join('], [') + '] plugin';
-    }
-}
+const { packageInstaller } = require('@dalao-proxy/utils');
 
 // sync plugins to inner config file
 function syncInnerConfig(names, { isAdd, before, after }) {
@@ -107,10 +42,23 @@ function syncInnerConfig(names, { isAdd, before, after }) {
 
 module.exports = {
     install: function (pluginNames, options) {
-        installPlugins(pluginNames, { isAdd: true, ...options });
+        packageInstaller.install(pluginNames, {
+            ...options, callback: (errCode) => {
+                if (errCode === 0) {
+                    syncInnerConfig(pluginNames, options);
+                }
+            }
+        });
     },
 
     uninstall: function (pluginNames, options) {
-        installPlugins(pluginNames, { isAdd: false, ...options });
+        packageInstaller.uninstall(pluginNames, {
+            ...options, callback: (errCode) => {
+                if (errCode === 0) {
+                    syncInnerConfig(pluginNames, { isAdd: false, ...options });
+                }
+            }
+        });
     },
 }
+

@@ -5,7 +5,7 @@ const BodyParser = require('./parser/body-parser');
 const { Plugin } = require('./plugin');
 const Utils = require('./utils');
 
-class CommandContext {
+class Context {
     constructor() {
         /**
          * the entry command
@@ -75,4 +75,4 @@ class CommandContext {
     }
 }
 
-module.exports = CommandContext;
+module.exports = Context;

@@ -17,7 +17,6 @@ const config = {
     },
     "plugins": [
         "BuildIn:plugin/check-version",
-        "@calvin_von/proxy-plugin-cache"
     ]
 };
 module.exports = config;

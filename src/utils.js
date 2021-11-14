@@ -148,12 +148,17 @@ function getType(value, type) {
  * @param {Function} [opt.getter] trigger when get value
  */
 function defineProxy(target, opt) {
+
     const { setter, getter } = opt || {};
     const isObject = getType(target, 'Object');
     const isArray = getType(target, 'Array');
 
     let _target;
     if (isObject) {
+        // 如果这个对象已经被代理过了，则直接返回
+        if (target.__isProxy__) {
+            return target;
+        }
         _target = { ...target };
     }
     else if (isArray) {
@@ -172,12 +177,14 @@ function defineProxy(target, opt) {
             if (typeof setter === 'function' && t[p] !== v) {
                 setter.call(this, t, p, v);
             }
+            if (p === '__isProxy__') return;
             return Reflect.set(t, p, v);
         },
         get: function (t, p) {
             if (typeof getter === 'function') {
                 getter.call(this, t, p, v);
             }
+            if (p === '__isProxy__') return true;
             return Reflect.get(t, p);
         }
     })
@@ -197,19 +204,6 @@ function printWelcome(version) {
     console.log('\n');
 };
 
-function getUserInfo() {
-    const userInfo = os.userInfo();
-    const { SUDO_UID, SUDO_GID, SUDO_USER } = process.env;
-
-    userInfo.origin = {
-        uid: parseInt(SUDO_UID) || userInfo.uid,
-        gid: parseInt(SUDO_GID) || userInfo.gid,
-        username: SUDO_USER || userInfo.username,
-    };
-    userInfo.sudo = userInfo.uid !== userInfo.origin.uid;
-    return userInfo;
-}
-
 module.exports = {
     printWelcome,
     isDebugMode,
@@ -224,5 +218,4 @@ module.exports = {
     getIPv4Address,
     getType,
     defineProxy,
-    getUserInfo,
 }
