@@ -5,24 +5,16 @@ const { version } = require('./package.json');
  * @param {import('./type').HijackOptions} pluginConfig 
  */
 module.exports = function (program, register, pluginConfig) {
-  const Plugin = program.context.exports.Plugin;
-
   if (pluginConfig.enable) {
     register.configure('config', (config, callback) => {
-      let childPluginConfig = config.plugins.find(pluginConfig => {
-        const { name, setting } = Plugin.resolvePluginSettingFromConfig(pluginConfig);
-        return name === '@calvin_von/proxy-plugin-inject' && setting.optionsField === 'hijack__inject';
-      });
 
-      if (!childPluginConfig) {
-        config.plugins.push([
-          '@calvin_von/proxy-plugin-inject',
-          {
-            defaultEnable: true,
-            optionsField: 'hijack__inject'
-          }
-        ]);
-      }
+      config.plugins.push([
+        '@calvin_von/proxy-plugin-inject',
+        {
+          defaultEnable: true,
+          optionsField: 'hijack__inject'
+        }
+      ]);
 
       config['hijack__inject'] = {
         rules: [

@@ -18,7 +18,10 @@ function analysisPlugin(plugin) {
         middlewares: Object.keys(plugin.middleware).filter(it => Plugin.AllMiddlewares.some(m => m === it)),
         commands: plugin.commander ? findExtendedCommand(plugin.commander) : null,
         configure: Plugin.resolveSetting(plugin),
-        defaultConfig: plugin.parser(),
+        defaultConfig: plugin.parser(
+            ...Plugin.resolveOptionsConfigs(plugin, {}),
+            ...Plugin.resolveDependConfigs(plugin)
+        ),
         enabled: plugin.meta.enabled
     }
 }

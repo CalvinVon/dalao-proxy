@@ -54,7 +54,8 @@ const mockDefaults = {
 
 const cacheUiDefaults = {
     "enable": false,
-    "container": '#app'
+    "container": '#app',
+    "requestPrefix": ""
 };
 
 
@@ -248,15 +249,17 @@ module.exports = {
     setting: {
         defaultEnable: true,
         optionsField: ['cache', 'mock', 'cache-ui'],
+        dependFields: ['requestHijack.prefix'],
         enableField: 'enable',
     },
-    parser(cacheOptions, mockOptions, uiOptions) {
+    parser(cacheOptions, mockOptions, uiOptions, requestPrefix) {
         return {
             cache: cacheParser(cacheOptions),
             mock: mockParser(mockOptions),
             ['cache-ui']: {
                 ...cacheUiDefaults,
-                ...(uiOptions || {})
+                ...(uiOptions || {}),
+                requestPrefix: requestPrefix || ''
             }
         };
     }

@@ -65,9 +65,9 @@ class Register extends EventEmitter {
 
         function executeSetter(setter, cb) {
             try {
-                setter.call(null, lastValue, (err, returnValue) => {
+                setter.call(null, { ...lastValue }, (err, returnValue) => {
                     if (!err) {
-                        // keep corresponding type
+                        // check type
                         if (getType(returnValue) === getType(value)) {
                             // remember last value after setter
                             lastValue = returnValue;
@@ -137,15 +137,22 @@ class Register extends EventEmitter {
 const register = new Register();
 const configure = Register.prototype.configure;
 const modifiedPluginIds = new Set();
+/**
+ * @type {Plugin[]}
+ */
 let modifiedPlugins = [];
-const runtimeChildPluginConfigs = [];
+/**
+ * @type {Plugin[]}
+ */
+const childPlugins = [];
+const childPluginConfigs = [];
 
 /**
  * @typedef {{
  *  defaultEnable?: boolean;
  *  enableField?: string;
  *  optionsField: string | string[];
- *  depsField?: string[];
+ *  dependFields?: string[];
  * }} PluginSetting
  */
 class Plugin {
@@ -192,7 +199,7 @@ class Plugin {
                 commanderPath,
                 configurePath,
                 packagejsonPath
-            } = Plugin.resolvePluginPaths(this.name);
+            } = Plugin.resolvePaths(this.name);
 
             this._indexPath = indexPath;
             this._packagejsonPath = packagejsonPath;
@@ -200,6 +207,10 @@ class Plugin {
             this._configurePath = configurePath;
 
             this.load();
+
+            if (Plugin.isRuntimeChildPlugin(this)) {
+                childPlugins.push(this);
+            }
         } catch (error) {
             let pluginErrResult;
             if (pluginErrResult = error.message.match(/Cannot\sfind\smodule\s'(.+)'/)) {
@@ -279,43 +290,26 @@ class Plugin {
     loadPluginConfig() {
         let pluginConfig;
 
-        const optionsField = this.setting.optionsField;
-        const loadConfig = (config) => {
-            if (Array.isArray(optionsField)) {
-                return optionsField.map(field => {
-                    return config && config[field];
-                });
-            }
-            else {
-                return [config && config[optionsField]];
-            }
-        };
-
-
         // child plugin alaways read from parsed config
         // because the config is provided by parent plugin
-        if (isRuntimeChildPlugin(this)) {
-            pluginConfig = loadConfig(this.context.config);
+        if (Plugin.isRuntimeChildPlugin(this)) {
+            pluginConfig = Plugin.resolveOptionsConfigs(this, this.context.config);
         }
         else {
             // read config from parsed config object
             // always when plugin has been modified
             if (modifiedPluginIds.has(this.id)) {
-                pluginConfig = loadConfig(this.context.config);
+                pluginConfig = Plugin.resolveOptionsConfigs(this, this.context.config);
             }
             // read config from rawConfig
             else {
-                pluginConfig = loadConfig(this.context.rawConfig);
+                pluginConfig = Plugin.resolveOptionsConfigs(this, this.context.rawConfig);
             }
         }
 
+        const dependConfigs = Plugin.resolveDependConfigs(this);
 
-        const parserFnArgs = [...pluginConfig];
-        if (this.setting.depsField) {
-            this.setting.depsField.forEach(depField => {
-                parserFnArgs.push(this.context.config[depField]);
-            })
-        }
+        const parserFnArgs = [...pluginConfig, ...dependConfigs];
         const parser = this.parser = Plugin.resolveConfigParser(this);
         const parsedConfig = parser.apply(this, parserFnArgs) || {};
 
@@ -330,6 +324,7 @@ class Plugin {
             defaultEnable: plugin.defaultEnable || false,
             optionsField: plugin.name,
             enableField: 'enable',
+            dependFields: []
         };
     }
 
@@ -343,7 +338,7 @@ class Plugin {
      * Resolve Plugin Paths
      * @param {String} pluginName 
      */
-    static resolvePluginPaths(pluginName) {
+    static resolvePaths(pluginName) {
         const resolvedPaths = {
             indexPath: null,
             commanderPath: null,
@@ -402,6 +397,42 @@ class Plugin {
         }
     }
 
+    /**
+     * @param {Plugin} plugin
+     * @param {any} config
+     * @returns {any[]}
+     */
+    static resolveOptionsConfigs(plugin, config) {
+        const { optionsField } = plugin.setting;
+        if (Array.isArray(optionsField)) {
+            return optionsField.map(field => {
+                return config && config[field];
+            });
+        }
+        else {
+            return [config && config[optionsField]];
+        }
+    }
+
+    /**
+     * @param {Plugin} plugin
+     * @returns {any[]}
+     */
+    static resolveDependConfigs(plugin) {
+        const config = plugin.context.config;
+        const dependConfigs = [];
+        if (plugin.setting.dependFields && plugin.setting.dependFields.length) {
+            plugin.setting.dependFields.forEach(depField => {
+                dependConfigs.push(
+                    depField.split('.').reduce(((depConfig, curField) => {
+                        return depConfig && depConfig[curField];
+                    }), config)
+                );
+            });
+        }
+        return dependConfigs;
+    }
+
     static resolveEnable(config, setting) {
         let pluginEnable;
         const userEnable = pluginEnable = config[setting.enableField];
@@ -411,7 +442,7 @@ class Plugin {
         return pluginEnable;
     }
 
-    static resolvePluginSettingFromConfig(configName) {
+    static resolveSettingFromConfig(configName) {
         if (typeof (configName) === 'string') {
             return {
                 name: configName,
@@ -435,8 +466,8 @@ class Plugin {
     }
 
     static isSamePluginConfig(configNameA, configNameB) {
-        const { name: nameA, setting: settingA } = Plugin.resolvePluginSettingFromConfig(configNameA);
-        const { name: nameB, setting: settingB } = Plugin.resolvePluginSettingFromConfig(configNameB);
+        const { name: nameA, setting: settingA } = Plugin.resolveSettingFromConfig(configNameA);
+        const { name: nameB, setting: settingB } = Plugin.resolveSettingFromConfig(configNameB);
 
         return nameA === nameB && isSameOptionField(settingA.optionsField, settingB.optionsField);
     }
@@ -513,7 +544,8 @@ class Plugin {
     }
 }
 
-Plugin.runtimeChildPluginConfigs = runtimeChildPluginConfigs;
+Plugin.childPlugins = childPlugins;
+Plugin.childPluginConfigs = childPluginConfigs;
 Plugin.modifiedPluginIds = modifiedPluginIds;
 Plugin.modifiedPlugins = modifiedPlugins;
 
@@ -548,14 +580,14 @@ class PluginInterrupt {
     }
 }
 
-
-function isRuntimeChildPlugin(plugin) {
+Plugin.PluginInterrupt = PluginInterrupt;
+Plugin.isRuntimeChildPlugin = function isRuntimeChildPlugin(plugin) {
     if (plugin._isRuntimeChildPlugin) {
         return true;
     }
 
-    for (const config of runtimeChildPluginConfigs) {
-        const { name, setting } = Plugin.resolvePluginSettingFromConfig(config);
+    for (const config of childPluginConfigs) {
+        const { name, setting } = Plugin.resolveSettingFromConfig(config);
         if (plugin.name === name && isSameOptionField(plugin.setting.optionsField, setting.optionsField)) {
             plugin._isRuntimeChildPlugin = true;
             return true;
@@ -579,13 +611,13 @@ function watchPluginConfig(config) {
             if (!isNaN(p) && p > t.length - 1) {
                 // new runtime child plugin
                 let found;
-                runtimeChildPluginConfigs.forEach(config => {
+                childPluginConfigs.forEach(config => {
                     if (Plugin.isSamePluginConfig(config, v)) {
                         found = true;
                     }
                 });
                 if (!found) {
-                    runtimeChildPluginConfigs.push(v);
+                    childPluginConfigs.push(v);
                 }
             }
         }

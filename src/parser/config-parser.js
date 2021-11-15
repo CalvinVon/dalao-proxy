@@ -182,9 +182,6 @@ function mergePluginsConfig(targetConfig, plugins) {
             const field = plugin.setting.optionsField;
             targetConfig[field] = plugin.config;
         }
-        // if (field) {
-        //     targetConfig[field] = plugin.config;
-        // }
     });
 }
 
@@ -311,7 +308,6 @@ function resolveRouteProxyMap(proxyPath, router) {
 /**
  * Main Config Parser
  * user arguments setting > user file setting > base internal setting
- * @author Calvin
  * @param {Commander} command
  */
 exports.parse = function parse(command) {
@@ -353,13 +349,6 @@ exports.parse = function parse(command) {
 
 };
 
-
-/**
- * Parse plugins from config and installed
- * @returns {Array}
- */
-exports.parsePlugins = function parsePlugins() {
-    return parseFile(parsePathFromArgv());
-}
-
+exports.parseFile = parseFile;
+exports.parsePathFromArgv = parsePathFromArgv;
 exports.mergePluginsConfig = mergePluginsConfig;

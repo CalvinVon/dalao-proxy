@@ -3,12 +3,12 @@ const querystring = require('querystring');
 const concat = require('concat-stream');
 const { cleanCache } = require('../subcommands/clean.command/clean');
 const { store: storeFiles } = require('../subcommands/store.command/store');
-const baseURL = '/__plugin_ui_switcher__';
 
 module.exports = {
     handle(context, next) {
-        const { request } = context;
+        const { request, config } = context;
         const { BodyParser } = this.context.exports;
+        const baseURL = config['cache-ui'].requestPrefix + '/__plugin_ui_switcher__';
 
         if (request.url.startsWith(baseURL)) {
 

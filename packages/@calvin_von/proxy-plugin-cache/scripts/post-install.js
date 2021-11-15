@@ -12,6 +12,6 @@ Object.keys(process.env).forEach(key => {
 
 const installGlobally = config['g'] || config['global'];
 
-packageInstaller.install('@calvin_von/proxy-plugin-inject', {
+packageInstaller.install(['@calvin_von/proxy-plugin-inject'], {
     isLocally: !installGlobally,
 });

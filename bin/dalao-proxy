@@ -62,7 +62,7 @@ program
     .use(Commands.pluginManager)
 
     // Register commands from plugins
-    .use(Runtime.registerPlugins)
+    .use(Runtime.init)
 
     // Parse command and options
     .parse(process.argv);

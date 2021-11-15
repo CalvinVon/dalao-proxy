@@ -11,7 +11,7 @@ function setting() {
   return {
     defaultEnable: true,
     optionsField: 'requestHijack',
-    depsField: ['proxyTable', 'version'],
+    dependFields: ['proxyTable', 'version'],
     enableField: 'enable',
   }
 }
@@ -25,7 +25,7 @@ function parser(requestHijack, proxyTable) {
   const {
     rewrite: _rewrite,
     smartInfer
-  } = requestHijack;
+  } = requestHijack || {};
 
   const rewrite = _rewrite || [];
 
