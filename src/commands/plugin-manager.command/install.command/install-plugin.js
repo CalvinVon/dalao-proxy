@@ -1,4 +1,6 @@
 const { packageInstaller } = require('@dalao-proxy/utils');
+const path = require('path');
+const fs = require('fs');
 
 // sync plugins to inner config file
 function syncInnerConfig(names, { isAdd, before, after }) {
@@ -43,20 +45,24 @@ function syncInnerConfig(names, { isAdd, before, after }) {
 module.exports = {
     install: function (pluginNames, options) {
         packageInstaller.install(pluginNames, {
-            ...options, callback: (errCode) => {
-                if (errCode === 0) {
-                    syncInnerConfig(pluginNames, options);
+            ...options,
+            callback: (err, opts) => {
+                if (!err && !opts.isLocally) {
+                    syncInnerConfig(pluginNames, opts);
                 }
+                options.callback(err, opts);
             }
         });
     },
 
     uninstall: function (pluginNames, options) {
         packageInstaller.uninstall(pluginNames, {
-            ...options, callback: (errCode) => {
-                if (errCode === 0) {
-                    syncInnerConfig(pluginNames, { isAdd: false, ...options });
+            ...options,
+            callback: (err, opts) => {
+                if (!err && !opts.isLocally) {
+                    syncInnerConfig(pluginNames, { isAdd: false, ...opts });
                 }
+                options.callback(err, opts);
             }
         });
     },

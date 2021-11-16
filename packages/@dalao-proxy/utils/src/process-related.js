@@ -1,8 +1,27 @@
 const os = require('os');
 
+
+/**
+ * Determine the scripts is running with global argument
+ * 
+ * Support `process.argv` and run under *npm hooks*
+ * @returns {boolean}
+ */
+function hasGlobalArgs() {
+  const includeGlobalArgs = argvs => argvs.some(arg => /^-g$|^--global$/.test(arg));
+  const processArgs = process.argv;
+  const npmHooksArgs = JSON.parse(process.env.npm_config_argv || '{}').original;
+  console.log({ processArgs, npmHooksArgs });
+
+  const processGlobal = includeGlobalArgs(processArgs);
+  const npmHooksGlobal = includeGlobalArgs(npmHooksArgs);
+  console.log({ npmHooksGlobal, processGlobal });
+  return processGlobal || npmHooksGlobal;
+}
+
 /**
  * Append original user's info to the `os.userInfo()`
- * @returns {{ origin: os.UserInfo } & os.UserInfo}
+ * @returns {{ origin: os.UserInfo; sudo: boolean; } & os.UserInfo}
  */
 function getProcessUserInfo() {
   const userInfo = os.userInfo();
@@ -42,6 +61,7 @@ function restoreProcessUser() {
 }
 
 module.exports = {
+  hasGlobalArgs,
   getProcessUserInfo,
   setProcessUser,
   setAsOriginalUser,

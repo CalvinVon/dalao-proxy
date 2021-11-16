@@ -1,5 +1,7 @@
+const version = require('../package.json').version;
+
 const config = {
-    "version": "1.0.0-beta.1",
+    version: version,
     "configFileName": "dalao.config",
     "logger": true,
     "debug": false,
@@ -12,11 +14,11 @@ const config = {
     "proxyTable": {
         "/": {
             "path": "/",
-            "changeOrigin": true
+            "changeOrigin": true,
         }
     },
     "plugins": [
-        "BuildIn:plugin/check-version",
+        "BuildIn:plugin/check-version"
     ]
 };
 module.exports = config;

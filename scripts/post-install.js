@@ -1,7 +1,7 @@
-#!/usr/bin/env node
-
 const fs = require('fs');
+const path = require('path');
 const { RC_FILE_PATH, presetPlugins } = require('../config/script');
+const { hasGlobalArgs, getProcessUserInfo, getGlobalPackagePath } = require('@dalao-proxy/utils');
 const { install } = require('../src/commands/plugin-manager.command/install.command/install-plugin');
 
 const pluginsToInstall = [...presetPlugins];
@@ -20,15 +20,19 @@ if (fs.existsSync(RC_FILE_PATH)) {
     });
 }
 
-const config = {};
-Object.keys(process.env).forEach(key => {
-    let res;
-    if (res = key.match(/^npm_config_(.+)$/)) {
-        config[res[1]] = process.env[key];
-    }
-});
+const isLocally = !hasGlobalArgs();
 
-const isLocally = !(config['g'] || config['global']);
+if (!isLocally) {
+    if (getProcessUserInfo().uid === 0) {
+        const configFilePath = `${getGlobalPackagePath()}dalao-proxy/config/index.js`;
+        try {
+            fs.chmodSync(path.join(__dirname, '../config/index.js'), '664');
+            console.log(`Change mode of ${configFilePath} success.`);
+        } catch (error) {
+            console.error(`Error when change mode of config files, you may need run \`sudo chmod 664 ${configFilePath}\``);
+        }
+    }
+}
 
 install(pluginsToInstall, {
     isAdd: true,

@@ -1,4 +1,5 @@
 const { spawn } = require('child_process');
+const { getProcessUserInfo } = require('./process-related');
 
 /**
  * @param {string} pluginNames
@@ -15,6 +16,7 @@ function installPlugins(pluginNames, options) {
     callback = () => null,
   } = options || {};
 
+  const needSudo = !isLocally && getProcessUserInfo().uid !== 0;
   const displayPluginNames = displayNames(pluginNames);
   console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s) ${isLocally ? '' : 'globally'}...`);
 
@@ -24,11 +26,11 @@ function installPlugins(pluginNames, options) {
     ...pluginNames
   ];
 
-  if (!isLocally) {
+  if (needSudo) {
     args.unshift('npm');
   }
   const installCmd = spawn(
-    isLocally ? 'npm' : 'sudo',
+    needSudo ? 'sudo' : 'npm',
     args,
     {
       stdio: 'inherit',
@@ -45,9 +47,7 @@ function installPlugins(pluginNames, options) {
     }
     else {
       console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install completed`);
-      if (!isLocally) {
-        callback(null, options);
-      }
+      callback(null, options);
       console.log(`🎉  Plugin ${displayPluginNames} ${isAdd ? '' : 'un'}installed successfully!\n`);
     }
 

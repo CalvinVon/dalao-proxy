@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const fs = require('fs');
 const { RC_FILE_PATH } = require('../config/script');
 const { plugins } = require('../config');
