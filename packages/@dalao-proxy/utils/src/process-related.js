@@ -9,19 +9,18 @@ function getProcessUserInfo() {
   const { SUDO_UID, SUDO_GID, SUDO_USER } = process.env;
 
   userInfo.origin = {
-      uid: parseInt(SUDO_UID) || userInfo.uid,
-      gid: parseInt(SUDO_GID) || userInfo.gid,
-      username: SUDO_USER || userInfo.username,
+    uid: parseInt(SUDO_UID) || userInfo.uid,
+    gid: parseInt(SUDO_GID) || userInfo.gid,
+    username: SUDO_USER || userInfo.username,
   };
   userInfo.sudo = userInfo.uid !== userInfo.origin.uid;
   return userInfo;
 }
 
 
-function setProcessUser(uid, gid) {
+function setProcessUser(uid) {
   if (os.platform() !== 'win32') {
     process.setuid(uid);
-    process.setgid(gid);
   }
 }
 
@@ -30,7 +29,7 @@ function setProcessUser(uid, gid) {
  */
 function setAsOriginalUser() {
   const userInfo = getProcessUserInfo();
-  setProcessUser(userInfo.origin.uid, userInfo.origin.gid);
+  setProcessUser(userInfo.origin.uid);
 }
 
 
@@ -39,7 +38,7 @@ function setAsOriginalUser() {
  */
 function restoreProcessUser() {
   const userInfo = getProcessUserInfo();
-  setProcessUser(userInfo.uid, userInfo.gid);
+  setProcessUser(userInfo.uid);
 }
 
 module.exports = {
