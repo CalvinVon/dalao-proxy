@@ -10,7 +10,7 @@ const os = require('os');
 function hasGlobalArgs() {
   const includeGlobalArgs = argvs => argvs.some(arg => /^-g$|^--global$/.test(arg));
   const processArgs = process.argv;
-  const npmHooksArgs = JSON.parse(process.env.npm_config_argv || '{}').original;
+  const npmHooksArgs = JSON.parse(process.env.npm_config_argv || '{}').original || [];
   console.log({ processArgs, npmHooksArgs });
 
   const processGlobal = includeGlobalArgs(processArgs);
@@ -21,7 +21,12 @@ function hasGlobalArgs() {
 
 /**
  * Append original user's info to the `os.userInfo()`
- * @returns {{ origin: os.UserInfo; sudo: boolean; } & os.UserInfo}
+ * @returns {{
+ * origin: os.UserInfo;
+ * user: boolean;
+ * sudo: boolean;
+ * root: boolean;
+ * } & os.UserInfo}
  */
 function getProcessUserInfo() {
   const userInfo = os.userInfo();
@@ -33,9 +38,10 @@ function getProcessUserInfo() {
     username: SUDO_USER || userInfo.username,
   };
   userInfo.sudo = userInfo.uid !== userInfo.origin.uid;
+  userInfo.root = userInfo.uid === 0 && userInfo.gid === 0;
+  userInfo.user = userInfo.uid === userInfo.origin.uid && userInfo.gid === userInfo.origin.gid;
   return userInfo;
 }
-
 
 function setProcessUser(uid) {
   if (os.platform() !== 'win32') {

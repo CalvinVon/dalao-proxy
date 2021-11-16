@@ -16,7 +16,8 @@ function installPlugins(pluginNames, options) {
     callback = () => null,
   } = options || {};
 
-  const needSudo = !isLocally && getProcessUserInfo().uid !== 0;
+  const { root, user } = getProcessUserInfo();
+  const needSudo = !isLocally && user && !root;
   const displayPluginNames = displayNames(pluginNames);
   console.log(`> ${isAdd ? 'Installing' : 'Uninstall'} ${displayPluginNames} package(s) ${isLocally ? '' : 'globally'}...`);
 
@@ -29,36 +30,40 @@ function installPlugins(pluginNames, options) {
   if (needSudo) {
     args.unshift('npm');
   }
-  const installCmd = spawn(
-    needSudo ? 'sudo' : 'npm',
-    args,
-    {
-      stdio: 'inherit',
-      shell: true,
-      env: process.env,
-      cwd: process.cwd(),
-    }
-  );
 
-  installCmd.on('exit', code => {
-    if (code) {
-      console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install failed with code ${code}`);
-      callback(code, options);
-    }
-    else {
-      console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install completed`);
+  try {
+    const installCmd = spawn(
+      needSudo ? 'sudo' : 'npm',
+      args,
+      {
+        stdio: 'inherit',
+        shell: true,
+        env: process.env,
+        cwd: process.cwd(),
+      }
+    );
+
+    installCmd.on('exit', code => {
+      if (code) {
+        console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install failed with code ${code}`);
+      }
+      else {
+        console.log(`\n> ${displayPluginNames} package(s) ${isAdd ? '' : 'un'}install completed`);
+        console.log(`🎉  Plugin ${displayPluginNames} ${isAdd ? '' : 'un'}installed successfully!\n`);
+      }
+      
       callback(null, options);
-      console.log(`🎉  Plugin ${displayPluginNames} ${isAdd ? '' : 'un'}installed successfully!\n`);
-    }
-
-    installCmd.kill();
-  });
-  installCmd.on('error', (code, signal) => {
-    console.log(code, signal)
-    console.log(`> ${displayPluginNames} ${isAdd ? '' : 'un'}install failed with code ${code}`);
-    installCmd.kill();
+      installCmd.kill();
+    });
+    installCmd.on('error', (code, signal) => {
+      console.log(code, signal)
+      console.log(`> ${displayPluginNames} ${isAdd ? '' : 'un'}install failed with code ${code}`);
+      callback(code, options);
+      installCmd.kill();
+    });
+  } catch (error) {
     callback(code, options);
-  });
+  }
 }
 
 /**
