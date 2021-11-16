@@ -570,8 +570,13 @@ module.exports = {
                     };
                     delete resJson.CACHE_REQUEST_DATA.rawBuffer;
                     resJson[MOCK_FIELD_TEXT] = false;
-                    resJson[HEADERS_FIELD_TEXT] = context.proxy.response.headers;
                     resJson[STATUS_FIELD_TEXT] = context.proxy.response.statusCode;
+                    const headersWithoutCORS = Object.keys(context.proxy.response.headers).reduce((h, cur) => {
+                        if (/^access-control-/.test(cur)) return h;
+                        h[cur] = context.proxy.response.headers[cur];
+                        return h;
+                    }, {});
+                    resJson[HEADERS_FIELD_TEXT] = headersWithoutCORS;
 
                     const cacheFileName = /\.json$/.test(cacheFileWithNoExt) ? cacheFileWithNoExt : (cacheFileWithNoExt + '.json');
                     fs.writeFileSync(
