@@ -1,6 +1,6 @@
 {
   "name": "@dalao-proxy/utils",
-  "version": "1.0.0-alpha.5",
+  "version": "1.0.0-beta",
   "description": "A shared utils module for dalao-proxy and its plugins",
   "main": "src/index.js",
   "scripts": {
