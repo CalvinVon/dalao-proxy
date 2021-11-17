@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/proxy-plugin-cache",
-  "version": "1.2.0-beta.15",
+  "version": "1.2.0-beta.17",
   "description": "A dalao-proxy plugin for cache response",
   "main": "index.js",
   "keywords": [
@@ -16,7 +16,7 @@
     "concat-stream": "^2.0.0",
     "mime-types": "^2.1.27",
     "moment": "^2.26.0",
-    "@dalao-proxy/utils": "^1.0.0-alpha.5"
+    "@dalao-proxy/utils": "^1.0.0-beta"
   },
   "scripts": {
     "postinstall": "scripts/post-install.js"
