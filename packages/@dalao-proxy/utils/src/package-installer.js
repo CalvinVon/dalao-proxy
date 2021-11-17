@@ -59,7 +59,7 @@ function installPlugins(pluginNames, options) {
       console.log(code, signal)
       console.log(`> ${displayPluginNames} ${isAdd ? '' : 'un'}install failed with code ${code}`);
       callback(code, options);
-      installCmd.kill();
+      installCmd.kill(code);
     });
   } catch (error) {
     callback(code, options);

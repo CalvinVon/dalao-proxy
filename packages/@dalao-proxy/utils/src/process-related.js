@@ -4,19 +4,20 @@ const os = require('os');
 /**
  * Determine the scripts is running with global argument
  * 
- * Support `process.argv` and run under *npm hooks*
+ * Support `process.argv` and run under *npm hooks* (npm under v6)
  * @returns {boolean}
  */
 function hasGlobalArgs() {
   const includeGlobalArgs = argvs => argvs.some(arg => /^-g$|^--global$/.test(arg));
   const processArgs = process.argv;
+  // npm under v6
   const npmHooksArgs = JSON.parse(process.env.npm_config_argv || '{}').original || [];
-  console.log({ processArgs, npmHooksArgs });
+  // npm 7+
+  const sudoGlobal = !!(process.env.SUDO_COMMAND || '').match(/-g|--global/);
 
   const processGlobal = includeGlobalArgs(processArgs);
   const npmHooksGlobal = includeGlobalArgs(npmHooksArgs);
-  console.log({ npmHooksGlobal, processGlobal });
-  return processGlobal || npmHooksGlobal;
+  return processGlobal || npmHooksGlobal || sudoGlobal;
 }
 
 /**
