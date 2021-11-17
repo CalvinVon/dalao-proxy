@@ -52,7 +52,7 @@ function _invokePluginMiddleware(plugin, method, context) {
                 }
 
                 if (context.config.debug) {
-                    console.log(chalk.yellow(`[DEV]      Run lifecycle [${hookName}] for [${plugin.name}] DONE.`));
+                    console.log(chalk.yellow(`[DEV]      Run lifecycle [${method}] for [${plugin.name}] DONE.`));
                 }
             });
         }
