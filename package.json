@@ -1,8 +1,8 @@
 {
     "name": "dalao-proxy",
-    "version": "1.0.0-beta.5",
+    "version": "1.0.0-beta.7",
     "description": "An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!",
-    "main": "index.js",
+    "main": "bin/dalao-proxy",
     "bin": {
         "dalao-proxy": "bin/dalao-proxy"
     },
@@ -32,7 +32,7 @@
         "npm": "^6.14.5",
         "request": "^2.88.2",
         "through2": "^3.0.1",
-        "@dalao-proxy/utils": "^1.0.0-alpha.5"
+        "@dalao-proxy/utils": "^1.0.0-beta"
     },
     "engines": {
         "node": ">=8"
