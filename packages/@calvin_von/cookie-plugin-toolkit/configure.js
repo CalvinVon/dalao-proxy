@@ -1,12 +1,14 @@
 const defaultOptions = {
   // groups: false,
-  routes: []
+  routes: [],
+  platform: '',
+  refreshOnStart: false,
 };
 
 function setting() {
   return {
     defaultEnable: true,
-    optionsField: 'ssoCookie',
+    optionsField: 'cookie',
     enableField: 'enable',
   }
 }

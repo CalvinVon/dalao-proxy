@@ -1,12 +1,12 @@
 {
-  "name": "@calvin_von/plugin-sso-cookie",
-  "version": "1.0.0",
-  "description": "A dalao-proxy plugin for auto-fetch SSO cookie",
+  "name": "@calvin_von/cookie-plugin-toolkit",
+  "version": "1.0.0-alpha",
+  "description": "A dalao-proxy plugin for auto-fetch cookies",
   "keywords": [
     "dalao-proxy",
-    "plugin-refresh-cookie"
+    "cookie"
   ],
-  "author": "",
+  "author": "calvin_von",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.21.4",
@@ -15,5 +15,6 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^9.0.13"
-  }
+  },
+  "main": "./exports.js"
 }
