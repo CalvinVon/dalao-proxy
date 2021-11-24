@@ -33,7 +33,11 @@ let plugins = [];
  */
 function _invokePluginMiddleware(plugin, method, context) {
     if (context.config.debug) {
-        console.log(chalk.yellow(`[DEV]      Start run ${method} for [${plugin.name}]`));
+        console.log(
+            chalk.yellow(`[DEV]      START run [${method}] of [${plugin.name}]`
+                + (method !== 'beforeCreate' ? ` for [${context.request.url}]` : '')
+            )
+        );
     }
     return new Promise((resolve, reject) => {
         if (!plugin) return resolve();
@@ -52,7 +56,12 @@ function _invokePluginMiddleware(plugin, method, context) {
                 }
 
                 if (context.config.debug) {
-                    console.log(chalk.yellow(`[DEV]      Run lifecycle [${method}] for [${plugin.name}] DONE.`));
+                    console.log(
+                        chalk.yellow(`[DEV]      END run [${method}] of [${plugin.name}]`
+                            + (method !== 'beforeCreate' ? ` for [${context.request.url}]` : '')
+                            + ' DONE'
+                        )
+                    );
                 }
             });
         }
@@ -71,7 +80,11 @@ function _invokePluginMiddleware(plugin, method, context) {
  */
 function _invokeAllPluginsMiddlewares(hookName, context, next) {
     if (context.config.debug) {
-        console.log(chalk.yellow(`[DEV] Start run lifecycle [${hookName}].`));
+        console.log(
+            chalk.yellow(`[DEV] START run [${hookName}]`
+                + (hookName !== 'beforeCreate' ? ` for [${context.request.url}]` : '')
+            )
+        );
     }
     if (!next) {
         plugins.forEach(plugin => {
@@ -108,7 +121,12 @@ function _invokeAllPluginsMiddlewares(hookName, context, next) {
         })
         .finally(() => {
             if (context.config.debug) {
-                console.log(chalk.yellow(`[DEV] Run lifecycle [${hookName}] DONE.`));
+                console.log(
+                    chalk.yellow(`[DEV] END run [${hookName}]`
+                        + (hookName !== 'beforeCreate' ? ` for [${context.request.url}]` : '')
+                        + ` DONE.`
+                    )
+                );
             }
         })
 }
