@@ -68,10 +68,16 @@ module.exports = {
 function parseRules(rawRules, presets) {
     const rules = [];
     if (presets.mobileConsole) {
-        rules.push(...PresetConsole.rules);
+        if (typeof(presets.mobileConsole) === 'object') {
+            Object.assign(PresetConsole.rules, presets.mobileConsole);
+        }
+        rules.push(PresetConsole.rules);
     }
     if (presets.remoteConsole) {
-        rules.push(...RemoteDebug.rules);
+        if (typeof(presets.remoteConsole) === 'object') {
+            Object.assign(PresetConsole.rules, presets.remoteConsole);
+        }
+        rules.push(RemoteDebug.rules);
     }
 
     rules.push(
