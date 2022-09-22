@@ -13,6 +13,7 @@ export type HijackOptions = {
    * Pages to be hijacked
    */
    page?: string | RegExp;
+   excludes?: (string | RegExp)[] | string | RegExp;
 };
 
 export type ProxyTable = {

@@ -1,6 +1,6 @@
 const { hijack, version } = window.__hijackConfig || {};
 
-const { rewrite, smartInfer, prefix } = hijack;
+const { rewrite, smartInfer, prefix, excludes } = hijack;
 
 
 const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
@@ -24,6 +24,16 @@ function splitTargetAndPath(url) {
   };
 }
 
+
+function shouldExclude(url) {
+  if (Array.isArray(excludes)) {
+    return excludes.some(it => new RegExp(it).test(url));
+  }
+  else if (typeof excludes === 'string' || excludes instanceof RegExp) {
+    return new RegExp(excludes).test(url);
+  }
+  return false;
+}
 
 function rewriteUrl(url) {
   let newUrl = url;
@@ -61,7 +71,7 @@ function hijackFetch() {
   const wrappedFetch = new Proxy(originFetch, {
     apply(target, thisArg, args) {
       const input = args[0];
-      if (typeof input === 'string') {
+      if (typeof input === 'string' && !shouldExclude(input)) {
         let url = rewriteUrl(input);
         
         log(`Request sent to [${input}] by fetch has been rewritten to [${url}]`);
@@ -80,9 +90,14 @@ function hijackXHR() {
 
   class HijackedXMLHttpRequest extends XMLHttpRequest {
     open(method, url, ...args) {
-      const newUrl = rewriteUrl(url);
-      log(`Request sent to [${url}] by XHR has been rewritten to [${newUrl}]`);
-      super.open(method, newUrl, ...args);
+      if (shouldExclude(url)) {
+        super.open(method, url, ...args);
+      }
+      else {
+        const newUrl = rewriteUrl(url);
+        log(`Request sent to [${url}] by XHR has been rewritten to [${newUrl}]`);
+        super.open(method, newUrl, ...args);
+      }
     }
   }
 
