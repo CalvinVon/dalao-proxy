@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/plugin-request-hijack",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "A dalao-proxy plugin for hijacking asynchronous requests to do more cool things",
   "keywords": [
     "dalao-proxy",
@@ -10,6 +10,6 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "@calvin_von/proxy-plugin-inject": "^1.0.0-beta-1"
+    "@calvin_von/proxy-plugin-inject": "*"
   }
 }
