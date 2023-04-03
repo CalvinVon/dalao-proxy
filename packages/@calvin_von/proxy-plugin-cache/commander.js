@@ -39,43 +39,46 @@ module.exports = function (program, register, config) {
         }
     });
 
-    register.configure('config', (config, callback) => {
-        config.plugins.push([
-            '@calvin_von/proxy-plugin-inject',
-            {
-                defaultEnable: true,
-                optionsField: 'cache__inject'
-            }
-        ]);
-
-        config['cache__inject'] = {
-            rules: [
+    
+    if (config['cache-ui'] && config['cache-ui'].enable) {
+        register.configure('config', (config, callback) => {
+            config.plugins.push([
+                '@calvin_von/proxy-plugin-inject',
                 {
-                    test: /^\/$|.html?$/,
-                    serves: {
-                        'cache-switcher-ui.js': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.js'),
-                    },
-                    template: `<script src="{{cache-switcher-ui.js}}"></script>
-<script>
-    window.addEventListener('load', function() {
-        new window.cacheSwitcherUI.default('${config['cache-ui'].container}');
-    });
-</script>
-                    `,
-                    insert: 'body'
-                },
-                {
-                    test: /^\/$|.html?$/,
-                    serves: {
-                        'cache-switcher-ui.css': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.css'),
-                    },
-                    template: `<link rel="stylesheet" href="{{cache-switcher-ui.css}}"></link>`,
-                    insert: 'head'
+                    defaultEnable: true,
+                    optionsField: 'cache__inject'
                 }
-            ]
-        };
-
-        callback(null, config);
-    });
+            ]);
+    
+            config['cache__inject'] = {
+                rules: [
+                    {
+                        test: /^\/$|.html?$/,
+                        serves: {
+                            'cache-switcher-ui.js': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.js'),
+                        },
+                        template: `<script src="{{cache-switcher-ui.js}}"></script>
+    <script>
+        window.addEventListener('load', function() {
+            new window.cacheSwitcherUI.default('${config['cache-ui'].container}');
+        });
+    </script>
+                        `,
+                        insert: 'body'
+                    },
+                    {
+                        test: /^\/$|.html?$/,
+                        serves: {
+                            'cache-switcher-ui.css': path.join(__dirname, 'switcher-ui', 'dist', 'cache-switcher-ui.css'),
+                        },
+                        template: `<link rel="stylesheet" href="{{cache-switcher-ui.css}}"></link>`,
+                        insert: 'head'
+                    }
+                ]
+            };
+    
+            callback(null, config);
+        });
+    }
 };
 

@@ -1,5 +1,5 @@
 # proxy-plugin-cache
-A [dalao-proxy](https://github.com/CalvinVon/dalao-proxy) for auto run multiple commands in parallel.
+A [dalao-proxy](https://github.com/CalvinVon/dalao-proxy) for responses cache and mock.
 > only support dalao-proxy > 1.x
 
 [![version](https://img.shields.io/npm/v/@calvin_von/proxy-plugin-cache.svg)](https://www.npmjs.com/package/@calvin_von/proxy-plugin-cache)
