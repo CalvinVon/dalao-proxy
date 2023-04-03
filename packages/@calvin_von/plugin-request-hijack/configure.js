@@ -5,7 +5,8 @@ const defaultOptions = {
   prefix: '',
   smartInfer: true,
   page: /^\/$|.html?/,
-  excludes: [/hot-update/]
+  excludes: [/hot-update/],
+  logger: true,
 };
 
 function setting() {

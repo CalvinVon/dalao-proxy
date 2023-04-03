@@ -1,6 +1,6 @@
 const { hijack, version } = window.__hijackConfig || {};
 
-const { rewrite, smartInfer, prefix, excludes } = hijack;
+const { rewrite, smartInfer, prefix, excludes, logger } = hijack;
 
 
 const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
@@ -74,7 +74,9 @@ function hijackFetch() {
       if (typeof input === 'string' && !shouldExclude(input)) {
         let url = rewriteUrl(input);
         
-        log(`Request sent to [${input}] by fetch has been rewritten to [${url}]`);
+        if (logger) {
+          log(`Request sent to [${input}] by fetch has been rewritten`);
+        }
         return Reflect.apply(originFetch, thisArg, [url, args[1]]);
       }
       return Reflect.apply(originFetch, thisArg, args);
@@ -95,7 +97,10 @@ function hijackXHR() {
       }
       else {
         const newUrl = rewriteUrl(url);
-        log(`Request sent to [${url}] by XHR has been rewritten to [${newUrl}]`);
+
+        if (logger) {
+          log(`Request sent to [${url}] by XHR has been rewritten`);
+        }
         super.open(method, newUrl, ...args);
       }
     }
