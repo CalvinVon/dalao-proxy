@@ -55,7 +55,7 @@ Auth.setPlatform = (_platform, logUser = true) => {
   }
   
   user = Util.Auth.getUser(adapter.userType);
-  if (!user) {
+  if (!user || !Object.keys(user).length) {
     logUser && Util.log('[[ YOU SHOULD RUN COMMAND `dalao-proxy cookie set` FIRST TO ENABLE THIS PLUGIN ]]\n');
     noWorking = true;
   }
