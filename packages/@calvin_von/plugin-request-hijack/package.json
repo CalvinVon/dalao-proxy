@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/plugin-request-hijack",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A dalao-proxy plugin for hijacking asynchronous requests to do more cool things",
   "keywords": [
     "dalao-proxy",

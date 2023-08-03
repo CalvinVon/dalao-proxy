@@ -4,7 +4,7 @@
 const defaultOptions = {
   prefix: '',
   smartInfer: true,
-  page: /^\/$|.html?/,
+  page: /^\/$|\.html?/,
   excludes: [/hot-update/],
   logger: true,
 };
@@ -33,7 +33,7 @@ function parser(requestHijack, proxyTable, target) {
 
   if (smartInfer && (!rewrite || !Array.isArray(rewrite) || !rewrite.length)) {
     Object.keys(proxyTable).forEach(key => {
-      const { target: ruleTarget, path } = proxyTable[key];
+      const { target: ruleTarget, path = '' } = proxyTable[key];
       rewrite.push({
         from: addHttpProtocol(ruleTarget || target) + path,
         to: key
@@ -54,7 +54,7 @@ module.exports = {
 };
 
 
-const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
+const HTTP_PROTOCOL_REG = new RegExp(/^(https?:)?\/\//);
 // make url complete with http/https
 function addHttpProtocol(urlFragment) {
   if (!HTTP_PROTOCOL_REG.test(urlFragment)) {

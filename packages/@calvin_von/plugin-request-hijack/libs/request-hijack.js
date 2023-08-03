@@ -3,24 +3,26 @@ const { hijack, version } = window.__hijackConfig || {};
 const { rewrite, smartInfer, prefix, excludes, logger } = hijack;
 
 
-const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
+const HTTP_PROTOCOL_REG = new RegExp(/^(https?:)?\/\//);
 
 // make url complete with http/https
 function addHttpProtocol(urlFragment) {
-  if (!HTTP_PROTOCOL_REG.test(urlFragment)) {
+  const result = urlFragment.match(HTTP_PROTOCOL_REG);
+  if (!result) {
     return 'http://' + urlFragment;
   }
   else {
-    return urlFragment;
+    return (result[1] ? '' : 'http:') + urlFragment;
   }
 }
 
 
 function splitTargetAndPath(url) {
-  const { origin: target } = new URL(addHttpProtocol(url));
+  const urlObject = new URL(url);
+  const target = urlObject.origin;
   return {
     target,
-    path: url.replace(target, '')
+    path: urlObject.href.replace(target, '')
   };
 }
 
@@ -36,7 +38,7 @@ function shouldExclude(url) {
 }
 
 function rewriteUrl(url) {
-  let newUrl = url;
+  let newUrl = addHttpProtocol(url);
   if (Array.isArray(rewrite) && rewrite.length) {
     rewrite.forEach(({ from, to }) => {
       const replaceText = to;
