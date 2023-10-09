@@ -9,6 +9,9 @@ const HTTP_PROTOCOL_REG = new RegExp(/^(https?:)?\/\//);
 function addHttpProtocol(urlFragment) {
   const result = urlFragment.match(HTTP_PROTOCOL_REG);
   if (!result) {
+    if (urlFragment.startsWith('/')) {
+      return location.origin + urlFragment;
+    }
     return 'http://' + urlFragment;
   }
   else {
