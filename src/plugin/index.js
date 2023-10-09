@@ -531,6 +531,10 @@ class Plugin {
         this._methodWrapper('onProxyRespond', nextNoop, context, next);
     }
 
+    onProxyDataRespond(context, next) {
+        this._methodWrapper('onProxyDataRespond', nextNoop, context, next);
+    }
+
     afterProxy(context) {
         this._methodWrapper('afterProxy', noop, context);
     }
@@ -556,6 +560,7 @@ Plugin.AllMiddlewares = [
     'beforeProxy',
     'onProxySetup',
     'onProxyRespond',
+    'onProxyDataRespond',
     'afterProxy',
     'onPipeRequest',
     'onPipeResponse'

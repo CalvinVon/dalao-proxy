@@ -439,6 +439,7 @@ function proxyRequestWrapper(config, corePlugins) {
                                 collectResponseData(context, context.proxy.originResponseStream)
                                     .then(data => {
                                         context.proxy.data.response = data;
+                                        Middleware_onProxyDataRespond(context);
                                     })
                                     .catch(err => context.data.error = err)
                             );
@@ -853,6 +854,12 @@ function proxyRequestWrapper(config, corePlugins) {
         function Middleware_onProxyRespond(context) {
             return new Promise((resolve, reject) => {
                 _invokeAllPluginsMiddlewares('onProxyRespond', context, interrupter(context, resolve, reject));
+            });
+        }
+
+        function Middleware_onProxyDataRespond(context) {
+            return new Promise((resolve, reject) => {
+                _invokeAllPluginsMiddlewares('onProxyDataRespond', context, interrupter(context, resolve, reject));
             });
         }
 
