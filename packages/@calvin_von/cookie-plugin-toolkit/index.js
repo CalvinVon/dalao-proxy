@@ -1,12 +1,27 @@
 const Auth = require('./content/auth');
 const Util = require('./content/util');
+const querystring = require('querystring');
+const { lockify } = require('fn.locky');
+let BodyParser;
 
-
-let pluginConfig, hasUserInfo, runningLocker;
+let hasUserInfo, cookie;
+let pluginConfig, attachAt, attachField;
+const requestCookie = lockify(Auth.requestCookie);
 
 
 function beforeCreate() {
+    BodyParser = this.context.exports.BodyParser;
+
     pluginConfig = this.config;
+    cookie = Util.Cookie.get(pluginConfig.platform);
+    attachField = pluginConfig.attachField || 'cookie'
+    if (Array.isArray(pluginConfig.attachAt)) {
+        attachAt = pluginConfig.attachAt || [];
+    }
+    else {
+        attachAt = ['header'];
+    }
+
     hasUserInfo = !!Util.Auth.getUser(Auth.getUserType());
     Auth.setPlatform(pluginConfig.platform);
 
@@ -15,7 +30,20 @@ function beforeCreate() {
         return;
     }
     if (pluginConfig.refreshOnStart) {
-        Auth.requestCookie();
+        requestCookie();
+    }
+}
+
+function beforeProxy(context, next) {
+    if (attachAt.includes('query') && isGivenRoute(context)) {
+        const newUrl = new URL(context.proxy.uri);
+        newUrl.searchParams.set(attachField, cookie);
+        context.proxy.URL = newUrl;
+        context.proxy.uri = newUrl.toString();
+        next();
+    }
+    else {
+        next();
     }
 }
 
@@ -25,15 +53,45 @@ function onProxySetup(context) {
         const { proxy } = context;
         const { request } = proxy;
         try {
-            const cookies = Util.Cookie.get(pluginConfig.platform);
-            request.setHeader('cookie', cookies);
+            if (attachAt.includes('header')) {
+                request.setHeader(attachField, cookie);
+            }
         } catch (error) {
             Util.log('no cookies found, hold page and try to send another request.');
         }
     }
 }
 
-async function onProxyRespond(context, next) {
+function onPipeRequest(context, next) {
+    const enable = attachAt.includes('body') && isGivenRoute(context);
+    if (!enable) {
+        next(null, context.chunk);
+        return;
+    }
+
+    const contentType = context.request.headers['content-type'];
+    if (context.isLastChunk) {
+        const content = BodyParser.parse(contentType, context.chunk);
+
+        if (/json/.test(contentType)) {
+            content[attachField] = cookie;
+            next(null, Buffer.from(JSON.stringify(content)));
+        }
+        else if (/application\/x-www-form-urlencoded/.test(contentType)) {
+            content[attachField] = cookie;
+            const buffer = querystring.stringify(content);
+            next(null, Buffer.from(buffer));
+        }
+        else {
+            next(null, context.chunk);
+        }
+    }
+    else {
+        next(null, context.chunk);
+    }
+}
+
+async function onProxyDataRespond(context, next) {
     if (isGivenRoute(context)) {
         try {
             if (!context.proxy.data.response) {
@@ -44,6 +102,7 @@ async function onProxyRespond(context, next) {
             if (shouldRefresh) {
                 Util.log('login failed status detected, start to refresh cookies');
                 await requestCookie();
+                cookie = Util.Cookie.get(pluginConfig.platform);
             }
         } catch (error) {
             console.error(error);
@@ -55,20 +114,13 @@ async function onProxyRespond(context, next) {
 
 module.exports = {
     beforeCreate,
+    beforeProxy,
     onProxySetup,
-    onProxyRespond,
+    onProxyDataRespond,
+    onPipeRequest
 };
 
 
-async function requestCookie() {
-    if (runningLocker) {
-        return;
-    }
-
-    runningLocker = true;
-    await Auth.requestCookie();
-    runningLocker = false;
-}
 
 function isGivenRoute(context) {
     return hasUserInfo && pluginConfig.routes.includes(context.matched.path);

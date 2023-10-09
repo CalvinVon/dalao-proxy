@@ -78,7 +78,7 @@ Auth.requestCookie = async () => {
     Util.log('writing cookie...');
     Util.Cookie.write(cookie, platform);
     Util.log('Cookie refresh SUCCEED!');
-
+    return cookie;
   } catch (error) {
     Util.log('Cookie request failed');
     throw error;

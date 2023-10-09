@@ -3,6 +3,9 @@ const defaultOptions = {
   routes: [],
   platform: '',
   refreshOnStart: false,
+  attachField: 'cookie',
+  /** @type {('header'|'body'|'query')[] } */
+  attachAt: ['header']
 };
 
 function setting() {
