@@ -8,6 +8,7 @@ const PATH_INDEX = './index.js';
 const PATH_COMMANDER = './commander.js';
 const PATH_CONFIGURE = './configure.js';
 const PATH_PACKAGE = './package.json';
+const PATH_EXPORTS = './exports.js';
 
 function noop() { }
 function nextNoop(context, next) { next && next(null); }
@@ -186,6 +187,8 @@ class Plugin {
          */
         this.context = context;
         this.register = register;
+        this.exports = {};
+        
 
         this._indexPath = '';
         this._packagejsonPath;
@@ -198,13 +201,15 @@ class Plugin {
                 indexPath,
                 commanderPath,
                 configurePath,
-                packagejsonPath
+                packagejsonPath,
+                exportsPath
             } = Plugin.resolvePaths(this.name);
 
             this._indexPath = indexPath;
             this._packagejsonPath = packagejsonPath;
             this._commanderPath = commanderPath;
             this._configurePath = configurePath;
+            this._exportsPath = exportsPath;
 
             this.load();
 
@@ -255,6 +260,9 @@ class Plugin {
             try {
                 this.commander = require(this._commanderPath);
                 this._extendCmds();
+                
+                this.exports = require(this._exportsPath);
+
             } catch (error) {
                 if (!isNoOptionFileError(error)) {
                     console.error(error);
@@ -343,7 +351,8 @@ class Plugin {
             indexPath: null,
             commanderPath: null,
             configurePath: null,
-            packagejsonPath: null
+            packagejsonPath: null,
+            exportsPath: null,
         };
         let matched = isBuildIn(pluginName);
         if (matched) {
@@ -352,6 +361,7 @@ class Plugin {
             resolvedPaths.configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
             resolvedPaths.commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
             resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, PATH_PACKAGE);
+            resolvedPaths.exportsPath = path.resolve(buildInPluginPath, PATH_EXPORTS);
         }
         else {
             const basePath = pluginResolver(pluginName);
@@ -359,6 +369,7 @@ class Plugin {
             resolvedPaths.configurePath = path.join(basePath, PATH_CONFIGURE);
             resolvedPaths.commanderPath = path.join(basePath, PATH_COMMANDER);
             resolvedPaths.packagejsonPath = path.join(basePath, PATH_PACKAGE);
+            resolvedPaths.exportsPath = path.join(basePath, PATH_EXPORTS);
         }
         return resolvedPaths;
     }
@@ -570,7 +581,8 @@ Plugin.FILES = {
     INDEX: PATH_INDEX,
     PACKAGE: PATH_PACKAGE,
     COMMANDER: PATH_COMMANDER,
-    CONFIGURE: PATH_CONFIGURE
+    CONFIGURE: PATH_CONFIGURE,
+    EXPORTS: PATH_EXPORTS,
 };
 
 class PluginInterrupt {
