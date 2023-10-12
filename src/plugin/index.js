@@ -4,17 +4,21 @@ const { pluginResolver } = require('@dalao-proxy/utils');
 const EventEmitter = require('events');
 const defaultConfig = require('../../config');
 const { getType, defineProxy } = require('../utils');
-const PATH_INDEX = './index.js';
-const PATH_COMMANDER = './commander.js';
-const PATH_CONFIGURE = './configure.js';
-const PATH_PACKAGE = './package.json';
-const PATH_EXPORTS = './exports.js';
+const FILE_INDEX = 'index.js';
+const FILE_COMMANDER = 'commander.js';
+const FILE_CONFIGURE = 'configure.js';
+const FILE_EXPORTS = 'exports.js';
+const FILE_PACKAGE = 'package.json';
 
 function noop() { }
 function nextNoop(context, next) { next && next(null); }
 function nextChunkNoop(context, next) { next && next(null, context.chunk); }
 function isNoOptionFileError(error) {
-    return error instanceof Error && error.code === 'MODULE_NOT_FOUND' && !!error.message.match(/\b(commander|configure)\.js'/);
+    return error instanceof Error
+        && error.code === 'MODULE_NOT_FOUND'
+        && !!error.message.match(
+            new RegExp(`\\b(${[FILE_COMMANDER, FILE_CONFIGURE, FILE_EXPORTS].join('|')})`)
+        );
 }
 /**
  * Judge the plugin is build-in or not and return plugin name
@@ -188,7 +192,7 @@ class Plugin {
         this.context = context;
         this.register = register;
         this.exports = {};
-        
+
 
         this._indexPath = '';
         this._packagejsonPath;
@@ -260,9 +264,8 @@ class Plugin {
             try {
                 this.commander = require(this._commanderPath);
                 this._extendCmds();
-                
-                this.exports = require(this._exportsPath);
 
+                this.exports = require(this._exportsPath);
             } catch (error) {
                 if (!isNoOptionFileError(error)) {
                     console.error(error);
@@ -357,19 +360,19 @@ class Plugin {
         let matched = isBuildIn(pluginName);
         if (matched) {
             const buildInPluginPath = path.resolve(__dirname, matched[1]);
-            resolvedPaths.indexPath = path.resolve(buildInPluginPath, PATH_INDEX);
-            resolvedPaths.configurePath = path.resolve(buildInPluginPath, PATH_CONFIGURE);
-            resolvedPaths.commanderPath = path.resolve(buildInPluginPath, PATH_COMMANDER);
-            resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, PATH_PACKAGE);
-            resolvedPaths.exportsPath = path.resolve(buildInPluginPath, PATH_EXPORTS);
+            resolvedPaths.indexPath = path.resolve(buildInPluginPath, FILE_INDEX);
+            resolvedPaths.configurePath = path.resolve(buildInPluginPath, FILE_CONFIGURE);
+            resolvedPaths.commanderPath = path.resolve(buildInPluginPath, FILE_COMMANDER);
+            resolvedPaths.packagejsonPath = path.resolve(buildInPluginPath, FILE_PACKAGE);
+            resolvedPaths.exportsPath = path.resolve(buildInPluginPath, FILE_EXPORTS);
         }
         else {
             const basePath = pluginResolver(pluginName);
-            resolvedPaths.indexPath = path.join(basePath, PATH_INDEX);
-            resolvedPaths.configurePath = path.join(basePath, PATH_CONFIGURE);
-            resolvedPaths.commanderPath = path.join(basePath, PATH_COMMANDER);
-            resolvedPaths.packagejsonPath = path.join(basePath, PATH_PACKAGE);
-            resolvedPaths.exportsPath = path.join(basePath, PATH_EXPORTS);
+            resolvedPaths.indexPath = path.join(basePath, FILE_INDEX);
+            resolvedPaths.configurePath = path.join(basePath, FILE_CONFIGURE);
+            resolvedPaths.commanderPath = path.join(basePath, FILE_COMMANDER);
+            resolvedPaths.packagejsonPath = path.join(basePath, FILE_PACKAGE);
+            resolvedPaths.exportsPath = path.join(basePath, FILE_EXPORTS);
         }
         return resolvedPaths;
     }
@@ -578,11 +581,11 @@ Plugin.AllMiddlewares = [
 ];
 
 Plugin.FILES = {
-    INDEX: PATH_INDEX,
-    PACKAGE: PATH_PACKAGE,
-    COMMANDER: PATH_COMMANDER,
-    CONFIGURE: PATH_CONFIGURE,
-    EXPORTS: PATH_EXPORTS,
+    INDEX: FILE_INDEX,
+    PACKAGE: FILE_PACKAGE,
+    COMMANDER: FILE_COMMANDER,
+    CONFIGURE: FILE_CONFIGURE,
+    EXPORTS: FILE_EXPORTS,
 };
 
 class PluginInterrupt {

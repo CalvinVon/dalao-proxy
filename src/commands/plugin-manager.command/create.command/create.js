@@ -11,6 +11,7 @@ const templates = {
     package: './templates/package.ejs',
     commander: './templates/commander.ejs',
     configure: './templates/configure.ejs',
+    exports: './templates/exports.ejs',
 };
 
 
@@ -89,6 +90,7 @@ module.exports = function createPlugin(opt) {
         if (simple) return;
         createTemplate(templates.configure, Plugin.FILES.CONFIGURE);
         createTemplate(templates.commander, Plugin.FILES.COMMANDER);
+        createTemplate(templates.exports, Plugin.FILES.EXPORTS);
     }
 };
 
