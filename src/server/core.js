@@ -741,10 +741,12 @@ function proxyRequestWrapper(config, corePlugins) {
 
             const clientHeaders = formatHeaders(req.headers);
             const mergeList = [];
+
             const rewriteHeaders = formatHeaders({
                 'Connection': 'close',
                 'Transfer-Encoding': 'chunked',
-                'Host': changeOrigin ? new URL(target).host : clientHeaders['host'],
+                'Host': new URL(target).host,
+                'Origin': changeOrigin ? new URL(target).origin : clientHeaders['origin'],
                 'Content-Length': null
             });
 
