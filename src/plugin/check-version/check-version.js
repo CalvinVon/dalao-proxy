@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const concat = require('concat-stream');
+const versionGt = require('semver/functions/gt')
 const Table = require('cli-table3');
 const chalk = require('chalk');
 const { version } = require('../../../config')
@@ -28,7 +29,8 @@ CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callbac
 
         let isMajor = false,
             isMinor = false,
-            isPatch = false;
+            isPatch = false,
+            isPrerelease = false;
 
         const latestVer = latestVersion.match(REG_VERSION) || [];
         const currentVer = currentVersion.match(REG_VERSION) || [];
@@ -41,9 +43,7 @@ CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callbac
         const currentMinor = currentVer[2];
         const currentPatch = currentVer[3];
 
-        const needUpdate =
-            10000 * latestMajor + 100 * latestMinor + 1 * latestPatch
-            > 10000 * currentMajor + 100 * currentMinor + 1 * currentPatch;
+        const needUpdate = versionGt(latestVersion, currentVersion);
 
         let whatUpdate;
         if (Number(latestMajor) > Number(currentMajor)) {
@@ -51,16 +51,16 @@ CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callbac
             whatUpdate = 'major';
         }
         else if (Number(latestMinor) > Number(currentMinor)) {
-            if (whatUpdate) return;
-
             isMinor = true;
             whatUpdate = 'minor';
         }
         else if (Number(latestPatch) > Number(currentPatch)) {
-            if (whatUpdate) return;
-
             isPatch = true;
             whatUpdate = 'bug-fixing';
+        }
+        else {
+            isPrerelease = true;
+            whatUpdate = latestMay;
         }
 
         callback(
@@ -76,12 +76,14 @@ CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callbac
                     major: latestMajor,
                     minor: latestMinor,
                     patch: latestPatch,
+                    prerelease: latestMay,
                     may: latestMay
                 },
                 updateInfo: {
                     major: isMajor,
                     minor: isMinor,
-                    patch: isPatch
+                    patch: isPatch,
+                    prerelease: isPrerelease
                 }
             }
         );
@@ -93,9 +95,9 @@ CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callbac
     });
 };
 
-CheckVersion.checkCoreUpdate = function checkCoreUpdate() {
+CheckVersion.checkCoreUpdate = function checkCoreUpdate(cb) {
     CheckVersion.checkUpdate('dalao-proxy', version, (err, needUpdate, updateData) => {
-        if (err || !needUpdate) return;
+        if (err || !needUpdate) return cb && cb();
 
         const { latestVersion, times, whatUpdate, latest } = updateData;
         const { major, minor, patch } = latest;
@@ -105,10 +107,12 @@ CheckVersion.checkCoreUpdate = function checkCoreUpdate() {
 > 🎉  A new ${whatUpdate} version (${latestVersion}) of dalao-proxy has published at ${updateTime}!
   Type \`npm i -g dalao-proxy@${latestVersion}\` to update.`))
         console.log(chalk.grey(`  See https://github.com/CalvinVon/dalao-proxy/blob/master/CHANGELOG.md#${major}${minor}${patch}-${updateTime} to get latest infomation of version ${latestVersion} \n\n`));
+
+        cb && cb();
     });
 };
 
-CheckVersion.checkAllPluginsUpdate = function checkAllPluginsUpdate(pluginList) {
+CheckVersion.checkAllPluginsUpdate = function checkAllPluginsUpdate(pluginList, cb) {
     const updateTable = new Table({
         head: ['Plugin', 'Current Version', 'Latest Version', 'Release Date', 'Update Type'],
         style: {
@@ -118,7 +122,8 @@ CheckVersion.checkAllPluginsUpdate = function checkAllPluginsUpdate(pluginList) 
     const UPDATE_TYPES = {
         major: chalk.red('major update'),
         minor: chalk.yellow('minor update'),
-        patch: chalk.green('patch update')
+        patch: chalk.green('patch update'),
+        prerelease: chalk.yellow('prerelease update'),
     };
 
     let index = 0;
@@ -128,8 +133,10 @@ CheckVersion.checkAllPluginsUpdate = function checkAllPluginsUpdate(pluginList) 
         checkSinglePlugin(plugin, () => {
             if (index >= pluginList.length - 1) {
                 if (updateTable.length) {
-                    console.log(chalk.yellow('\n> The latest version of belowing plugins are available'));
+                    console.log(chalk.yellow('\n[check version] The latest version of belowing plugins are available'));
                     console.log(updateTable.toString())
+
+                    cb && cb();
                 }
             }
             else {
@@ -142,20 +149,20 @@ CheckVersion.checkAllPluginsUpdate = function checkAllPluginsUpdate(pluginList) 
         if (plugin.meta.isBuildIn) return next();
 
         const pluginVersion = plugin.meta.version;
-        CheckVersion.checkUpdate(plugin.id, pluginVersion, (err, needUpdate, versionData) => {
+        CheckVersion.checkUpdate(plugin.meta.name, pluginVersion, (err, needUpdate, versionData) => {
             if (err || !needUpdate) {
                 return next();
             }
 
-            const { latestVersion, times, updateInfo } = versionData;
-            const { major, minor, patch } = updateInfo;
+            const { latestVersion, times, updateInfo, whatUpdate } = versionData;
+            const { major, minor, patch, prerelease } = updateInfo;
 
             updateTable.push([
-                plugin.id,
+                plugin.meta.name,
                 pluginVersion,
                 latestVersion,
                 times[latestVersion],
-                major ? UPDATE_TYPES.major : minor ? UPDATE_TYPES.minor : patch
+                major ? UPDATE_TYPES.major : minor ? UPDATE_TYPES.minor : patch ? UPDATE_TYPES.patch : prerelease ? UPDATE_TYPES.prerelease : whatUpdate
             ]);
 
             next();

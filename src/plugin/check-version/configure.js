@@ -13,7 +13,8 @@ const defaultConfig = {
 module.exports = {
     setting() {
         return {
-            optionsField: 'check'
+            optionsField: 'check',
+            defaultEnable: true
         }
     },
     parser(rawConfig) {
