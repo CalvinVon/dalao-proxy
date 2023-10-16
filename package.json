@@ -1,6 +1,6 @@
 {
     "name": "dalao-proxy",
-    "version": "1.0.0-beta.10",
+    "version": "1.0.0-beta.11",
     "description": "An expandable HTTP proxy based on the plug-in system for frontend developers with request caching request mock and development!",
     "main": "bin/dalao-proxy",
     "bin": {
@@ -21,6 +21,7 @@
     "license": "MIT",
     "repository": "https://github.com/CalvinVon/dalao-proxy.git",
     "dependencies": {
+        "@dalao-proxy/utils": "^1.0.0-beta",
         "chalk": "^2.4.2",
         "cli-spinner": "^0.2.10",
         "cli-table3": "^0.5.1",
@@ -31,8 +32,8 @@
         "moment": "^2.26.0",
         "npm": "^6.14.5",
         "request": "^2.88.2",
-        "through2": "^3.0.1",
-        "@dalao-proxy/utils": "^1.0.0-beta"
+        "semver": "^7.5.4",
+        "through2": "^3.0.1"
     },
     "engines": {
         "node": ">=8"
