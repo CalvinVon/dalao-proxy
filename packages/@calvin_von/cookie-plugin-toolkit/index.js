@@ -14,6 +14,10 @@ function beforeCreate() {
 
     pluginConfig = this.config;
     cookie = Util.Cookie.get(pluginConfig.platform);
+    Util.Cookie.watch(() => {
+        Util.log('cookie file changes detected');
+        cookie = Util.Cookie.get(pluginConfig.platform);
+    });
     attachField = pluginConfig.attachField || 'cookie'
     if (Array.isArray(pluginConfig.attachAt)) {
         attachAt = pluginConfig.attachAt || [];

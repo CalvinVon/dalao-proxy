@@ -30,7 +30,7 @@ Cookie.write = (cookies, platform) => {
  * 
  * @param {string} [platform] 
  */
-Cookie.get = (platform) => {
+Cookie.get = platform => {
   try {
     fs.ensureFileSync(Cookie.filePath);
     const json = fs.readJsonSync(Cookie.filePath) || {};
@@ -42,6 +42,19 @@ Cookie.get = (platform) => {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * 
+ * @param {string} [platform] 
+ */
+Cookie.watch = (callback) => {
+  fs.ensureFile(Cookie.filePath, (err) => {
+    if (err) return;
+
+    fs.unwatchFile(Cookie.filePath, callback);
+    fs.watchFile(Cookie.filePath, callback);
+  });
 }
 
 Auth.filePath = path.join(
