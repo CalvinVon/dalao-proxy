@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/cookie-plugin-toolkit",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A dalao-proxy plugin for auto-fetch cookies",
   "keywords": [
     "dalao-proxy",

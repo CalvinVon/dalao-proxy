@@ -28,9 +28,16 @@ request.interceptors.request.use(config => {
 request.interceptors.response.use(
   res => {
     Util.log(`${res.config.method} ${res.config.url} ${res.status}`);
-    if (res.status === 200 || res.status === 302) return res;
-    if (res.data?.errno === 0) {
-      return res;
+    if (res.status === 302) return res;
+    if (res.data) {
+      if (res.data?.errno === 0) {
+        return res;
+      }
+    }
+    else {
+      if (res.status === 200) {
+        return res;
+      }
     }
     return Promise.reject(res);
   },
