@@ -42,14 +42,19 @@ function shouldExclude(url) {
 
 function rewriteUrl(url) {
   let newUrl = addHttpProtocol(url);
+  let matched = false;
   if (Array.isArray(rewrite) && rewrite.length) {
     rewrite.forEach(({ from, to }) => {
       const replaceText = to;
       const reg = new RegExp(from);
-      newUrl = newUrl.replace(reg, replaceText);
+      matched = reg.test(newUrl);
+      if (matched) {
+        newUrl = newUrl.replace(reg, replaceText);
+      }
     });
   }
-  else {
+
+  if (!matched) {
     newUrl = splitTargetAndPath(newUrl).path;
   }
 
