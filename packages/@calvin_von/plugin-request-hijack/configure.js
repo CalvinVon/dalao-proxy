@@ -24,6 +24,9 @@ function setting() {
  * @param {string} version
  */
 function parser(requestHijack, proxyTable, target) {
+  const defaults = this.context.config.defaults || {};
+  const { hostRewrite } = defaults.route || { hostRewrite: {} };
+  const { rewriteString } = this.context.exports.Utils || { rewriteString: v => v };
   const {
     rewrite: _rewrite,
     smartInfer
@@ -35,7 +38,7 @@ function parser(requestHijack, proxyTable, target) {
     Object.keys(proxyTable).forEach(key => {
       const { target: ruleTarget, path = '' } = proxyTable[key];
       rewrite.push({
-        from: addHttpProtocol(ruleTarget || target) + path,
+        from: rewriteString(addHttpProtocol(ruleTarget || target), hostRewrite) + path,
         to: key
       });
     });
