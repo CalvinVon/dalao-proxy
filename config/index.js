@@ -1,3 +1,5 @@
+const { getIPv4Address } = require('../src/utils');
+
 const version = require('../package.json').version;
 
 const config = {
@@ -19,6 +21,13 @@ const config = {
     },
     "plugins": [
         "BuildIn:plugin/check-version"
-    ]
+    ],
+    defaults: {
+        route: {
+            hostRewrite: {
+                '{{host}}': getIPv4Address()
+            }
+        }
+    }
 };
 module.exports = config;

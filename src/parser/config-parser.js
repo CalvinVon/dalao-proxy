@@ -14,7 +14,8 @@ const {
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
-    getIPv4Address
+    getType,
+    rewriteString,
 } = require('../utils');
 
 const parseEmitter = new EventEmitter();
@@ -219,14 +220,15 @@ function parseRouter(config) {
             ['target', target],
             ['changeOrigin', changeOrigin],
             ['pathRewrite', {}],
-            ['hostRewrite', {}],
+            // ['hostRewrite', config.defaults.route.hostRewrite],
             ['headers', {}],
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
         
+        const defaultsHostRewrite = config.defaults.route.hostRewrite;
         router.target = addHttpProtocol(router.target);
-        router.hostRewrite['{{host}}'] = getIPv4Address();
+        router.target = rewriteString(addHttpProtocol(router.target), defaultsHostRewrite);
 
         outputTable.push(resolveRouteProxyMap(proxyPath, router));
 
@@ -243,8 +245,15 @@ function parseRouter(config) {
  * @return {any} resolvedValue
  */
 function checkRouteConfig(router, [localKey, defaultValue]) {
-    if (_.isUndefined(router[localKey])) {
+    const route = router[localKey];
+    if (_.isUndefined(route)) {
         router[localKey] = defaultValue;
+    }
+    else if (getType(route) === 'Object') {
+        router[localKey] = {
+            ...defaultValue,
+            ...route
+        }
     }
 
     // checkFn && checkFn(router[localKey]);
