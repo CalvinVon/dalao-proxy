@@ -6,7 +6,6 @@ const _ = require('lodash');
 
 const pwd = process.cwd();
 const defaultConfig = _.cloneDeep(require('../../config'));
-const CheckFunctions = require('./check');
 const { register } = require('../plugin');
 const {
     custom_assign,
@@ -15,6 +14,7 @@ const {
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
+    getIPv4Address
 } = require('../utils');
 
 const parseEmitter = new EventEmitter();
@@ -139,10 +139,10 @@ function mergeConfig(baseConfig, fileConfig) {
     const fileConfig_plain = _.omit(fileConfig, EXTRA_FIELDS_ALL);
     const mergedConfig_plain = _.assignWith({}, baseConfig_plain, fileConfig_plain, custom_assign);
 
-    Object.keys(mergedConfig_plain).forEach(config => {
-        const checkFn = CheckFunctions[config];
-        checkFn && checkFn(mergedConfig_plain[config]);
-    });
+    // Object.keys(mergedConfig_plain).forEach(config => {
+    //     const checkFn = CheckFunctions[config];
+    //     checkFn && checkFn(mergedConfig_plain[config]);
+    // });
 
     // merge extra fields
     const baseConfig_extra_obj = _.pick(baseConfig, EXTRA_FIELDS.obj);
@@ -201,13 +201,13 @@ function parseRouter(config) {
 
     const Table = require('cli-table3');
     const outputTable = new Table({
-        head: [chalk.yellow('Proxy'), chalk.white('Target'), chalk.white('Path Rewrite'), chalk.yellow('Result')]
+        head: [chalk.yellow('Proxy'), chalk.yellow('To'), chalk.white('Path Rewrite'), chalk.green('Result')]
     });
 
     const proxyPaths = Object.keys(proxyTable).sort(pathCompareFactory(1));
 
     proxyPaths.forEach(proxyPath => {
-        if (!CheckFunctions.proxyTable.proxyPath(proxyPath)) return;
+        // if (!CheckFunctions.proxyTable.proxyPath(proxyPath)) return;
         const router = proxyTable[proxyPath];
         /**
          * assign localValue
@@ -215,17 +215,21 @@ function parseRouter(config) {
          * [ localKey, defaultValue, checkFunction ]
          */
         [
-            ['path', '/', CheckFunctions.proxyTable.path],
-            ['target', target, CheckFunctions.proxyTable.target],
+            ['path', '/'],
+            ['target', target],
             ['changeOrigin', changeOrigin],
             ['pathRewrite', {}],
+            ['hostRewrite', {}],
+            ['headers', {}],
         ].forEach(pair => {
             checkRouteConfig(router, pair);
         });
-
+        
         router.target = addHttpProtocol(router.target);
+        router.hostRewrite['{{host}}'] = getIPv4Address();
 
         outputTable.push(resolveRouteProxyMap(proxyPath, router));
+
     });
 
     return outputTable;
@@ -238,12 +242,12 @@ function parseRouter(config) {
  * @param {any} defaultValue
  * @return {any} resolvedValue
  */
-function checkRouteConfig(router, [localKey, defaultValue, checkFn]) {
+function checkRouteConfig(router, [localKey, defaultValue]) {
     if (_.isUndefined(router[localKey])) {
         router[localKey] = defaultValue;
     }
 
-    checkFn && checkFn(router[localKey]);
+    // checkFn && checkFn(router[localKey]);
 }
 
 
@@ -257,6 +261,7 @@ function resolveRouteProxyMap(proxyPath, router) {
         path: overwritePath,
         target: overwriteTarget,
         pathRewrite: overwritePathRewrite,
+        hostRewrite: overwriteHostRewrite,
     } = router;
 
     function pathRewriteToString(pathRewriteMap) {
@@ -287,15 +292,17 @@ function resolveRouteProxyMap(proxyPath, router) {
 
     function resolveProxyRoute() {
         const { target: overwriteTarget_target, path: overwriteTarget_path } = splitTargetAndPath(overwriteTarget);
-        let proxyedPath = joinUrl(overwriteTarget_path, overwritePath, proxyPath);
-        proxyedPath = transformPath(overwriteTarget_target + proxyedPath, overwritePathRewrite);
+
+        const modeReg = /^~(\*?)\s/;
+        let proxyedPath = joinUrl(overwriteTarget_path, overwritePath, proxyPath.replace(modeReg, ''));
+        proxyedPath = transformPath(overwriteTarget_target + proxyedPath, overwriteHostRewrite, overwritePathRewrite);
         return proxyedPath;
     }
 
     return [
         // Proxy
         proxyPath,
-        // Target 
+        // To 
         joinUrl(splitTargetAndPath(overwriteTarget)['path'], overwritePath),
         // Path Rewrite
         pathRewriteToString(overwritePathRewrite),

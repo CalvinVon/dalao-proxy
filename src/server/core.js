@@ -12,12 +12,17 @@ const { version } = require('../../config/index');
 const { program } = require('..');
 
 const {
+    getType,
+    fixJson,
+
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
     transformPath,
-    fixJson,
-    getType
+    locationMatch,
+
+    formatHeaders,
+    parseHeaders,
 } = require('../utils');
 
 
@@ -261,22 +266,9 @@ function proxyRequestWrapper(config, corePlugins) {
              */
             .then(context => {
                 // Matching strategy
-                const proxyPaths = Object.keys(proxyTable);
-                let mostAccurateMatch;
-                let matchingLength = url.length;
-                for (let index = 0; index < proxyPaths.length; index++) {
-                    const proxyPath = proxyPaths[index];
-                    const matchReg = new RegExp(`^${proxyPath}(.*)`);
-                    let matchingResult;
-                    if (matchingResult = url.match(matchReg)) {
-                        const currentLenth = matchingResult[1].length;
-                        if (currentLenth < matchingLength) {
-                            matchingLength = currentLenth;
-                            mostAccurateMatch = proxyPaths[index];
-                            matched = matchingResult;
-                        }
-                    }
-                }
+                const locationMatcher = locationMatch(url, proxyTable);
+                const mostAccurateMatch = locationMatcher.matched;
+                matched = locationMatcher.matchResult;
 
                 let proxyPath;
                 let matchedRoute;
@@ -340,23 +332,24 @@ function proxyRequestWrapper(config, corePlugins) {
                     // route config
                     const {
                         path: overwritePath,
-                        target: overwriteHost,
+                        target: overwriteTarget,
                         pathRewrite: overwritePathRewrite,
+                        hostRewrite: overwriteHostRewrite,
                     } = matchedRoute;
 
-                    const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteHost);
+                    const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteTarget);
                     const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
-                    const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwritePathRewrite);
+                    const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwriteHostRewrite, overwritePathRewrite);
 
                     // invalid request
 
-                    if (new RegExp(`\\b${serverHost}:${port}\\b`).test(overwriteHost)) {
+                    if (new RegExp(`\\b${serverHost}:${port}\\b`).test(overwriteTarget)) {
                         res.writeHead(403, {
                             'Content-Type': 'text/html; charset=utf-8'
                         });
                         res.end(`
                         <h1>🔴  403 Forbidden</h1>
-                        <p>Path to ${overwriteHost} proxy cancelled</p>
+                        <p>Path to ${overwriteTarget} proxy cancelled</p>
                         <h3>Can NOT proxy request to proxy server address, which may cause endless proxy loop.</h3>
                     `);
 
@@ -403,7 +396,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 const { path: matchedPath, redirectMeta = {} } = context.matched;
 
                 const x = _request(proxyUrl, { gzip: true });
-                setProxyRequestHeaders(x, matchedRoute);
+                setProxyRequestHeaders(x, matchedRoute, proxyUrl);
 
                 return new Promise(resolve => {
                     const waitingList = [];
@@ -419,7 +412,7 @@ function proxyRequestWrapper(config, corePlugins) {
                          * Instance of http.IncomingMessage
                          */
                         context.proxy.response = response;
-                        setResponseHeaders(response.headers);
+                        setResponseHeaders(response.headers, matchedRoute);
                         res.writeHead(response.statusCode, response.statusMessage);
 
                         // collect request data
@@ -736,8 +729,8 @@ function proxyRequestWrapper(config, corePlugins) {
 
 
         // set headers for proxy request
-        function setProxyRequestHeaders(proxyRequest, matchedRoute) {
-            const { changeOrigin, target } = matchedRoute || {};
+        function setProxyRequestHeaders(proxyRequest, matchedRoute, proxyUrl) {
+            const { changeOrigin, headers } = matchedRoute || {};
 
             const clientHeaders = formatHeaders(req.headers);
             const mergeList = [];
@@ -745,25 +738,22 @@ function proxyRequestWrapper(config, corePlugins) {
             const rewriteHeaders = formatHeaders({
                 'Connection': 'close',
                 'Transfer-Encoding': 'chunked',
-                'Host': new URL(target).host,
-                'Origin': changeOrigin ? new URL(target).origin : clientHeaders['origin'],
+                'Host': new URL(proxyUrl).host,
+                'Origin': changeOrigin ? new URL(proxyUrl).origin : clientHeaders['origin'],
                 'Content-Length': null
             });
 
-            // originalHeaders < rewriteHeaders < userHeaders
+            // originalHeaders < rewriteHeaders < userHeaders < routeHeaders
             mergeList.push(rewriteHeaders);
-            if (typeof (userHeaders.request) === 'object') {
-                mergeList.push(formatHeaders(userHeaders.request));
-            }
-            else if (typeof (userHeaders) === 'object') {
-                mergeList.push(formatHeaders(userHeaders));
-            }
+            mergeList.push(formatHeaders(parseHeaders(userHeaders, 'request')));
+            mergeList.push(formatHeaders(parseHeaders(headers, 'request')));
 
             setHeadersFor(proxyRequest, Object.assign({}, clientHeaders, ...mergeList));
         }
 
         // set headers for response
-        function setResponseHeaders(headers) {
+        function setResponseHeaders(headers, matchedRoute) {
+            const { headers: routeHeaders } = matchedRoute || {};
             const mergeList = [];
             const origin = formatHeaders(req.headers)['origin'];
             const rewriteHeaders = {
@@ -778,14 +768,10 @@ function proxyRequestWrapper(config, corePlugins) {
 
             const proxyResponseHeaders = formatHeaders(headers || {});
 
-            // originalHeaders < rewriteHeaders < userHeaders
+            // originalHeaders < rewriteHeaders < userHeaders < routeHeaders
             mergeList.push(rewriteHeaders);
-            if (typeof (userHeaders.response) === 'object') {
-                mergeList.push(formatHeaders(userHeaders.response));
-            }
-            else if (typeof (userHeaders) === 'object') {
-                mergeList.push(formatHeaders(userHeaders));
-            }
+            mergeList.push(formatHeaders(parseHeaders(userHeaders, 'response')));
+            mergeList.push(formatHeaders(parseHeaders(routeHeaders, 'response')));
 
             const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList, {
                 'content-encoding': null,
@@ -810,19 +796,6 @@ function proxyRequestWrapper(config, corePlugins) {
             }
         }
 
-
-        /**
-         * format headers to upper case word
-         * @param {Object} headers
-         */
-        function formatHeaders(headers) {
-            const formattedHeaders = {};
-            Object.keys(headers).forEach(key => {
-                const header = key.toLowerCase();
-                formattedHeaders[header] = headers[key];
-            });
-            return formattedHeaders;
-        }
 
 
         /********************************************************/

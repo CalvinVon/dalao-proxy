@@ -54,38 +54,81 @@ function pathCompareFactory(order) {
     }
 }
 
+
+function rewriteString(string, map) {
+    let result = string;
+    if (!_.isEmpty(map)) {
+        Object.keys(map).forEach(key => {
+            const rewriteReg = new RegExp(key);
+            const replaceStr = map[key];
+
+            result = result
+                .replace(rewriteReg, (...matched) => {
+                    return replaceStr.replace(/\$(\d+)/g, (_, index) => {
+                        return matched[index];
+                    });
+                })
+        });
+    }
+    return result;
+}
+
 /**
 * Proxy path transformer
-* @param {String} url origin url
-* @param {String} target proxy target url
+* @param {String} url proxy target url
 * @param {Object} pathRewriteMap path rewrite rule map
 */
-function transformPath(target, pathRewriteMap) {
+function transformPath(url, hostRewriteMap, pathRewriteMap) {
     try {
-        const { target: targetTarget, path: targetPath } = splitTargetAndPath(target);
-        if (!_.isEmpty(pathRewriteMap)) {
-            let result = targetPath;
+        const { target: targetTarget, path: targetPath } = splitTargetAndPath(url);
 
-            Object.keys(pathRewriteMap).forEach(path => {
-                const rewriteReg = new RegExp(path);
-                const replaceStr = pathRewriteMap[path];
-
-                result = result
-                    .replace(rewriteReg, (...matched) => {
-                        return replaceStr.replace(/\$(\d+)/g, (_, index) => {
-                            return matched[index];
-                        });
-                    })
-            });
-
-            return targetTarget + result.replace(/\/\//g, '/');
-        }
-        else {
-            return target;
-        }
+        const target = rewriteString(targetTarget, hostRewriteMap);
+        const path = rewriteString(targetPath, pathRewriteMap).replace(/\/\//g, '/');
+        return target + path;
 
     } catch (error) {
         throw new Error('Can\'t rewrite proxy path. ' + error.message);
+    }
+}
+
+/**
+ * Route matcher
+ * @param {string} url 
+ * @param {Record<string, any>} proxyTable 
+ */
+function locationMatch(url, proxyTable) {
+    const proxyPaths = Object.keys(proxyTable);
+    let mostAccurateMatch;
+    let matched;
+    let matchingLength = url.length;
+    for (let index = 0; index < proxyPaths.length; index++) {
+        const proxyPath = proxyPaths[index];
+        const modeReg = /^~(\*?)\s/;
+        let matchReg;
+        // If the matched path starts with '~'
+        // then proceed with RegExp matching
+        let modeResult;
+        if (modeResult = proxyPath.match(modeReg)) {
+            const ignoreCase = modeResult[1] === '*';
+            matchReg = new RegExp(`${proxyPath.replace(modeReg, '')}(.*)`, ignoreCase ? 'i' : '');
+        }
+        else {
+            matchReg = new RegExp(`^${proxyPath}(.*)`);
+        }
+        let matchingResult;
+        if (matchingResult = url.match(matchReg)) {
+            const currentLenth = matchingResult[1].length;
+            if (currentLenth < matchingLength) {
+                matchingLength = currentLenth;
+                mostAccurateMatch = proxyPaths[index];
+                matched = matchingResult;
+            }
+        }
+    }
+
+    return {
+        matched: mostAccurateMatch,
+        matchResult: matched
     }
 }
 
@@ -204,18 +247,56 @@ function printWelcome(version) {
     console.log('\n');
 };
 
+
+/**
+ * format headers to upper case word
+ * @param {Object} headers
+ */
+function formatHeaders(headers) {
+    const formattedHeaders = {};
+    Object.keys(headers).forEach(key => {
+        const header = key.toLowerCase();
+        formattedHeaders[header] = headers[key];
+    });
+    return formattedHeaders;
+}
+
+
+/**
+ * @param {object} headerSetting 
+ * @param {'request'|'response'} type 
+ */
+function parseHeaders(headerSetting, type) {
+    let headers = {};
+    if (typeof (headerSetting[type]) === 'object') {
+        headers = headerSetting[type];
+    }
+    else if (typeof (headerSetting) === 'object') {
+        headers = headerSetting;
+    }
+    return headers;
+}
+
 module.exports = {
     printWelcome,
     isDebugMode,
+    
     HTTP_PROTOCOL_REG,
     custom_assign,
+
     joinUrl,
     addHttpProtocol,
     splitTargetAndPath,
     pathCompareFactory,
+    rewriteString,
     transformPath,
+    locationMatch,
+
     fixJson,
     getIPv4Address,
     getType,
     defineProxy,
+
+    formatHeaders,
+    parseHeaders,
 }
