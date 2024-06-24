@@ -1,5 +1,7 @@
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, reloadModifiedPlugins } = require('./plugin');
+const { RC_FILE_PATH } = require('../config/script');
+const fs = require('fs');
 
 // * Why collect connections?
 // When HTTP server reloads, node.js would keep all existing connections,
@@ -51,7 +53,15 @@ function loadPlugins(program, config) {
         reloadModifiedPlugins();
     }
 
-    const newPluginNames = [...config.plugins];
+    let pluginList = [];
+    if (fs.existsSync(RC_FILE_PATH)) {
+        try {
+            pluginList = JSON.parse(fs.readFileSync(RC_FILE_PATH)) || [];
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+    const newPluginNames = [...new Set([...config.plugins, ...pluginList])];
     loadedPlugins.forEach(plugin => {
         const foundIndex = newPluginNames.findIndex(name => {
             return Plugin.resolveSettingFromConfig(name).name === plugin.name;

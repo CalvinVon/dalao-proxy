@@ -191,43 +191,18 @@ function getType(value, type) {
  * @param {Function} [opt.getter] trigger when get value
  */
 function defineProxy(target, opt) {
-
     const { setter, getter } = opt || {};
-    const isObject = getType(target, 'Object');
-    const isArray = getType(target, 'Array');
-
-    let _target;
-    if (isObject) {
-        // 如果这个对象已经被代理过了，则直接返回
-        if (target.__isProxy__) {
-            return target;
-        }
-        _target = { ...target };
-    }
-    else if (isArray) {
-        _target = [...target];
-    }
-    else {
-        return target;
-    }
-
-    for (const key in _target) {
-        const value = _target[key];
-        _target[key] = defineProxy(value, opt);
-    }
-    return new Proxy(_target, {
+    return new Proxy(target, {
         set: function (t, p, v) {
             if (typeof setter === 'function' && t[p] !== v) {
                 setter.call(this, t, p, v);
             }
-            if (p === '__isProxy__') return;
             return Reflect.set(t, p, v);
         },
         get: function (t, p) {
             if (typeof getter === 'function') {
                 getter.call(this, t, p, v);
             }
-            if (p === '__isProxy__') return true;
             return Reflect.get(t, p);
         }
     })

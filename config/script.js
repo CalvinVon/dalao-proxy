@@ -17,6 +17,7 @@ const RC_FILE_PATH = path.resolve(os.homedir(), RC_FILE_NAME);
  */
 const presetPlugins = [
     "@calvin_von/proxy-plugin-cache",
+    "@calvin_von/plugin-request-hijack",
 ];
 
 module.exports = {

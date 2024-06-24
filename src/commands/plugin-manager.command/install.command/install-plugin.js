@@ -1,14 +1,21 @@
-const { packageInstaller } = require('@dalao-proxy/utils');
-const path = require('path');
+const { packageInstaller, setAsOriginalUser } = require('@dalao-proxy/utils');
+const { RC_FILE_PATH } = require('../../../../config/script');
 const fs = require('fs');
 
-// sync plugins to inner config file
 function syncInnerConfig(names, { isAdd, before, after }) {
     // remove versions
     const pluginNames = names.map(it => it.replace(/@(\d\.?(-.+)?)*$/, ''));
-    const baseConfigFilePath = path.join(__dirname, '../../../../config/index.js');
-    const config = require(baseConfigFilePath);
-    const pluginList = config.plugins;
+    // const baseConfigFilePath = path.join(__dirname, '../../../../config/index.js');
+    // const config = require(baseConfigFilePath);
+    let pluginList = [];
+    if (fs.existsSync(RC_FILE_PATH)) {
+        try {
+            pluginList = JSON.parse(fs.readFileSync(RC_FILE_PATH));
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
     const isExsit = plugin => pluginList.indexOf(plugin) !== -1;
 
     if (isAdd) {
@@ -30,16 +37,23 @@ function syncInnerConfig(names, { isAdd, before, after }) {
             });
         }
         else {
-            config.plugins = [...new Set([...config.plugins, ...pluginNames])];
+            pluginList = [...new Set([...pluginList, ...pluginNames])];
         }
     }
     else {
-        config.plugins = config.plugins.filter(it => !pluginNames.some(name => name === it));
+        pluginList = pluginList.filter(it => !pluginNames.some(name => name === it));
     }
 
-    const tpl = `const config = ${JSON.stringify(config, null, 4)};\nmodule.exports = config;`;
+    const fileContent = JSON.stringify(pluginList);
 
-    fs.writeFileSync(baseConfigFilePath, tpl, { encoding: 'utf8' });
+    try {
+        setAsOriginalUser();
+        fs.writeFileSync(RC_FILE_PATH, fileContent, { encoding: 'utf8' });
+    } catch (error) {
+        console.warn("Write global plugin config file error");
+        console.warn(error);
+    }
+
 }
 
 module.exports = {

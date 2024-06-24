@@ -8,9 +8,7 @@ const pluginsToInstall = [...presetPlugins];
 
 if (fs.existsSync(RC_FILE_PATH)) {
     const config = fs.readFileSync(RC_FILE_PATH);
-    const content = JSON.parse(config);
-
-    const formerInstalledPlugins = content.plugins;
+    const formerInstalledPlugins = JSON.parse(config);
     formerInstalledPlugins.forEach(plugin => {
         if (pluginsToInstall.indexOf(plugin) === -1) {
             if (!isBuildIn(plugin)) {
@@ -23,15 +21,15 @@ if (fs.existsSync(RC_FILE_PATH)) {
 const { sudo, root } = getProcessUserInfo();
 const isLocally = !(hasGlobalArgs() || sudo);
 
-if (!isLocally || sudo || root) {
-    const configFilePath = `${getGlobalPackagePath()}dalao-proxy/config/index.js`;
-    try {
-        fs.chmodSync(path.join(__dirname, '../config/index.js'), '666');
-        console.log(`Change mode of ${configFilePath} success.`);
-    } catch (error) {
-        console.error(`Error when change mode of config files, you may need run \`sudo chmod 664 ${configFilePath}\``);
-    }
-}
+// if (!isLocally || sudo || root) {
+//     const configFilePath = `${getGlobalPackagePath()}dalao-proxy/config/index.js`;
+//     try {
+//         fs.chmodSync(path.join(__dirname, '../config/index.js'), '666');
+//         console.log(`Change mode of ${configFilePath} success.`);
+//     } catch (error) {
+//         console.error(`Error when change mode of config files, you may need run \`sudo chmod 664 ${configFilePath}\``);
+//     }
+// }
 
 install(pluginsToInstall, {
     isAdd: true,

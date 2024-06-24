@@ -6,6 +6,9 @@ const _ = require('lodash');
 
 const pwd = process.cwd();
 const defaultConfig = _.cloneDeep(require('../../config'));
+const defaults = require('../../config/defaults');
+defaultConfig.defaults = defaults;
+
 const { register } = require('../plugin');
 const {
     custom_assign,
@@ -226,7 +229,7 @@ function parseRouter(config) {
             checkRouteConfig(router, pair);
         });
         
-        const defaultsHostRewrite = config.defaults.route.hostRewrite;
+        const defaultsHostRewrite = defaults.route.hostRewrite;
         router.target = addHttpProtocol(router.target);
         router.target = rewriteString(addHttpProtocol(router.target), defaultsHostRewrite);
 
