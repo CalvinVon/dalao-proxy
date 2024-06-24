@@ -9,6 +9,8 @@ const fs = require('fs');
 const connections = new Set();
 let reloading;
 
+const _pluginMap = new Map();
+
 function reloadProgram(program, reloadLoadedPlugins) {
     if (!reloading) {
         reloading = true;
@@ -61,14 +63,15 @@ function loadPlugins(program, config) {
             console.warn(error);
         }
     }
-    const newPluginNames = [...new Set([...config.plugins, ...pluginList])];
-    loadedPlugins.forEach(plugin => {
-        const foundIndex = newPluginNames.findIndex(name => {
-            return Plugin.resolveSettingFromConfig(name).name === plugin.name;
-        });
+    const newPluginNames = [...new Set([...config.plugins, ...pluginList])]
+        .filter(name => !_pluginMap.get(name));
+    // loadedPlugins.forEach(plugin => {
+    //     const foundIndex = newPluginNames.findIndex(name => {
+    //         return Plugin.resolveSettingFromConfig(name).name === plugin.name;
+    //     });
 
-        newPluginNames.splice(foundIndex, 1);
-    });
+    //     newPluginNames.splice(foundIndex, 1);
+    // });
 
     instantiatedPlugins(program, newPluginNames);
     // reload child plugins
@@ -87,8 +90,11 @@ function instantiatedPlugins(program, pluginsNames) {
     // register._reset();
 
     pluginsNames.forEach(configName => {
+        if (_pluginMap.get(configName)) return;
+        
         const { name, setting } = Plugin.resolveSettingFromConfig(configName);
         const plugin = new Plugin(name, program.context, setting);
+        _pluginMap.set(configName, plugin);
         if (!plugin.meta.error) {
             program.context.pluginIds.add(plugin.id);
             program.context.plugins.push(plugin);
