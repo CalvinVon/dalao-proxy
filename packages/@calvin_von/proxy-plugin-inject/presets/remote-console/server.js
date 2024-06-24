@@ -1,6 +1,6 @@
 const chalk = require('chalk');
 const WebSocket = require('ws');
-const cp = require('console-probe');
+const { format: prettyFormat } = require('pretty-format')
 const RemoteDebug = module.exports;
 let _client;
 
@@ -43,7 +43,9 @@ function onClientMessage(rawData) {
 
     switch (type) {
         case 'result':
-            cp.json(data);
+            console.log(chalk.blue(prettyFormat(data, {
+                highlight: true,
+            })));
             break;
 
         default:

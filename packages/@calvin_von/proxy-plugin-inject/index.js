@@ -68,7 +68,7 @@ module.exports = {
         const serverAddress = this.context.server.address;
         const { rules } = this.config;
 
-        if (!/(^text\/|^application\/(json|javascript|ecmascript|octet-stream))/.test(context.proxy.response.headers['content-type'])) {
+        if (!/(^text\/|^application\/(xhtml+xml))/.test(context.proxy.response.headers['content-type'])) {
             return next(null, context.chunk);
         }
 
