@@ -238,7 +238,7 @@ function proxyRequestWrapper(config, corePlugins) {
         let matched;
 
         res.setHeader('Via', 'dalao-proxy/' + version);
-        res.setHeader('Connection', 'close');
+        res.setHeader('Connection', 'keep-alive');
 
         Promise.resolve()
             .then(() => {
@@ -395,7 +395,11 @@ function proxyRequestWrapper(config, corePlugins) {
                 const { uri: proxyUrl, route: matchedRoute } = context.proxy;
                 const { path: matchedPath, redirectMeta = {} } = context.matched;
 
-                const x = _request(proxyUrl, { gzip: true });
+                const x = _request(proxyUrl, {
+                    gzip: true,
+                    forever: true,
+                    timeout: 2 * 60 * 60
+                });
                 setProxyRequestHeaders(x, matchedRoute, proxyUrl);
 
                 return new Promise(resolve => {
@@ -736,7 +740,7 @@ function proxyRequestWrapper(config, corePlugins) {
             const mergeList = [];
 
             const rewriteHeaders = formatHeaders({
-                'Connection': 'close',
+                'Connection': 'keep-alive',
                 'Transfer-Encoding': 'chunked',
                 'Host': new URL(proxyUrl).host,
                 'Origin': changeOrigin ? new URL(proxyUrl).origin : clientHeaders['origin'],
@@ -758,7 +762,7 @@ function proxyRequestWrapper(config, corePlugins) {
             const origin = formatHeaders(req.headers)['origin'];
             const rewriteHeaders = {
                 'transfer-encoding': 'chunked',
-                'connection': 'close',
+                'connection': 'keep-alive',
                 'via': 'dalao-proxy/' + version,
                 'access-control-allow-origin': origin ? addHttpProtocol(origin) : '*',
                 'access-control-allow-methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',

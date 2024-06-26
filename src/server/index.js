@@ -68,6 +68,10 @@ function createProxyServer(program) {
 
     // create server
     const server = http.createServer(dalaoProxy.httpCallback(config, plugins));
+    server.timeout = 2 * 60 * 1000;
+    server.maxConnections = 1000;
+    server.keepAliveTimeout = 10 * 1000;
+    server.headersTimeout = 60 * 1000;
 
     // attach server to port
     attachServerListener(program, server, config);
