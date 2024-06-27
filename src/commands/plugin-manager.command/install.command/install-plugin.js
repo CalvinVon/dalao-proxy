@@ -1,5 +1,5 @@
 const { packageInstaller, setAsOriginalUser } = require('@dalao-proxy/utils');
-const { RC_FILE_PATH } = require('../../../../config/script');
+const { RC_FILE_PATH } = require('../../../../config/plugins');
 const fs = require('fs');
 
 function syncInnerConfig(names, { isAdd, before, after }) {

@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { RC_FILE_PATH } = require('../config/script');
+const { RC_FILE_PATH } = require('../config/plugins');
 const { plugins } = require('../config');
 
 const fileContent = JSON.stringify(plugins);

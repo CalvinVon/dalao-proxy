@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { RC_FILE_PATH, presetPlugins } = require('../config/script');
+const { RC_FILE_PATH, presetPlugins } = require('../config/plugins');
 const { hasGlobalArgs, getProcessUserInfo, getGlobalPackagePath } = require('@dalao-proxy/utils');
 const { install } = require('../src/commands/plugin-manager.command/install.command/install-plugin');
 

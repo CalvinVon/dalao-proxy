@@ -1,6 +1,6 @@
 const ConfigParser = require('./parser/config-parser');
 const { Plugin, reloadModifiedPlugins } = require('./plugin');
-const { RC_FILE_PATH } = require('../config/script');
+const { RC_FILE_PATH } = require('../config/plugins');
 const fs = require('fs');
 
 // * Why collect connections?
