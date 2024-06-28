@@ -1,15 +1,35 @@
+const EventType = {
+    CONNECT: 'CONNECT',
+    /** 服务输入的代码 */
+    SERVER_CODE_IPT: 'SERVER_CODE_IPT',
+    /** 客户端执行结果 */
+    CLIENT_RUN_RESULT: 'CLIENT_RUN_RESULT',
+}
+
+const originLog = window.console.log.bind(window.console);
+
+
 window.addEventListener('load', function () {
     const socketUrl = "ws://" + window.location.host + "/__plugin_inject__/remote-console";
     const ws = new WebSocket(socketUrl);
     ws.onopen = () => {
-        console.log('[Plugin inject] remote debug client connected');
+        originLog('[Plugin inject] remote debug client connected');
     };
     ws.onclose = ev => {
-        console.log('[Plugin inject] remote debug client connected');
+        originLog('[Plugin inject] remote debug client connected');
     };
     ws.onmessage = ev => {
         onMessageReceive(ws, ev.data);
     };
+
+    // hijack console.log
+    window.console.log = window.log = (...args) => {
+        ws.send(JSON.stringify({
+            type: EventType.CLIENT_RUN_RESULT,
+            data: args
+        }, null, 2));
+        return originLog.call(null, ...args);
+    }
 });
 
 
@@ -17,12 +37,13 @@ function onMessageReceive(ws, rawData) {
     const { type, data } = JSON.parse(rawData);
 
     switch (type) {
-        case 'connect':
-            console.log(data);
+        case EventType.CONNECT:
+            originLog(data);
             break;
 
-        case 'code':
+        case EventType.SERVER_CODE_IPT:
             runCommand(ws, data);
+
         default:
             break;
     }
@@ -30,12 +51,12 @@ function onMessageReceive(ws, rawData) {
 
 
 function runCommand(ws, cmd) {
-    console.log('[Plugin inject] remote console');
-    console.log(cmd);
+    originLog('[Plugin inject] remote console');
+    originLog(cmd);
     const result = eval(cmd);
-    console.log(result);
+    originLog(result);
     ws.send(JSON.stringify({
-        type: 'result',
+        type: EventType.CLIENT_RUN_RESULT,
         data: result
     }));
     return result;

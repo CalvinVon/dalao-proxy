@@ -1,6 +1,14 @@
+const EventType = {
+    CONNECT: 'CONNECT',
+    /** 服务输入的代码 */
+    SERVER_CODE_IPT: 'SERVER_CODE_IPT',
+    /** 客户端执行结果 */
+    CLIENT_RUN_RESULT: 'CLIENT_RUN_RESULT',
+}
+
 const chalk = require('chalk');
 const WebSocket = require('ws');
-const { format: prettyFormat } = require('pretty-format')
+const { format: prettyFormat } = require('pretty-format');
 const RemoteDebug = module.exports;
 let _client;
 
@@ -17,7 +25,7 @@ RemoteDebug.attachWsServer = function (server) {
         console.log(chalk.green('\n [Plugin inject] remote debug server connected'));
 
         client.send(JSON.stringify({
-            type: 'connect',
+            type: EventType.CONNECT,
             data: '[Plugin inject] remote debug server connected'
         }));
 
@@ -32,7 +40,7 @@ RemoteDebug.attachWsServer = function (server) {
 
 RemoteDebug.executeScript = function (data) {
     _client.send(JSON.stringify({
-        type: 'code',
+        type: EventType.SERVER_CODE_IPT,
         data
     }));
 }
@@ -42,7 +50,7 @@ function onClientMessage(rawData) {
     const { type, data } = JSON.parse(rawData);
 
     switch (type) {
-        case 'result':
+        case EventType.CLIENT_RUN_RESULT:
             console.log(chalk.blue(prettyFormat(data, {
                 highlight: true,
             })));
