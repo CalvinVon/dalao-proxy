@@ -51,9 +51,13 @@ program
         program
             .option('-C, --config <filepath>', 'use custom config file')
     })
+    
+    // Command: CA cert install
+    .use(Commands.ca)
 
     // Command: Start
     .use(Commands.start)
+    
 
     // Command: Init
     .use(Commands.init)

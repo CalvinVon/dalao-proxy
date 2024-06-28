@@ -4,7 +4,7 @@ const config = {
     version: version,
     "configFileName": "dalao.config",
     "logger": true,
-    "debug": false,
+    "secure": false,
     "watch": true,
     "host": "localhost",
     "port": 8000,

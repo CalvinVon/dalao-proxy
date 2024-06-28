@@ -12,6 +12,7 @@ module.exports = function startCommand(program, register) {
         .version(baseConfig.version)
         .command('start')
         .description('Start the proxy server')
+        .option('-s, --secure', 'enable https server')
         .option('-w, --watch', 'reload when config file changes')
         .option('-P, --port <port>', 'custom proxy server listening port')
         .option('-H, --host <hostname>', 'custom proxy server hostname')
@@ -22,14 +23,14 @@ module.exports = function startCommand(program, register) {
             program.enableInput();
 
             // On config parsed
-            parserEmitter.on('config:parsed', function () {
+            parserEmitter.on('config:parsed', async function () {
                 if (proxyServer) {
-                    proxyServer.close(() => {
-                        proxyServer = ProxyServer.createProxyServer(command);
+                    proxyServer.close(async () => {
+                        proxyServer = await ProxyServer.createProxyServer(command);
                     });
                 }
                 else {
-                    proxyServer = ProxyServer.createProxyServer(command);
+                    proxyServer = await ProxyServer.createProxyServer(command);
                 }
 
             });

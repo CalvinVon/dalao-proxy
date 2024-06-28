@@ -289,6 +289,7 @@ exports.parserEmitter = ConfigParser.emitter;
 // Commands
 exports.commands = {
     start: require('./commands/start.command'),
+    ca: require('./commands/ca.command'),
     init: require('./commands/init.command'),
     pluginManager: require('./commands/plugin-manager.command')
 };

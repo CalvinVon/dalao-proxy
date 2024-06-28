@@ -1,20 +1,24 @@
 const chalk = require('chalk');
 const http = require('http');
+const https = require('https');
 const URL = require('url').URL;
 const dalaoProxy = require('./core');
 const { getIPv4Address } = require('../utils');
 const register = require('../plugin').register;
 const { connections } = require('../runtime');
+const { getCert } = require('../cert');
+
+const networkIp = getIPv4Address();
 
 // attach server to port
 function attachServerListener(program, server, config) {
-    let { host, port } = config;
+    let { host, port, secure } = config;
 
     server.on('listening', function () {
-        const networkIp = getIPv4Address();
 
-        const localAddress = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
-        const networkAddress = networkIp ? `http://${networkIp}:${port}` : 'unavailable';
+        const protocal = `http${secure ? 's' : ''}://`;
+        const localAddress = `${protocal}${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
+        const networkAddress = networkIp ? `${protocal}${networkIp}:${port}` : 'unavailable';
 
         server.address = {
             local: new URL(localAddress),
@@ -60,14 +64,25 @@ function attachServerListener(program, server, config) {
     server.listen(port, host);
 }
 
-function createProxyServer(program) {
+async function createProxyServer(program) {
     const { config, plugins } = program.context;
 
     // print route table
     console.log(program.context.output.routeTable.toString());
 
-    // create server
-    const server = http.createServer(dalaoProxy.httpCallback(config, plugins));
+    const proxyCallback = dalaoProxy.httpCallback(config, plugins);
+    let server;
+    if (config.secure) {
+        const { cert, key } = await getCert(networkIp);
+        const secureOpt = {
+            key,
+            cert
+        };
+        server = https.createServer(secureOpt, proxyCallback);
+    }
+    else {
+        server = http.createServer(proxyCallback);
+    }
     server.timeout = 2 * 60 * 1000;
     server.maxConnections = 1000;
     server.keepAliveTimeout = 10 * 1000;

@@ -1,10 +1,21 @@
-var spawnSync = require('child_process').spawnSync;
+const spawnSync = require('child_process').spawnSync;
 
 function checkSuccess(result) {
     var stderr = result.stderr;
     if (stderr && stderr.length) {
         throw new Error(stderr + '');
     }
+}
+
+function isCertInstalledMac(certName) {
+    var result = spawnSync('security', ['find-certificate', '-c', certName]);
+    return result.status === 0;
+}
+
+function isCertInstalledWin(certName) {
+    var result = spawnSync('certutil', ['-verifystore', 'Root']);
+    checkSuccess(result);
+    return (result.stdout + '').includes(certName);
 }
 
 function getKeyChain() {
@@ -31,8 +42,8 @@ function installWin(certFile) {
     }
 }
 
-module.exports = function (certFile) {
-    var platform = process.platform;
+function install(certFile) {
+    const platform = process.platform;
     if (platform === 'darwin') {
         return installMac(certFile);
     }
@@ -41,3 +52,19 @@ module.exports = function (certFile) {
     }
     throw new Error('Platform ' + platform + ' is unsupported to install root CA for now.');
 };
+
+function isCertInstalled(certName) {
+    const platform = process.platform;
+    if (platform === 'darwin') {
+        return isCertInstalledMac(certName);
+    }
+    if (platform === 'win32') {
+        return isCertInstalledWin(certName);
+    }
+    throw new Error('Platform ' + platform + ' is unsupported to check root CA installation for now.');
+}
+
+module.exports = {
+    install,
+    isCertInstalled,
+}

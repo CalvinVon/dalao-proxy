@@ -2,8 +2,10 @@ const chalk = require('chalk');
 const _ = require('lodash');
 
 const os = require('os');
-const URL = require('url').URL;
 const path = require('path');
+const URL = require('url').URL;
+const fs = require('fs');
+const fsPromises = require('fs/promises');
 
 const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
 
@@ -83,8 +85,8 @@ function transformPath(url, hostRewriteMap, pathRewriteMap) {
         const { target: targetTarget, path: targetPath } = splitTargetAndPath(url);
 
         const target = rewriteString(targetTarget, hostRewriteMap);
-        const path = rewriteString(targetPath, pathRewriteMap).replace(/\/\//g, '/');
-        return target + path;
+        const urlpath = path.normalize(rewriteString(targetPath, pathRewriteMap));
+        return target + urlpath;
 
     } catch (error) {
         throw new Error('Can\'t rewrite proxy path. ' + error.message);
@@ -252,6 +254,15 @@ function parseHeaders(headerSetting, type) {
     return headers;
 }
 
+
+async function ensureFolder(path) {
+    try {
+        await fsPromises.access(path);
+    } catch (error) {
+        fsPromises.mkdir(path, { recursive: true });
+    }
+}
+
 module.exports = {
     printWelcome,
     isDebugMode,
@@ -274,4 +285,6 @@ module.exports = {
 
     formatHeaders,
     parseHeaders,
+
+    ensureFolder,
 }
