@@ -134,6 +134,20 @@ function locationMatch(url, proxyTable) {
     }
 }
 
+function locationTransform(matchedRoute, matchedResult) {
+    const {
+        path: overwritePath,
+        target: overwriteTarget,
+        pathRewrite: overwritePathRewrite,
+        hostRewrite: overwriteHostRewrite,
+    } = matchedRoute;
+
+    const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteTarget);
+    const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matchedResult[0]);
+    const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwriteHostRewrite, overwritePathRewrite);
+    return proxyUrl;
+}
+
 // NOTE: do not pass something like http://...
 function joinUrl(...urls) {
     return path.join(...urls).replace(/\\/g, '/');
@@ -277,6 +291,7 @@ module.exports = {
     rewriteString,
     transformPath,
     locationMatch,
+    locationTransform,
 
     fixJson,
     getIPv4Address,

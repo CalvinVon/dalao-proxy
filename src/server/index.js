@@ -1,9 +1,11 @@
 const chalk = require('chalk');
 const httpolyglot = require('@httptoolkit/httpolyglot');
+const WebSocket = require('ws');
+
 const http = require('http');
 const URL = require('url').URL;
 const dalaoProxy = require('./core');
-const { getIPv4Address } = require('../utils');
+const { getIPv4Address, locationMatch, locationTransform } = require('../utils');
 const register = require('../plugin').register;
 const { connections } = require('../runtime');
 const { getCert } = require('../cert');
@@ -92,7 +94,36 @@ async function createProxyServer(program) {
     // attach server to port
     attachServerListener(program, server, config);
 
+    createWebSocketServer(program, server, config);
     return server;
+}
+
+function createWebSocketServer(program, server, config) {
+    const { proxyTable } = config;
+    const wss = new WebSocket.Server({ server });
+
+    wss.on('connection', (ws, request) => {
+        console.log('WebSocket connection established');
+        ws.on('close', () => {
+            console.log('WebSocket connection closed');
+        });
+
+        const url = request.url;
+        const locationMatcher = locationMatch(url, proxyTable);
+        const proxyUrl = locationTransform(proxyTable[locationMatcher.matched], locationMatcher.matchResult);
+
+        const wsReq = new WebSocket(proxyUrl);
+        const incomingWs = WebSocket.createWebSocketStream(ws, { encoding: 'utf8', decodeStrings: false });
+        const duplex = WebSocket.createWebSocketStream(wsReq, { encoding: 'utf8', decodeStrings: false });
+        duplex.on('error', err => {
+            console.error(err);
+            wsReq.terminate();
+            ws.terminate();
+        });
+        incomingWs.pipe(duplex);
+        duplex.pipe(incomingWs);
+
+    });
 }
 
 module.exports = {

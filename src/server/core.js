@@ -23,6 +23,7 @@ const {
 
     formatHeaders,
     parseHeaders,
+    locationTransform,
 } = require('../utils');
 
 
@@ -235,7 +236,6 @@ function proxyRequestWrapper(config, corePlugins) {
         const serverHost = host === '0.0.0.0' ? 'localhost' : host;
         const { method, url } = req;
         const _request = request[method.toLowerCase()];
-        let matched;
 
         res.setHeader('Via', 'dalao-proxy/' + version);
         res.setHeader('Connection', 'keep-alive');
@@ -268,7 +268,6 @@ function proxyRequestWrapper(config, corePlugins) {
                 // Matching strategy
                 const locationMatcher = locationMatch(url, proxyTable);
                 const mostAccurateMatch = locationMatcher.matched;
-                matched = locationMatcher.matchResult;
 
                 let proxyPath;
                 let matchedRoute;
@@ -281,7 +280,8 @@ function proxyRequestWrapper(config, corePlugins) {
                     context.matched = {
                         path: proxyPath,
                         route: matchedRoute,
-                        notFound: false
+                        notFound: false,
+                        result: locationMatcher.matchResult
                     };
                     return context;
                 }
@@ -317,8 +317,9 @@ function proxyRequestWrapper(config, corePlugins) {
                 const {
                     route: matchedRoute,
                     path: matchedPath,
+                    result: matchedResult,
                     notFound,
-                    redirect
+                    redirect,
                 } = context.matched;
 
                 if (notFound) {
@@ -330,16 +331,8 @@ function proxyRequestWrapper(config, corePlugins) {
                 }
                 else if (!redirect) {
                     // route config
-                    const {
-                        path: overwritePath,
-                        target: overwriteTarget,
-                        pathRewrite: overwritePathRewrite,
-                        hostRewrite: overwriteHostRewrite,
-                    } = matchedRoute;
-
-                    const { target: overwriteHost_target, path: overwriteHost_path } = splitTargetAndPath(overwriteTarget);
-                    const proxyedPath = overwriteHost_target + joinUrl(overwriteHost_path, overwritePath, matched[0]);
-                    const proxyUrl = transformPath(addHttpProtocol(proxyedPath), overwriteHostRewrite, overwritePathRewrite);
+                    const { target: overwriteTarget } = matchedRoute;
+                    const proxyUrl = locationTransform(matchedRoute, matchedResult);
 
                     // invalid request
 

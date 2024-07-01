@@ -23,6 +23,8 @@ CheckVersion.checkUpdate = function checkUpdate(package, currentVersion, callbac
     });
 
     versionCmd.stdout.pipe(concat(data => {
+        if (Array.isArray(data)) return callback(new Error('fetch remote version error'));
+        
         const { error, version: latestVersion, time } = JSON.parse(data);
 
         if (error) return callback(error);
