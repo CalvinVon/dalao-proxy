@@ -1,6 +1,6 @@
 const chalk = require('chalk');
+const httpolyglot = require('@httptoolkit/httpolyglot');
 const http = require('http');
-const https = require('https');
 const URL = require('url').URL;
 const dalaoProxy = require('./core');
 const { getIPv4Address } = require('../utils');
@@ -78,7 +78,8 @@ async function createProxyServer(program) {
             key,
             cert
         };
-        server = https.createServer(secureOpt, proxyCallback);
+        // server = https.createServer(secureOpt, proxyCallback);
+        server = httpolyglot.createServer(secureOpt, proxyCallback);
     }
     else {
         server = http.createServer(proxyCallback);
