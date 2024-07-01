@@ -103,11 +103,6 @@ function createWebSocketServer(program, server, config) {
     const wss = new WebSocket.Server({ server });
 
     wss.on('connection', (ws, request) => {
-        console.log('WebSocket connection established');
-        ws.on('close', () => {
-            console.log('WebSocket connection closed');
-        });
-
         const url = request.url;
         const locationMatcher = locationMatch(url, proxyTable);
         const proxyUrl = locationTransform(proxyTable[locationMatcher.matched], locationMatcher.matchResult);
@@ -123,6 +118,12 @@ function createWebSocketServer(program, server, config) {
         incomingWs.pipe(duplex);
         duplex.pipe(incomingWs);
 
+        ws.on('close', () => {
+            wsReq.terminate();
+        });
+        wsReq.on('close', () => {
+            ws.terminate();
+        });
     });
 }
 
