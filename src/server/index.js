@@ -1,7 +1,9 @@
 const chalk = require('chalk');
+const through = require('through2');
 const httpolyglot = require('@httptoolkit/httpolyglot');
 const WebSocket = require('ws');
 
+const { connect } = require('net');
 const http = require('http');
 const URL = require('url').URL;
 const dalaoProxy = require('./core');
@@ -95,6 +97,7 @@ async function createProxyServer(program) {
     attachServerListener(program, server, config);
 
     createWebSocketServer(program, server, config);
+    // createTunnelProxy(server);
     return server;
 }
 
@@ -125,6 +128,55 @@ function createWebSocketServer(program, server, config) {
             ws.terminate();
         });
     });
+}
+
+
+function createTunnelProxy(server) {
+    const handleClose = (req, res) => {
+        const destroy = (err) => { // 及时关闭无用的连接，防止内存泄露
+            req.destroy();
+            res && res.destroy();
+        };
+        res && res.on('error', destroy);
+        req.on('error', destroy);
+        req.once('close', destroy);
+    }
+
+    const getHostPort = (host, defaultPort) => {
+        let port = defaultPort || 80;
+        const index = host.indexOf(':');
+        if (index !== -1) {
+            port = host.substring(index + 1);
+            host = host.substring(0, index);
+        }
+        return { host, port };
+    };
+
+    server.on('connect', (req, socket) => {
+        const client = connect(getHostPort(req.url), () => {
+            console.log(`connect ${req.url}`)
+            socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+            socket.pipe(client).pipe(
+                through(
+                    function (chunk, encode, callback) {
+                        this.push(chunk)
+                        callback();
+                    }
+                )).pipe(socket);
+        });
+        handleClose(socket, client);
+    })
+
+    // server.on('request', (req, res) => {
+    //     console.log(`${req.method} ${req.url}`);
+    //     req.pipe(
+    //         through(
+    //             function (chunk, encode, callback) {
+    //                 this.push(chunk)
+    //                 callback();
+    //             }
+    //         )).pipe(res);
+    // })
 }
 
 module.exports = {

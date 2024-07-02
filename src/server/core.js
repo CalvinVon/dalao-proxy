@@ -727,7 +727,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
         // set headers for proxy request
         function setProxyRequestHeaders(proxyRequest, matchedRoute, proxyUrl) {
-            const { changeOrigin, headers } = matchedRoute || {};
+            const { changeOrigin, headers = {} } = matchedRoute || {};
 
             const clientHeaders = formatHeaders(req.headers);
             const mergeList = [];

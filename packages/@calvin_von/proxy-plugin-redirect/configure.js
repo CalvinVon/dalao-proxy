@@ -1,5 +1,5 @@
 const defaults = {
-    redirect: []
+    rules: []
 };
 
 module.exports = {

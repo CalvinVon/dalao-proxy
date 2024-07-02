@@ -2,18 +2,18 @@ const chalk = require('chalk');
 
 module.exports = {
     beforeCreate() {
-        const { redirect = [] } = this.config;
+        const { rules = [] } = this.config;
 
-        if (Array.isArray(redirect)) {
-            parse(redirect);
+        if (Array.isArray(rules)) {
+            parse(rules);
         }
         else {
-            throw new Error(chalk.red('[plugin-redirect] config.redirect should be an array.'));
+            throw new Error(chalk.red('[plugin-redirect] config.rules should be an array.'));
         }
     },
     onRouteMatch(context, next) {
-
-        const { request, config: { redirect } } = context;
+        const { rules = [] } = this.config;
+        const { request } = context;
         const { url } = request;
 
         const isToRedirectUrl = url => /^(https?:\/\/)?(([a-z\u00a1-\uffff0-9%_-]+\.)+[a-z\u00a1-\uffff0-9%_-]+|localhost)(\:\d+)?/.test(url);
@@ -32,7 +32,7 @@ module.exports = {
                 matchingResult,
                 matchingLength = url.length;
 
-            redirect.forEach(it => {
+            rules.forEach(it => {
                 const matchReg = new RegExp(it.from);
                 let result;
                 if (result = url.match(matchReg)) {

@@ -258,14 +258,14 @@ function formatHeaders(headers) {
  * @param {'request'|'response'} type 
  */
 function parseHeaders(headerSetting, type) {
-    let headers = {};
+    let headers;
     if (typeof (headerSetting[type]) === 'object') {
         headers = headerSetting[type];
     }
     else if (typeof (headerSetting) === 'object') {
         headers = headerSetting;
     }
-    return headers;
+    return headers || {};
 }
 
 
