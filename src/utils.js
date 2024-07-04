@@ -5,7 +5,6 @@ const os = require('os');
 const path = require('path');
 const URL = require('url').URL;
 const fs = require('fs');
-const fsPromises = require('fs/promises');
 
 const HTTP_PROTOCOL_REG = new RegExp(/^(https?:\/\/)/);
 
@@ -269,11 +268,11 @@ function parseHeaders(headerSetting, type) {
 }
 
 
-async function ensureFolder(path) {
+function ensureFolder(path) {
     try {
-        await fsPromises.access(path);
+        fs.accessSync(path);
     } catch (error) {
-        fsPromises.mkdir(path, { recursive: true });
+        fs.mkdirSync(path, { recursive: true });
     }
 }
 

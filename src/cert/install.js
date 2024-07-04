@@ -8,26 +8,37 @@ function checkSuccess(result) {
 }
 
 function isCertInstalledMac(certName) {
-    var result = spawnSync('security', ['find-certificate', '-c', certName]);
+    const result = spawnSync('security', ['find-certificate', '-c', certName]);
     return result.status === 0;
 }
 
 function isCertInstalledWin(certName) {
-    var result = spawnSync('certutil', ['-verifystore', 'Root']);
+    const result = spawnSync('certutil', ['-verifystore', 'Root']);
     checkSuccess(result);
     return (result.stdout + '').includes(certName);
 }
 
-function getKeyChain() {
-    var result = spawnSync('security', ['default-keychain']);
+function getKeyChain(isSystemKeyChain) {
+    const result = spawnSync('security', ['list-keychains', '-d', isSystemKeyChain ? 'system' : 'user']);
     checkSuccess(result);
     return (result.stdout + '').split('"')[1];
 }
 
-function installMac(certPath) {
-    var result = spawnSync('security', ['add-trusted-cert', '-k', getKeyChain(), certPath]);
+function installMac(certPath, isSystemKeyChain) {
+    const placeholder = '__placeholder__';
+    const args = ['security', 'add-trusted-cert', placeholder, '-k', getKeyChain(isSystemKeyChain), certPath]
+    if (isSystemKeyChain) {
+        args.unshift('sudo');
+        const index = args.indexOf(placeholder);
+        args.splice(index, 1, '-d', '-r', 'trustRoot')
+    }
+    else {
+        const index = args.indexOf(placeholder);
+        args.splice(index, 1);
+    }
+    const result = spawnSync(args.shift(), args);
     checkSuccess(result);
-    var msg = result.stdout + '';
+    const msg = result.stdout + '';
     if (/Error:/i.test(msg)) {
         throw new Error(msg);
     }
@@ -35,17 +46,23 @@ function installMac(certPath) {
 
 
 function installWin(certFile) {
-    var result = spawnSync('certutil', ['-addstore', '-user', 'Root', certFile]);
+    const result = spawnSync('certutil', ['-addstore', '-user', 'Root', certFile]);
     checkSuccess(result);
     if (/ERROR_CANCELLED/i.test(result.stdout + '')) {
         throw new Error('The authorization was canceled by the user.');
     }
 }
 
-function install(certFile) {
+/**
+ * 
+ * @param {string} certFile 
+ * @param {boolean} isSystemKeyChain should install to system keychain
+ * @returns 
+ */
+function install(certFile, isSystemKeyChain) {
     const platform = process.platform;
     if (platform === 'darwin') {
-        return installMac(certFile);
+        return installMac(certFile, isSystemKeyChain);
     }
     if (platform === 'win32') {
         return installWin(certFile);

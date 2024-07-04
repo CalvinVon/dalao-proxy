@@ -15,10 +15,7 @@ const {
     getType,
     fixJson,
 
-    joinUrl,
     addHttpProtocol,
-    splitTargetAndPath,
-    transformPath,
     locationMatch,
 
     formatHeaders,
@@ -236,6 +233,7 @@ function proxyRequestWrapper(config, corePlugins) {
         const serverHost = host === '0.0.0.0' ? 'localhost' : host;
         const { method, url } = req;
         const _request = request[method.toLowerCase()];
+        console.log(chalk.green(` Received ${method} request to ${url} from ${req.headers.host}`));
 
         res.setHeader('Via', 'dalao-proxy/' + version);
         res.setHeader('Connection', 'keep-alive');
@@ -320,13 +318,11 @@ function proxyRequestWrapper(config, corePlugins) {
              * @returns {Object} context
              */
             .then(context => {
-                context.proxy = {};
                 const {
                     route: matchedRoute,
                     path: matchedPath,
                     result: matchedResult,
                     notFound,
-                    redirect,
                 } = context.matched;
 
                 if (notFound) {
@@ -336,7 +332,19 @@ function proxyRequestWrapper(config, corePlugins) {
                     response.end();
                     return Promise.reject('404 Not found');
                 }
-                else if (!redirect) {
+                context.proxy = {
+                    error: null,
+                    data: {
+                        error: null,
+                        request: null,
+                        response: null
+                    },
+                    route: matchedRoute,
+                    uri: url,
+                    URL: require('url').parse(url)
+                };
+
+                if (matchedRoute) {
                     // route config
                     const { target: overwriteTarget } = matchedRoute;
                     const proxyUrl = locationTransform(matchedRoute, matchedResult);
@@ -356,17 +364,8 @@ function proxyRequestWrapper(config, corePlugins) {
                         return Promise.reject(chalk.red(`> 🔴   Forbidden Hit! [${matchedPath}]`));
                     }
 
-                    context.proxy = {
-                        error: null,
-                        data: {
-                            error: null,
-                            request: null,
-                            response: null
-                        },
-                        route: matchedRoute,
-                        uri: proxyUrl,
-                        URL: require('url').parse(proxyUrl)
-                    };
+                    context.proxy.uri = proxyUrl;
+                    context.proxy.URL = require('url').parse(url);
                 }
 
 
@@ -398,7 +397,7 @@ function proxyRequestWrapper(config, corePlugins) {
                 const x = _request(proxyUrl, {
                     gzip: true,
                     forever: true,
-                    timeout: 2 * 60 * 60
+                    timeout: 2 * 60 * 1000
                 });
                 setProxyRequestHeaders(x, matchedRoute, proxyUrl);
 

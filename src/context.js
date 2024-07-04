@@ -64,6 +64,10 @@ class Context {
          */
         this.output = {};
 
+        this.proxyCallback = null;
+        this.ca = { cert: '', key: '' };
+        this.cert = { cert: '', key: '' };
+
         this.exports = {
             ConfigParser,
             BodyParser,

@@ -1,18 +1,23 @@
 const chalk = require('chalk');
-const through = require('through2');
 const httpolyglot = require('@httptoolkit/httpolyglot');
 const WebSocket = require('ws');
 
 const { connect } = require('net');
+const url = require('url');
 const http = require('http');
+const tls = require('tls');
+const https = require('https');
 const URL = require('url').URL;
 const dalaoProxy = require('./core');
 const { getIPv4Address, locationMatch, locationTransform } = require('../utils');
 const register = require('../plugin').register;
 const { connections } = require('../runtime');
-const { getCert } = require('../cert');
+const { getCert, getCA } = require('../cert');
+const { default: Lock } = require('fn.locky');
 
 const networkIp = getIPv4Address();
+/** @type {Record<string, import('https').Server>} */
+const mitmServers = {};
 
 // attach server to port
 function attachServerListener(program, server, config) {
@@ -50,8 +55,7 @@ function attachServerListener(program, server, config) {
             console.error(err);
         }
         else if (/EADDRINUSE/i.test(err.message)) {
-            console.log(chalk.grey(`  Port ${port} is in use, dalao is trying to change port to ${++port}`));
-            server.listen(port, host);
+            console.log(chalk.grey(`  Port ${port} is in use, please change another one`));
         }
         else {
             console.error(err);
@@ -74,11 +78,12 @@ async function createProxyServer(program) {
     // print route table
     console.log(program.context.output.routeTable.toString());
 
-    const proxyCallback = dalaoProxy.httpCallback(config, plugins);
+    const proxyCallback = program.context.proxyCallback = dalaoProxy.httpCallback(config, plugins);
     let server;
     if (config.secure) {
-        const { cert, key } = await getCert(networkIp);
-        const secureOpt = {
+        program.context.ca = await getCA();
+        const { cert, key } = await getCert(networkIp, true);
+        const secureOpt = program.context.cert = {
             key,
             cert
         };
@@ -97,7 +102,7 @@ async function createProxyServer(program) {
     attachServerListener(program, server, config);
 
     createWebSocketServer(program, server, config);
-    // createTunnelProxy(server);
+    createTunnelProxy(program, server, config);
     return server;
 }
 
@@ -131,7 +136,7 @@ function createWebSocketServer(program, server, config) {
 }
 
 
-function createTunnelProxy(server) {
+function createTunnelProxy(program, server, config) {
     const handleClose = (req, res) => {
         const destroy = (err) => { // 及时关闭无用的连接，防止内存泄露
             req.destroy();
@@ -142,41 +147,50 @@ function createTunnelProxy(server) {
         req.once('close', destroy);
     }
 
-    const getHostPort = (host, defaultPort) => {
-        let port = defaultPort || 80;
-        const index = host.indexOf(':');
-        if (index !== -1) {
-            port = host.substring(index + 1);
-            host = host.substring(0, index);
-        }
-        return { host, port };
-    };
 
-    server.on('connect', (req, socket) => {
-        const client = connect(getHostPort(req.url), () => {
+    server.on('connect', async (req, socket, head) => {
+        const targetUrl = url.parse(`https://${req.url}`);
+        const targetHost = targetUrl.hostname;
+        let listening = Lock.createAsyncLock();
+        const { cert, key } = await getCert(targetHost);
+
+        let httpsServer = mitmServers[targetHost];
+        if (!httpsServer) {
+            httpsServer = mitmServers[targetHost] = https.createServer({
+                cert,
+                key,
+                SNICallback: async (hostname, done) => {
+                    console.log(`SNICallback ${hostname}`)
+                    const { cert, key } = await getCert(hostname);
+                    done(null, tls.createSecureContext({
+                        key,
+                        cert
+                    }))
+                }
+            }, program.context.proxyCallback);
+        }
+        if (!httpsServer.listening) {
+            listening.lock();
+            httpsServer.listen(0, () => {
+                listening.unlock();
+            });
+        }
+        await listening.pending;
+        // If port is omitted or is 0, the operating system will assign an arbitrary unused port, which can be retrieved by using server.address().port after the 'listening' event has been emitted.
+        const port = httpsServer.address().port;
+        const client = connect(port, '127.0.0.1', () => {
             console.log(`connect ${req.url}`)
-            socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-            socket.pipe(client).pipe(
-                through(
-                    function (chunk, encode, callback) {
-                        this.push(chunk)
-                        callback();
-                    }
-                )).pipe(socket);
+            client.write(head);
+            socket.write(
+                'HTTP/1.1 200 Connection Established\r\n\r\n' +
+                "Proxy-agent: dalao-proxy/forward\r\n" +
+                "\r\n"
+            );
+            socket.pipe(client).pipe(socket);
         });
         handleClose(socket, client);
-    })
+    });
 
-    // server.on('request', (req, res) => {
-    //     console.log(`${req.method} ${req.url}`);
-    //     req.pipe(
-    //         through(
-    //             function (chunk, encode, callback) {
-    //                 this.push(chunk)
-    //                 callback();
-    //             }
-    //         )).pipe(res);
-    // })
 }
 
 module.exports = {
