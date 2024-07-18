@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { ContentWrapper, MOCK_FIELD_TEXT } = require('../../mock.command/mock');
-const { url2filename, filename2url } = require('../../utils');
+const { urlMapFS, fsMapUrl, checkAndCreateFolder } = require('../../utils');
 
 module.exports = function changeMockFile(file, options, config, parentName) {
     const {
@@ -13,13 +13,18 @@ module.exports = function changeMockFile(file, options, config, parentName) {
         function: useFunction
     } = options;
 
+    const { filenameTpl } = config.cache;
+
+    const { dirname } = config[parentName];
+    const folderReg = new RegExp(`^(.+)?(${config.cache.dirname}|${config.mock.dirname})`);
+
     const getType = this.context.exports.Utils.getType;
     const pwd = process.cwd();
-    const filePath = path.join(pwd, file);
-    const filename = path.basename(file);
+    const filePath = path.isAbsolute(file) ? file : path.join(pwd, file);
+    const relativePath = filePath.replace(folderReg, '');
 
     try {
-        parseRawFile((err, mockData) => {
+        parseRawFile(async (err, mockData) => {
             if (err) {
                 process.exit(-1);
             }
@@ -31,7 +36,7 @@ module.exports = function changeMockFile(file, options, config, parentName) {
                 mockData[MOCK_FIELD_TEXT] = false;
             }
 
-            generateFile(mockData);
+            await generateFile(mockData);
         })
     } catch (error) {
         console.error(chalk.red('Changing file error: ' + error.message));
@@ -86,8 +91,8 @@ module.exports = function changeMockFile(file, options, config, parentName) {
         }
     }
 
-    function generateFile(data) {
-        let content = JSON.stringify(data, null, 4);
+    async function generateFile(data) {
+        let content = JSON.stringify(data, null, 2);
         let extension;
         if (!useJSON) {
             extension = '.js';
@@ -108,24 +113,26 @@ module.exports = function changeMockFile(file, options, config, parentName) {
             extension = '.json';
         }
 
-        let newFilename = filename;
+        let newFilename = relativePath;
         if (method || url) {
             const { prefix } = config.mock;
-            const parseResult = filename2url(filename);
-            parseResult.method = method || parseResult.method;
+            const parseResult = fsMapUrl(newFilename, filenameTpl);
+            if (method) {
+                parseResult.method = method;
+            }
             if (url) {
                 parseResult.url = (prefix ? prefix : '') + url;
             }
-            newFilename = url2filename(parseResult.method, parseResult.url);
+            newFilename = urlMapFS(parseResult.method, parseResult.url);
         }
 
         newFilename = newFilename.replace(new RegExp(path.extname(newFilename) + '$'), extension);
 
-        const { dirname } = config[parentName];
         const newFilePath = path.join(pwd, dirname, newFilename);
-        fs.writeFileSync(
+        await checkAndCreateFolder(path.dirname(newFilePath));
+        await fs.promises.writeFile(
             newFilePath,
-            content
+            content,
         );
         console.log(chalk.green('Changed file generated in ' + newFilePath));
         process.exit(0);

@@ -17,7 +17,10 @@ const {
 
 const {
     checkAndCreateFolder,
-    url2filename
+    urlMapFS,
+    guessMimeType,
+    resolveSearchPaths,
+    tryResolveFiles
 } = require('./utils');
 
 
@@ -56,8 +59,7 @@ module.exports = {
         SwitcherUIServer.handle.call(this, context, next);
     },
 
-    beforeProxy(context, next) {
-        const SUPPORTED_EXTENSIONS = ['.js', '.json'];
+    async beforeProxy(context, next) {
         const { response, request } = context;
         const { method, url } = request;
         const logger = context.config.logger;
@@ -67,50 +69,58 @@ module.exports = {
         const {
             dirname: cacheDirname,
             maxAge: cacheMaxAge,
+            contentType: acceptedContentTypes,
+            filenameTpl,
         } = this.config.cache;
         const {
             dirname: mockDirname,
-            enable: mockEnable
         } = this.config.mock;
 
         // Try to read cache
         try {
-            checkAndCreateFolder(mockDirname);
-            checkAndCreateFolder(cacheDirname);
+            // await Promise.all([
+            //     checkAndCreateFolder(mockDirname),
+            //     checkAndCreateFolder(cacheDirname)
+            // ]);
 
-            const mockSearchName = path.resolve(process.cwd(), `./${mockDirname}/${url2filename(method, url)}`);
-            const cacheSearchName = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
+            const { fullPath } = urlMapFS(url, method, '', filenameTpl);
+            const resolveExtnames = ['', '.js', '.json'];
+            if (acceptedContentTypes.some(it => /\*\/\*|text\/html/.test(it))) {
+                resolveExtnames.push('.html', '/index.html');
+            }
+            const resolvePathObjs = resolveSearchPaths(fullPath, this.config, resolveExtnames);
+            const results = await tryResolveFiles(resolvePathObjs);
+            const result = results.find(it => it.found);
 
-            if (mockEnable) {
-                tryLoadLocalFile(mockSearchName, false, () => {
-                    tryLoadLocalFile(cacheSearchName, true, () => {
-                        // enable CORS, respond OPTIONS request
-                        if (enableCORS && method === 'OPTIONS') {
-                            const headers = mergeHeaders(userConfigHeaders, {
-                                'x-mock-cors': true
-                            });
-                            setHeaders(response, headers);
-                            response.writeHead(200);
-                            response.end();
-                            context.cache = {
-                                data: null,
-                                rawData: '',
-                                type: 'text/plain',
-                                size: 0
-                            };
+            if (result) {
+                tryLoadLocalFile(result, () => {
+                    if (enableCORS && method === 'OPTIONS') {
+                        const headers = mergeHeaders(userConfigHeaders, {
+                            'x-mock-cors': true
+                        });
+                        setHeaders(response, headers);
+                        response.writeHead(200);
+                        response.end();
+                        context.cache = {
+                            data: null,
+                            rawData: '',
+                            type: 'text/plain',
+                            size: 0
+                        };
 
-                            logMatchedPath('[MOCK CORS]');
-                            next('Hit mock CORS');
-                        }
-                        else {
-                            next();
-                        }
-                    });
+                        logMatchedPath('[MOCK CORS]');
+                        next('Hit mock CORS');
+                    }
+                    else {
+                        next();
+                    }
                 });
             }
             else {
-                tryLoadLocalFile(cacheSearchName, true, next);
+                next();
             }
+
+
 
         } catch (error) {
             console.error(chalk.red(`[plugin cache] Error loading cache/mock file: ${error.message}`));
@@ -121,191 +131,223 @@ module.exports = {
 
         /**
          * Try to load file from local files
-         * @param {string} searchFilePath file pathlike
-         * @param {boolean} searchCacheFile is searching cache files or mocked files
-         * @param {Function} missCallback called when not found
          */
-        function tryLoadLocalFile(searchFilePath, searchCacheFile, missCallback) {
-            let targetFilePath,
-                hasFoundFile,
-                isInJsonFormat,
-                isInJsFormat;
+        async function tryLoadLocalFile(result, missCallback) {
+            const fullPath = result.path;
+            const extname = result.extname;
+            const searchCacheFile = !result.isMockFile;
+            const isInJsonFormat = extname === '.json';
+            const isInJsFormat = extname === '.js';
 
-            // search static files
-            if (searchCacheFile && fs.existsSync(searchFilePath)) {
-                targetFilePath = searchFilePath;
-                hasFoundFile = true;
-                isInJsonFormat = path.extname(targetFilePath) === '.json';
+            const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
+
+            // return data in JSON format
+            // file maybe in json or js format
+            if (isInJsonFormat) {
+                const jsonContent = require(fullPath);
+                const fileContent = JSON.stringify(jsonContent, null, 2);
+
+                handleRespond(jsonContent, fileContent);
             }
-            // content is in json format
-            else {
-                hasFoundFile = SUPPORTED_EXTENSIONS.some(ext => {
-                    if (fs.existsSync(searchFilePath + ext)) {
-                        targetFilePath = searchFilePath + ext;
-                        isInJsonFormat = ext === '.json';
-                        isInJsFormat = ext === '.js';
-                        return true;
+
+            // filtered api request by extname
+            // judge whether js file exports functions or object
+            else if (isInJsFormat && !extname) {
+                let exportsContent;
+                try {
+                    if (acceptedContentTypes.some(it => /\*\/\*|application\/js/.test(it))) {
+                        exportsContent = require(fullPath);
                     }
-                    return false;
-                })
-            }
+                } catch (error) {
 
-            if (hasFoundFile) {
-                const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
-
-                // return data in JSON format
-                // file maybe in json or js format
-                if (isInJsonFormat) {
-                    const jsonContent = require(targetFilePath);
-                    const fileContent = JSON.stringify(jsonContent, null, 4);
-
-                    handleRespond(jsonContent, fileContent);
                 }
+                if (exportsContent) {
+                    // handle plain object
+                    if (Utils.getType(exportsContent, 'Object')) {
+                        const jsonContent = exportsContent;
+                        const fileContent = JSON.stringify(jsonContent, null, 2);
 
-                // judge whether js file exports functions or object
-                else if (isInJsFormat) {
-                    const exportsContent = require(targetFilePath);
-                    if (exportsContent) {
-                        // handle plain object
-                        if (Utils.getType(exportsContent, 'Object')) {
-                            const jsonContent = exportsContent;
-                            const fileContent = JSON.stringify(jsonContent, null, 4);
-
-                            handleRespond(jsonContent, fileContent);
-                        }
-                        // handle export Promise
-                        else if (Utils.getType(exportsContent, 'Promise')) {
-                            exportsContent
-                                .then(value => {
-                                    let jsonContent;
-                                    if (Object.prototype.toString.call(value) === '[object Object]') {
-                                        jsonContent = value;
-                                    }
-                                    else {
-                                        jsonContent = {};
-                                    }
-                                    const fileContent = JSON.stringify(jsonContent, null, 4);
-                                    handleRespond(jsonContent, fileContent);
-                                })
-                                .catch(error => {
-                                    console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + targetFilePath));
-                                    console.error(error.message);
-                                })
-                        }
-                        else if (Utils.getType(exportsContent, 'Function')) {
-                            collectRealRequestData(() => {
-                                const returnValue = exportsContent.call(null, context);
-                                if (returnValue instanceof Promise) {
-                                    returnValue
-                                        .then(value => {
-                                            let jsonContent;
-                                            if (Object.prototype.toString.call(value) === '[object Object]') {
-                                                jsonContent = value;
-                                            }
-                                            else {
-                                                jsonContent = {};
-                                            }
-                                            const fileContent = JSON.stringify(jsonContent, null, 4);
-                                            handleRespond(jsonContent, fileContent, true);
-                                        })
-                                        .catch(error => {
-                                            console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + targetFilePath));
-                                            console.error(error.message);
-                                        })
+                        handleRespond(jsonContent, fileContent);
+                    }
+                    // handle export Promise
+                    else if (Utils.getType(exportsContent, 'Promise')) {
+                        exportsContent
+                            .then(value => {
+                                let jsonContent;
+                                if (Object.prototype.toString.call(value) === '[object Object]') {
+                                    jsonContent = value;
                                 }
                                 else {
-                                    const jsonContent = returnValue;
-                                    const fileContent = JSON.stringify(jsonContent, null, 4);
-
-                                    handleRespond(jsonContent, fileContent, true);
+                                    jsonContent = {};
                                 }
-                            });
-                        }
-                        else {
-                            console.warn(chalk.red('[Plugin cache] You should return an object or a promise in your mock file: ' + targetFilePath));
-                            missCallback();
-                        }
+                                const fileContent = JSON.stringify(jsonContent, null, 2);
+                                handleRespond(jsonContent, fileContent);
+                            })
+                            .catch(error => {
+                                console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + fullPath));
+                                console.error(error.message);
+                            })
+                    }
+                    else if (Utils.getType(exportsContent, 'Function')) {
+                        collectRealRequestData(() => {
+                            const returnValue = exportsContent.call(null, context);
+                            if (returnValue instanceof Promise) {
+                                returnValue
+                                    .then(value => {
+                                        let jsonContent;
+                                        if (Object.prototype.toString.call(value) === '[object Object]') {
+                                            jsonContent = value;
+                                        }
+                                        else {
+                                            jsonContent = {};
+                                        }
+                                        const fileContent = JSON.stringify(jsonContent, null, 2);
+                                        handleRespond(jsonContent, fileContent, true);
+                                    })
+                                    .catch(error => {
+                                        console.error(chalk.red('[Plugin cache] Found error in your mock file: ' + fullPath));
+                                        console.error(error.message);
+                                    })
+                            }
+                            else {
+                                const jsonContent = returnValue;
+                                const fileContent = JSON.stringify(jsonContent, null, 2);
+
+                                handleRespond(jsonContent, fileContent, true);
+                            }
+                        });
                     }
                     else {
+                        console.warn(chalk.red('[Plugin cache] You should return an object or a promise in your mock file: ' + fullPath));
                         missCallback();
                     }
-                    cleanRequireCache(targetFilePath);
                 }
-                // in Orignal format
                 else {
-                    // only when cache max age is `*` valid
-                    if (cacheDigit !== '*') {
-                        return missCallback();
-                    }
+                    missCallback();
+                }
+                cleanRequireCache(fullPath);
+            }
+            // in Orignal format
+            else {
+                // only when cache max age is `*` valid
+                if (cacheDigit !== '*') {
+                    return missCallback();
+                }
 
-                    const contentType = mime.lookup(targetFilePath);
+                const fileContent = await fs.promises.readFile(fullPath);
+                const contentType = mime.lookup(extname) || guessMimeType(fileContent) || 'text/plain';
+
+                const presetHeaders = {
+                    'Content-Type': contentType,
+                    'X-Cache-Response': 'true',
+                    'X-Cache-File': encodeURIComponent(fullPath),
+                    'Content-Length': null,
+                    'Content-Encoding': null
+                };
+                const headers = mergeHeaders(userConfigHeaders, presetHeaders);
+                setHeaders(response, headers);
+
+                response.write(fileContent);
+                response.end();
+                logMatchedPath(fullPath);
+
+                context.cache = {
+                    data: null,
+                    rawData: fileContent.toString(),
+                    type: contentType,
+                    size: fileContent.length,
+                    file: fullPath,
+                    expireTime: 'permanently valid',
+                    restTime: 'forever'
+                };
+                next('Hit cache');
+            }
+
+
+            /**
+             * Universal handle responding
+             * @param {object} jsonContent content in JSON object format
+             * @param {string} fileContent content in string format
+             * @param {boolean} [noCollectRequestData] if skip collect request data
+             */
+            function handleRespond(jsonContent, fileContent, noCollectRequestData) {
+                const cachedTimeStamp = jsonContent['CACHE_TIME'];
+                const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
+                const respondStatus = jsonContent[STATUS_FIELD_TEXT] || 200;
+
+                let condition;
+                if (searchCacheFile) {
+                    condition = jsonContent[MOCK_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*';
+                }
+                else {
+                    condition = jsonContent[MOCK_FIELD_TEXT];
+                }
+
+                // permanently valid
+                if (condition) {
                     const presetHeaders = {
-                        'Content-Type': contentType,
                         'X-Cache-Response': 'true',
-                        'X-Cache-File': encodeURIComponent(targetFilePath),
+                        'X-Cache-Expire-Time': 'permanently valid',
+                        'X-Cache-Rest-Time': 'forever',
+                        'X-Cache-File': encodeURIComponent(fullPath),
                         'Content-Length': null,
                         'Content-Encoding': null
                     };
-                    const headers = mergeHeaders(userConfigHeaders, presetHeaders);
+
+                    const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
                     setHeaders(response, headers);
-                    const fileContent = fs.readFileSync(targetFilePath);
-                    response.write(fileContent);
-                    response.end();
-                    logMatchedPath(targetFilePath);
 
-                    context.cache = {
-                        data: null,
-                        rawData: fileContent.toString(),
-                        type: contentType,
-                        size: fileContent.length,
-                        file: targetFilePath,
-                        expireTime: 'permanently valid',
-                        restTime: 'forever'
-                    };
-                    next('Hit cache');
-                }
+                    response.writeHead(respondStatus, {
+                        'Content-Type': 'application/json'
+                    });
 
-
-                /**
-                 * Universal handle responding
-                 * @param {object} jsonContent content in JSON object format
-                 * @param {string} fileContent content in string format
-                 * @param {boolean} [noCollectRequestData] if skip collect request data
-                 */
-                function handleRespond(jsonContent, fileContent, noCollectRequestData) {
-                    const cachedTimeStamp = jsonContent['CACHE_TIME'];
-                    const fileHeaders = jsonContent[HEADERS_FIELD_TEXT];
-                    const respondStatus = jsonContent[STATUS_FIELD_TEXT] || 200;
-
-                    let condition;
-                    if (searchCacheFile) {
-                        condition = jsonContent[MOCK_FIELD_TEXT] || !cachedTimeStamp || cacheDigit === '*';
+                    if (noCollectRequestData) {
+                        jsonContent.REAL_REQUEST_DATA = context.data.request;
+                        const fileContent = JSON.stringify(jsonContent, null, 2);
+                        response.write(fileContent);
+                        response.end();
                     }
                     else {
-                        condition = jsonContent[MOCK_FIELD_TEXT];
+                        collectRealRequestDataAndRespond();
                     }
+                    context.cache = {
+                        data: jsonContent,
+                        rawData: fileContent,
+                        type: 'application/json',
+                        size: fileContent.length,
+                        file: fullPath,
+                        expireTime: 'permanently valid',
+                        restTime: 'forever',
+                    };
 
-                    // permanently valid
-                    if (condition) {
+                    logMatchedPath(fullPath);
+
+                    // 中断代理请求
+                    next('Hit cache');
+                }
+                // need validate expire time
+                else {
+                    if (!searchCacheFile) {
+                        return missCallback();
+                    }
+                    const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
+                    // valid cache file
+                    if (moment().isBefore(deadlineMoment)) {
+                        const expireTime = moment(deadlineMoment).format('llll');
+                        const restTime = moment.duration(moment().diff(deadlineMoment)).humanize();
                         const presetHeaders = {
                             'X-Cache-Response': 'true',
-                            'X-Cache-Expire-Time': 'permanently valid',
-                            'X-Cache-Rest-Time': 'forever',
-                            'X-Cache-File': encodeURIComponent(targetFilePath),
+                            'X-Cache-Expire-Time': expireTime,
+                            'X-Cache-Rest-Time': restTime,
                             'Content-Length': null,
                             'Content-Encoding': null
                         };
-
                         const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
                         setHeaders(response, headers);
 
-                        response.writeHead(respondStatus, {
-                            'Content-Type': 'application/json'
-                        });
-
                         if (noCollectRequestData) {
                             jsonContent.REAL_REQUEST_DATA = context.data.request;
-                            const fileContent = JSON.stringify(jsonContent, null, 4);
+                            const fileContent = JSON.stringify(jsonContent, null, 2);
                             response.write(fileContent);
                             response.end();
                         }
@@ -317,86 +359,38 @@ module.exports = {
                             rawData: fileContent,
                             type: 'application/json',
                             size: fileContent.length,
-                            file: targetFilePath,
-                            expireTime: 'permanently valid',
-                            restTime: 'forever',
+                            file: fullPath,
+                            expireTime,
+                            restTime
                         };
+                        logMatchedPath(fullPath);
 
-                        logMatchedPath(targetFilePath);
-
-                        // 中断代理请求
+                        // do interrupter
                         next('Hit cache');
                     }
-                    // need validate expire time
                     else {
-                        if (!searchCacheFile) {
-                            return missCallback();
-                        }
-                        const deadlineMoment = moment(cachedTimeStamp).add(cacheDigit, cacheUnit);
-                        // valid cache file
-                        if (moment().isBefore(deadlineMoment)) {
-                            const expireTime = moment(deadlineMoment).format('llll');
-                            const restTime = moment.duration(moment().diff(deadlineMoment)).humanize();
-                            const presetHeaders = {
-                                'X-Cache-Response': 'true',
-                                'X-Cache-Expire-Time': expireTime,
-                                'X-Cache-Rest-Time': restTime,
-                                'Content-Length': null,
-                                'Content-Encoding': null
-                            };
-                            const headers = mergeHeaders(userConfigHeaders, fileHeaders, presetHeaders);
-                            setHeaders(response, headers);
+                        // Do not delete expired cache automatically
+                        // V0.6.4 2019.4.17
+                        // fs.unlinkSync(searchFilePath);
 
-                            if (noCollectRequestData) {
-                                jsonContent.REAL_REQUEST_DATA = context.data.request;
-                                const fileContent = JSON.stringify(jsonContent, null, 4);
-                                response.write(fileContent);
-                                response.end();
-                            }
-                            else {
-                                collectRealRequestDataAndRespond();
-                            }
-                            context.cache = {
-                                data: jsonContent,
-                                rawData: fileContent,
-                                type: 'application/json',
-                                size: fileContent.length,
-                                file: targetFilePath,
-                                expireTime,
-                                restTime
-                            };
-                            logMatchedPath(targetFilePath);
-
-                            // do interrupter
-                            next('Hit cache');
-                        }
-                        else {
-                            // Do not delete expired cache automatically
-                            // V0.6.4 2019.4.17
-                            // fs.unlinkSync(searchFilePath);
-
-                            // continue
-                            missCallback();
-                        }
-                    }
-
-                    cleanRequireCache(targetFilePath);
-
-
-                    function collectRealRequestDataAndRespond() {
-                        collectRealRequestData(data => {
-                            jsonContent.REAL_REQUEST_DATA = data;
-                            const fileContent = JSON.stringify(jsonContent, null, 4);
-                            response.write(fileContent);
-                            response.end();
-                        });
+                        // continue
+                        missCallback();
                     }
                 }
 
+                cleanRequireCache(fullPath);
+
+
+                function collectRealRequestDataAndRespond() {
+                    collectRealRequestData(data => {
+                        jsonContent.REAL_REQUEST_DATA = data;
+                        const fileContent = JSON.stringify(jsonContent, null, 2);
+                        response.write(fileContent);
+                        response.end();
+                    });
+                }
             }
-            else {
-                missCallback();
-            }
+
         }
 
         function mergeHeaders(userConfigHeaders, ...headers) {
@@ -455,13 +449,14 @@ module.exports = {
         }
     },
 
-    afterProxy(context) {
+    async afterProxy(context) {
         setAsOriginalUser();
         const logger = context.config.logger;
         const {
             dirname: cacheDirname,
             contentType: cacheContentType,
             filters,
+            filenameTpl
         } = this.config.cache;
         const { method, url } = context.request;
         const { response, error } = context.proxy;
@@ -473,21 +468,19 @@ module.exports = {
 
         // cache the response data
         try {
-            const cacheFileWithNoExt = path.resolve(process.cwd(), `./${cacheDirname}/${url2filename(method, url)}`);
 
             let contentTypeReg;
             if (cacheContentType.length) {
-                contentTypeReg = new RegExp(`${
-                    cacheContentType
-                        .map(it => it
-                            // remove blanks
-                            .replace(/^\s*/, '')
-                            .replace(/\s*$/, '')
-                            // replace */ --> \S+/
-                            .replace(/\*\//, '\\S+/')
-                            // replace /* --> /\S+
-                            .replace(/\/\*/, '/\\S+'))
-                        .join('|')
+                contentTypeReg = new RegExp(`${cacheContentType
+                    .map(it => it
+                        // remove blanks
+                        .replace(/^\s*/, '')
+                        .replace(/\s*$/, '')
+                        // replace */ --> \S+/
+                        .replace(/\*\//, '\\S+/')
+                        // replace /* --> /\S+
+                        .replace(/\/\*/, '/\\S+'))
+                    .join('|')
                     }`);
             }
             const responseContentType = response.headers['content-type'] || response.headers['Content-Type'];
@@ -496,10 +489,10 @@ module.exports = {
                 if (isMeetFiltering()) {
                     let cacheFileName;
                     if (/json/.test(responseContentType)) {
-                        cacheFileName = cacheFileInJSON();
+                        cacheFileName = await cacheFileInJSON();
                     }
                     else {
-                        cacheFileName = cacheFileInOrignal();
+                        cacheFileName = await cacheFileInOrignal(responseContentType);
                     }
 
                     logger && console.log(chalk.gray('> Cached into [') + chalk.grey(cacheFileName) + chalk.grey(']'));
@@ -557,7 +550,7 @@ module.exports = {
                 /**
                  * Cache file in JSON format
                  */
-                function cacheFileInJSON() {
+                async function cacheFileInJSON() {
                     const resJson = Object.assign({}, context.data.response.data);
 
                     resJson.CACHE_INFO = 'Cached from Dalao Proxy';
@@ -578,28 +571,40 @@ module.exports = {
                     }, {});
                     resJson[HEADERS_FIELD_TEXT] = headersWithoutCORS;
 
-                    const cacheFileName = /\.json$/.test(cacheFileWithNoExt) ? cacheFileWithNoExt : (cacheFileWithNoExt + '.json');
-                    fs.writeFileSync(
-                        cacheFileName,
-                        JSON.stringify(resJson, null, 4),
+                    const { fullPath } = urlMapFS(url, method, 'application/json', filenameTpl);
+                    const cacheFilePath = path.resolve(process.cwd(), `./${cacheDirname}/${fullPath}`);
+                    await checkAndCreateFolder(path.dirname(cacheFilePath));
+                    await fs.promises.writeFile(
+                        cacheFilePath,
+                        JSON.stringify(resJson, null, 2),
                         {
                             encoding: 'utf8',
                             flag: 'w'
                         }
                     );
 
-                    return cacheFileName;
+                    return cacheFilePath;
                 }
 
                 /**
                  * Cache file in original format
                  */
-                function cacheFileInOrignal() {
-                    fs.writeFileSync(
-                        cacheFileWithNoExt,
-                        context.data.response.rawBuffer
-                    );
-                    return cacheFileWithNoExt;
+                async function cacheFileInOrignal(contentType) {
+
+                    const { fullPath } = urlMapFS(url, method, contentType, filenameTpl);
+                    const cacheFilePath = path.resolve(process.cwd(), `./${cacheDirname}/${fullPath}`);
+                    await checkAndCreateFolder(path.dirname(cacheFilePath));
+
+                    try {
+                        const rawBuffer = context.data.response.rawBuffer;
+                        await fs.promises.writeFile(
+                            cacheFilePath,
+                            rawBuffer.length ? rawBuffer : Buffer.from('')
+                        );
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return cacheFilePath;
                 }
 
             }

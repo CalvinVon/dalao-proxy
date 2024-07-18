@@ -1,11 +1,15 @@
 const chalk = require('chalk');
-
+const defaultFilenameTpl = '{method}_{basename}{query}{jsonExt}{htmlAppend}';
 const cacheDefaults = {
     "enable": true,
     "dirname": ".dalao-cache",
     "contentType": [
         "application/json"
     ],
+    /**
+     * Define stored(cache/mock) file
+    */
+    "filenameTpl": defaultFilenameTpl,
     "maxAge": [
         0,
         "second"
@@ -262,5 +266,6 @@ module.exports = {
                 requestPrefix: requestPrefix || ''
             }
         };
-    }
+    },
+    defaultFilenameTpl
 };
