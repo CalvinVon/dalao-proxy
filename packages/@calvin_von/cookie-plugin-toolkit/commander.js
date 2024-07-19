@@ -10,7 +10,7 @@ module.exports = function (program, r, config) {
     .forwardSubcommands(async function () {
       try {
         Auth.setPlatform(config.platform);
-        await Auth.requestCookie();
+        await Auth.requestCookie(config);
       } catch (error) {
         console.error(error);
       }

@@ -2,6 +2,8 @@ const Auth = module.exports;
 const axios = require('axios');
 const Util = require('./util');
 const Adapter = require('./adapter');
+const merge = require('lodash/merge');
+
 
 let platform,
   /**
@@ -74,13 +76,14 @@ Auth.getUser = () => user;
 Auth.getUserType = () => adapter && adapter.userType;
 Auth.isWorking = () => !noWorking;
 
-Auth.requestCookie = async () => {
+Auth.requestCookie = async (pluginConfig) => {
   if (noWorking) {
     return;
   }
 
   try {
-    const cookie = await adapter.auth(request, user, adapter);
+    const { adapter: userAdapter } = pluginConfig || {};
+    const cookie = await adapter.auth(request, user, merge(adapter, userAdapter || {}));
 
     Util.log('writing cookie...');
     Util.Cookie.write(cookie, platform);

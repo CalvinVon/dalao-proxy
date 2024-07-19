@@ -33,4 +33,6 @@ export type Adapter = {
    * @returns {boolean} true 表示需要发起 SSO 登录
    */
   intercept(response: any): boolean;
+
+  params: any;
 }
