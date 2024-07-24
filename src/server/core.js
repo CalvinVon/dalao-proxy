@@ -248,6 +248,13 @@ function proxyRequestWrapper(config, corePlugins) {
                     response: res
                 };
                 req.URL = require('url').parse(req.url);
+
+                if (req.method === 'OPTIONS') {
+                    res.setHeader('Access-Control-Allow-Origin', req.headers.Origin);
+                    res.writeHead(200);
+                    res.end();
+                    return Promise.reject();
+                }
                 return context;
             })
 

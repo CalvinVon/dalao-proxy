@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-const { checkAndCreateFolder, url2filename } = require('../utils');
+const { checkAndCreateFolder, urlMapFS, HTTP_METHODS } = require('../utils');
 const moment = require('moment');
 
 const HEADERS_FIELD_TEXT = '[[headers]]';
@@ -54,10 +54,10 @@ exports.STATUS_FIELD_TEXT = STATUS_FIELD_TEXT;
 
 exports.ContentWrapper = ContentWrapper;
 
-exports.MockFileGenerator = function MockFileGenerator(method, url, options, config) {
+exports.MockFileGenerator = async function MockFileGenerator(method, url, options, config) {
     validators = {
         method: method => {
-            if (!/^(GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD)$/i.test(method)) {
+            if (!new RegExp(`^${HTTP_METHODS.join('|')}$`, 'i').test(method)) {
                 console.error(chalk.red(method + ' is not a valid HTTP method'));
                 return false;
             }
@@ -65,7 +65,7 @@ exports.MockFileGenerator = function MockFileGenerator(method, url, options, con
         },
         url: url => {
             const mockUrl = config.mock.prefix + url;
-            if (!/^\/([a-z\u00a1-\uffff0-9%_-]+\/?)*$/i.test(mockUrl)) {
+            if (!/^\/\S*$/i.test(mockUrl)) {
                 console.error(chalk.red(mockUrl + ' is not a valid url'));
                 return false;
             }
@@ -78,7 +78,7 @@ exports.MockFileGenerator = function MockFileGenerator(method, url, options, con
 
     if (method && url) {
         if (validators.method.call(null, method) && validators.url.call(null, url)) {
-            generateFile(method, url, options, config);
+            await generateFile(method, url, options, config);
         }
         process.exit(0);
     }
@@ -118,11 +118,11 @@ function questionUrl(method, options, config) {
     function askQuestion() {
         rl.question(
             questions[index],
-            value => {
+            async value => {
                 if (validators[index].call(null, value)) {
                     answers.push(value);
                     if (index === questions.length - 1) {
-                        generateFile(...answers, options, config);
+                        await generateFile(...answers, options, config);
                         process.exit(0);
                     }
                     else {
@@ -140,10 +140,10 @@ function questionUrl(method, options, config) {
     askQuestion();
 }
 
-function generateFile(method, url, options, config) {
+async function generateFile(method, url, options, config) {
     const mockUrl = config.mock.prefix + url;
     const isInJsFile = options.program;
-    const mockFileName = path.resolve(process.cwd(), `./${config.mock.dirname}/${url2filename(method, mockUrl)}`) + (isInJsFile ? '.js' : '.json');
+    const mockFileName = path.resolve(process.cwd(), `./${config.mock.dirname}/${urlMapFS(mockUrl, method, '', config.cache.filenameTpl).fullPath}`) + (isInJsFile ? '.js' : '.json');
     const json = {
         CACHE_INFO: 'Mocked by Dalao-Proxy Plugin Cache',
         CACHE_TIME_TXT: moment().format('llll'),
@@ -157,9 +157,8 @@ function generateFile(method, url, options, config) {
     };
 
     applyFilter(config.cache.filters, json);
-    checkAndCreateFolder(config.mock.dirname);
 
-    let fileContent = JSON.stringify(json, null, 4);
+    let fileContent = JSON.stringify(json, null, 2);
 
     if (isInJsFile) {
         const fileWrapper = content => {
@@ -188,8 +187,8 @@ function generateFile(method, url, options, config) {
 
         fileContent = fileWrapper(fileContent);
     }
-
-    fs.writeFileSync(
+    await checkAndCreateFolder(path.dirname(mockFileName));
+    await fs.promises.writeFile(
         mockFileName,
         fileContent,
         {

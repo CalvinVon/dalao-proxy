@@ -4,7 +4,7 @@
 const defaultOptions = {
   prefix: '',
   smartInfer: true,
-  page: /^\/$|\.html?/,
+  page: /^\/$|(\.html)?/,
   excludes: [/hot-update/],
   logger: true,
 };

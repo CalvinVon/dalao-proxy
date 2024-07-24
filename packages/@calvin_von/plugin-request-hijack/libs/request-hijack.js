@@ -76,7 +76,7 @@ function rewriteUrl(url, isWS) {
     }
 
 
-    if (prefix && !HTTP_PROTOCOL_REG.test(newUrl)) {
+    if (prefix && !HTTP_PROTOCOL_REG.test(newUrl) && !isWS) {
         newUrl = prefix + newUrl;
     }
 
