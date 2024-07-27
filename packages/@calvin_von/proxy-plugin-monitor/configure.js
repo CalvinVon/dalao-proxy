@@ -8,7 +8,7 @@ const defaultOptions = {
 
 function setting() {
     return {
-        defaultEnable: true,
+        defaultEnable: false,
         optionsField: 'monitor',
         enableField: 'enable',
     }

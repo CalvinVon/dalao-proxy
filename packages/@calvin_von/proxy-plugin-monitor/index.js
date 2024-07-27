@@ -1,4 +1,3 @@
-const concat = require('concat-stream');
 const open = require('open');
 const RequestMonitor = require('./app');
 const { syncConfig, cleanMonitor } = require('./monitor');
