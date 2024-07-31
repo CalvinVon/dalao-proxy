@@ -39,18 +39,12 @@ module.exports = function (program, register, config) {
         }
     });
 
-    
+
     if (config['cache-ui'] && config['cache-ui'].enable) {
-        register.configure('config', (config, callback) => {
-            config.plugins.push([
-                '@calvin_von/proxy-plugin-inject',
-                {
-                    defaultEnable: true,
-                    optionsField: 'cache__inject'
-                }
-            ]);
-    
-            config['cache__inject'] = {
+        register.setChildPlugin(
+            '@calvin_von/proxy-plugin-inject',
+            'cache__inject',
+            () => ({
                 rules: [
                     {
                         test: /^\/$|.html?$/,
@@ -75,10 +69,8 @@ module.exports = function (program, register, config) {
                         insert: 'head'
                     }
                 ]
-            };
-    
-            callback(null, config);
-        });
+            })
+        );
     }
 };
 
