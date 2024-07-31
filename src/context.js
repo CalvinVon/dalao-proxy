@@ -56,7 +56,6 @@ class Context {
          * runtime plugins list
          */
         this.plugins = [];
-        this.pluginIds = new Set();
         /**
          * *configurable*
          * 

@@ -6,6 +6,7 @@ module.exports = function pluginListCommand(pluginCommand, register) {
         .description('list all installed plugins')
         .option('-g, --global', 'show plugins globally installed only')
         .option('-a, --all', 'show all table fields')
+        .option('-c, --child', 'show child plugins')
         .option('--desc', 'show description')
         .option('--midware', 'show middleware field')
         .option('--cmd', 'show command field')
@@ -16,6 +17,7 @@ module.exports = function pluginListCommand(pluginCommand, register) {
                 const {
                     global: isGlobal,
                     all: showAll,
+                    child: showChild,
                     desc: showDescription,
                     midware: showMiddleware,
                     cmd: showCommand,
@@ -24,6 +26,8 @@ module.exports = function pluginListCommand(pluginCommand, register) {
 
                 displayPluginTable(plugins, {
                     isGlobal,
+                    isAll: showAll,
+                    showChild,
                     showDescription: showDescription || showAll,
                     showMiddleware: showMiddleware || showAll,
                     showCommand: showCommand || showAll,

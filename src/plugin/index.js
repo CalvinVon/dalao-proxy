@@ -128,6 +128,30 @@ class Register extends EventEmitter {
     }
 
 
+    /**
+     * 
+     * @param {string} childPluginName 
+     * @param {string} childField 
+     * @param {(config: object) => object} childConfigGenerator 
+     */
+    setChildPlugin(childPluginName, childField, childConfigGenerator) {
+        this.configure("config", (config, callback) => {
+            config.plugins.push([
+                childPluginName,
+                {
+                    defaultEnable: true,
+                    optionsField: childField,
+                    _childId: childConfigGenerator._childId
+                },
+            ]);
+
+            config[childField] = childConfigGenerator(config);
+            callback(null, config);
+        });
+
+    }
+
+
     addLineCommand(cmd, ...cmds) {
         if (Array.isArray(cmd)) {
             this.lineCommand.push(...cmd);
@@ -141,6 +165,7 @@ class Register extends EventEmitter {
 
 const register = new Register();
 const configure = Register.prototype.configure;
+const setChildPlugin = Register.prototype.setChildPlugin;
 const modifiedPluginIds = new Set();
 /**
  * @type {Plugin[]}
@@ -151,6 +176,11 @@ let modifiedPlugins = [];
  */
 const childPlugins = [];
 const childPluginConfigs = [];
+/**
+ * @type {Map<Plugin, string>}
+ */
+const childPluginMaps = new Map();
+const childPluginShortIds = new Set();
 
 /**
  * @typedef {{
@@ -158,6 +188,7 @@ const childPluginConfigs = [];
  *  enableField?: string;
  *  optionsField: string | string[];
  *  dependFields?: string[];
+ *  _childId?: string;
  * }} PluginSetting
  */
 class Plugin {
@@ -167,7 +198,11 @@ class Plugin {
      * @param {PluginSetting} setting
      */
     constructor(pluginName, context, setting) {
-        this.id = createUid();
+        this.id = this.shortId = setting._childId || createUid();
+        if (setting.optionsField) {
+            this.id += `-${setting.optionsField}`;
+        }
+
         /**
          * @type {string}
          */
@@ -499,6 +534,22 @@ class Plugin {
                 registerSetter.plugin = plugin;
                 configure.call(this, field, registerSetter);
             };
+            Register.prototype.setChildPlugin = function setSubPluginWrapper(childPluginName, childField, childConfigGenerator) {
+                if (!childConfigGenerator._childId) {
+                    childConfigGenerator._childId = createUid();
+                }
+                const shortId = childConfigGenerator._childId;
+
+                if (!childPluginShortIds.has(shortId)) {
+                    const childPluginConfList = childPluginMaps.get(plugin) || [];
+                    childPluginConfList.push(childConfigGenerator._childId);
+                    childPluginMaps.set(plugin, childPluginConfList);
+                    childPluginShortIds.add(shortId);
+
+                    // only execute once for one child plugin
+                    setChildPlugin.call(this, childPluginName, childField, childConfigGenerator);
+                }
+            };
             this.commander.call(this, this.context.program, register, this.config);
         }
     }
@@ -564,6 +615,7 @@ class Plugin {
 
 Plugin.childPlugins = childPlugins;
 Plugin.childPluginConfigs = childPluginConfigs;
+Plugin.childPluginMaps = childPluginMaps;
 Plugin.modifiedPluginIds = modifiedPluginIds;
 Plugin.modifiedPlugins = modifiedPlugins;
 

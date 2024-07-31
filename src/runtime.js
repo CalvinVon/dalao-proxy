@@ -9,7 +9,14 @@ const fs = require('fs');
 const connections = new Set();
 let reloading;
 
-const _pluginMap = new Map();
+/**
+ * @type {Map<string, Plugin>}
+ */
+const pluginMap = new Map();
+/**
+ * @type {Map<string, Plugin>}
+ */
+const childPluginMap = new Map();
 
 function reloadProgram(program, reloadLoadedPlugins) {
     if (!reloading) {
@@ -64,14 +71,12 @@ function loadPlugins(program, config) {
         }
     }
     const newPluginNames = [...new Set([...config.plugins, ...pluginList])]
-        .filter(name => !_pluginMap.get(name));
-    // loadedPlugins.forEach(plugin => {
-    //     const foundIndex = newPluginNames.findIndex(name => {
-    //         return Plugin.resolveSettingFromConfig(name).name === plugin.name;
-    //     });
+        .filter(name => {
+            const { setting } = Plugin.resolveSettingFromConfig(name);
+            const isChildPlugin = !!setting._childId;
+            return isChildPlugin ? !childPluginMap.get(setting._childId) : !pluginMap.get(name);
+        });
 
-    //     newPluginNames.splice(foundIndex, 1);
-    // });
 
     instantiatedPlugins(program, newPluginNames);
     // reload child plugins
@@ -90,13 +95,24 @@ function instantiatedPlugins(program, pluginsNames) {
     // register._reset();
 
     pluginsNames.forEach(configName => {
-        if (_pluginMap.get(configName)) return;
-        
         const { name, setting } = Plugin.resolveSettingFromConfig(configName);
+        const isChildPlugin = !!setting._childId;
+        // check child plugin
+        if (isChildPlugin) {
+            if (childPluginMap.get(setting._childId)) return;
+        }
+        else {
+            if (pluginMap.get(configName)) return;
+        }
+
         const plugin = new Plugin(name, program.context, setting);
-        _pluginMap.set(configName, plugin);
+        if (isChildPlugin) {
+            childPluginMap.set(setting._childId, plugin);
+        }
+        else {
+            pluginMap.set(configName, plugin);
+        }
         if (!plugin.meta.error) {
-            program.context.pluginIds.add(plugin.id);
             program.context.plugins.push(plugin);
         }
     });

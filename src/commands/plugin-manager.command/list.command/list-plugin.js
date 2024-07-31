@@ -33,19 +33,21 @@ function analysisPlugin(plugin) {
  * @returns {Array<PluginDetail>}
  */
 function analysisPluginList(runtimePlugins, options) {
-    const { isGlobal } = options || {};
+    const { isGlobal, isAll, showChild } = options || {};
 
     let plugins = runtimePlugins;
 
-    if (isGlobal) {
-        const baseConfigFilePath = require('path').join(__dirname, '../../../../config/index.js');
-        const config = require(baseConfigFilePath);
-        plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.name === name));
-    }
+    // if (isGlobal) {
+    //     // FIXME: global plugin config has move to rc file
+    //     const baseConfigFilePath = require('path').join(__dirname, '../../../../config/index.js');
+    //     const config = require(baseConfigFilePath);
+    //     plugins = runtimePlugins.filter(plugin => config.plugins.some(name => plugin.name === name));
+    // }
 
 
     const analyzedPluginList = [];
     plugins.forEach(plugin => {
+        if ((isAll || showChild) ? false : plugin._isRuntimeChildPlugin) return;
         analyzedPluginList.push(analysisPlugin(plugin));
     });
 
