@@ -197,7 +197,7 @@ class Plugin {
      * @param {import('../context')} context
      * @param {PluginSetting} setting
      */
-    constructor(pluginName, context, setting) {
+    constructor(pluginName, context, setting = {}) {
         this.id = this.shortId = setting._childId || createUid();
         if (setting.optionsField) {
             this.id += `-${setting.optionsField}`;
