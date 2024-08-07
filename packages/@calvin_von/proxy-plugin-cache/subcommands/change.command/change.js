@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
+const mimeTypes = require('mime-types');
 const { ContentWrapper, MOCK_FIELD_TEXT } = require('../../mock.command/mock');
 const { urlMapFS, fsMapUrl, checkAndCreateFolder } = require('../../utils');
 
@@ -13,7 +14,7 @@ module.exports = function changeMockFile(file, options, config, parentName) {
         function: useFunction
     } = options;
 
-    const { filenameTpl } = config.cache;
+    const { filenameTpl, queryFilter } = config.cache;
 
     const { dirname } = config[parentName];
     const folderReg = new RegExp(`^(.+)?(${config.cache.dirname}|${config.mock.dirname})`);
@@ -123,7 +124,7 @@ module.exports = function changeMockFile(file, options, config, parentName) {
             if (url) {
                 parseResult.url = (prefix ? prefix : '') + url;
             }
-            newFilename = urlMapFS(parseResult.method, parseResult.url);
+            newFilename = urlMapFS(parseResult.url, parseResult.method, mimeTypes.lookup(extension), filenameTpl, queryFilter);
         }
 
         newFilename = newFilename.replace(new RegExp(path.extname(newFilename) + '$'), extension);

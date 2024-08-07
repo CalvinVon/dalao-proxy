@@ -67,23 +67,15 @@ module.exports = {
 
         const userConfigHeaders = context.config.headers;
         const {
-            dirname: cacheDirname,
             maxAge: cacheMaxAge,
             contentType: acceptedContentTypes,
             filenameTpl,
+            queryFilter,
         } = this.config.cache;
-        const {
-            dirname: mockDirname,
-        } = this.config.mock;
 
         // Try to read cache
         try {
-            // await Promise.all([
-            //     checkAndCreateFolder(mockDirname),
-            //     checkAndCreateFolder(cacheDirname)
-            // ]);
-
-            const { fullPath } = urlMapFS(url, method, '', filenameTpl);
+            const { fullPath } = urlMapFS(url, method, '', filenameTpl, queryFilter);
             const resolveExtnames = ['', '.js', '.json'];
             if (acceptedContentTypes.some(it => /\*\/\*|text\/html/.test(it))) {
                 resolveExtnames.push('.html', '/index.html');
@@ -456,7 +448,8 @@ module.exports = {
             dirname: cacheDirname,
             contentType: cacheContentType,
             filters,
-            filenameTpl
+            filenameTpl,
+            queryFilter
         } = this.config.cache;
         const { method, url } = context.request;
         const { response, error } = context.proxy;
@@ -571,7 +564,7 @@ module.exports = {
                     }, {});
                     resJson[HEADERS_FIELD_TEXT] = headersWithoutCORS;
 
-                    const { fullPath } = urlMapFS(url, method, 'application/json', filenameTpl);
+                    const { fullPath } = urlMapFS(url, method, 'application/json', filenameTpl, queryFilter);
                     const cacheFilePath = path.resolve(process.cwd(), `./${cacheDirname}/${fullPath}`);
                     await checkAndCreateFolder(path.dirname(cacheFilePath));
                     await fs.promises.writeFile(
@@ -591,7 +584,7 @@ module.exports = {
                  */
                 async function cacheFileInOrignal(contentType) {
 
-                    const { fullPath } = urlMapFS(url, method, contentType, filenameTpl);
+                    const { fullPath } = urlMapFS(url, method, contentType, filenameTpl, queryFilter);
                     const cacheFilePath = path.resolve(process.cwd(), `./${cacheDirname}/${fullPath}`);
                     await checkAndCreateFolder(path.dirname(cacheFilePath));
 

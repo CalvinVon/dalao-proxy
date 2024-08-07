@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { parse } = require('url');
+const queryString = require('query-string');
 const mime = require('mime-types');
 const { defaultFilenameTpl } = require('./configure');
 
@@ -48,7 +49,6 @@ function resolveSearchPaths(searchPath, config, extnames = ['']) {
 }
 
 /**
- * 
  * @param {{ path: string; isMockFile: boolean; }[]} pathObjects
  * @returns {Promise<{ found: boolean; extname: string; path: string; isMockFile: boolean; }[]>}
  */
@@ -76,9 +76,38 @@ function tryResolveFiles(pathObjects) {
     }))
 }
 
+/**
+ * @param {string} searchString starts with '?'
+ * @param {null|Record<string, boolean>} queryFilter
+ */
+function filterQuery(searchString, queryFilter) {
+    const keys = Object.keys(queryFilter);
+    if (queryFilter && keys.length) {
+        const query = queryString.parse(searchString);
+        const whitelist = keys.filter(k => queryFilter[k]);
+        let resultString;
+
+        if (whitelist.length) {
+            const resultQuery = {};
+            whitelist.forEach(k => {
+                resultQuery[k] = query[k];
+            });
+            resultString = queryString.stringify(resultQuery);
+        }
+        else {
+            keys.forEach(k => {
+                delete query[k];
+            });
+            resultString = queryString.stringify(query);
+        }
+        return resultString ? `?${resultString}` : '';
+    }
+    return searchString;
+}
+
 // transfer url to (cache) filename
 // @default '{method}_{basename}{jsonExt}{htmlAppend}{query}'
-function urlMapFS(url, method, contentType, tpl) {
+function urlMapFS(url, method, contentType, tpl, queryFilter) {
     const { pathname, search } = parse(url || '/');
     const dirname = path.dirname(pathname);
     const basename = path.basename(pathname);
@@ -86,7 +115,7 @@ function urlMapFS(url, method, contentType, tpl) {
     const filename = (tpl || defaultFilenameTpl)
         .replace(/\{method\}/g, method.toUpperCase())
         .replace(/\{basename\}/g, basename)
-        .replace(/\{query\}/g, search || '')
+        .replace(/\{query\}/g, filterQuery(search, queryFilter) || '')
         .replace(/\{jsonExt\}/g, mime.extension(contentType) === 'json' ? '.json' : '')
         .replace(/\{htmlAppend\}/g, mime.extension(contentType) === 'html' ? '/index.html' : '')
         .replace(/\/$/, '');

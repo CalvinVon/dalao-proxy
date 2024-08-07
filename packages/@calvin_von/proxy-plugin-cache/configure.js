@@ -7,9 +7,18 @@ const cacheDefaults = {
         "application/json"
     ],
     /**
-     * Define stored(cache/mock) file
+     * Define how url maps to FS
     */
     "filenameTpl": defaultFilenameTpl,
+    
+    /**
+     * Filters of query params maps to FS
+     * 
+     * @example queryFilter: { foo: false, bar: true }
+     * 
+     * @type {null|Record<string, boolean>}
+     */
+    "queryFilter": null,
     "maxAge": [
         0,
         "second"

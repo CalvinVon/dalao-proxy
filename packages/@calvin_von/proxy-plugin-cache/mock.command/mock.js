@@ -143,7 +143,16 @@ function questionUrl(method, options, config) {
 async function generateFile(method, url, options, config) {
     const mockUrl = config.mock.prefix + url;
     const isInJsFile = options.program;
-    const mockFileName = path.resolve(process.cwd(), `./${config.mock.dirname}/${urlMapFS(mockUrl, method, '', config.cache.filenameTpl).fullPath}`) + (isInJsFile ? '.js' : '.json');
+    const mockFileName = path.resolve(
+        process.cwd(),
+        `./${config.mock.dirname}/${urlMapFS(
+            mockUrl,
+            method,
+            '',
+            config.cache.filenameTpl,
+            config.cache.queryFilter,
+        ).fullPath
+        }`) + (isInJsFile ? '.js' : '.json');
     const json = {
         CACHE_INFO: 'Mocked by Dalao-Proxy Plugin Cache',
         CACHE_TIME_TXT: moment().format('llll'),
