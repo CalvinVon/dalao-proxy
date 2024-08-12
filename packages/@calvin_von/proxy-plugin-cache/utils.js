@@ -108,12 +108,12 @@ function filterParams(searchString, queryFilter) {
 // transfer url to (cache) filename
 // @default '{method}_{basename}{jsonExt}{htmlAppend}{query}'
 function urlMapFS(url, method, contentType, cacheConfig) {
-    const { tpl, queryFilter } = cacheConfig;
+    const { filenameTpl, queryFilter } = cacheConfig;
     const { pathname, search } = parse(url || '/');
     const dirname = path.dirname(pathname);
     const basename = path.basename(pathname);
 
-    const filename = (tpl || defaultFilenameTpl)
+    const filename = (filenameTpl || defaultFilenameTpl)
         .replace(/\{method\}/g, method.toUpperCase())
         .replace(/\{basename\}/g, basename)
         .replace(/\{query\}/g, filterParams(search, queryFilter) || '')

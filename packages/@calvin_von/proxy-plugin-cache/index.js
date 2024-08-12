@@ -127,18 +127,21 @@ module.exports = {
             const fullPath = result.path;
             const extname = result.extname;
             const searchCacheFile = !result.isMockFile;
-            const isInJsonFormat = extname === '.json';
-            const isInJsFormat = extname === '.js';
+            let isInJsonFormat = extname === '.json';
+            let isInJsFormat = extname === '.js';
 
             const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
+
+            let fileContent;
+            let jsonContent;
             // filtered api request by extname
             // if no extname given, try load as json format
             if (!extname) {
                 try {
                     if (acceptedContentTypes.some(it => /\*\/\*|application\/js/.test(it))) {
-                        const jsonContent = require(fullPath);
-                        const fileContent = JSON.stringify(jsonContent, null, 2);
+                        fileContent = await fs.promises.readFile(fullPath, { encoding: 'utf-8' });
+                        jsonContent = JSON.parse(fileContent);
                         isInJsonFormat = true;
                     }
                 } catch (error) {
@@ -149,8 +152,14 @@ module.exports = {
             // return data in JSON format
             // file maybe in json or js format
             if (isInJsonFormat) {
-                const jsonContent = require(fullPath);
-                const fileContent = JSON.stringify(jsonContent, null, 2);
+                if (!jsonContent || !fileContent) {
+                    try {
+                        jsonContent = require(fullPath);
+                        fileContent = JSON.stringify(jsonContent, null, 2);
+                    } catch (error) {
+                        console.error(`Error when loading cache file of ${fullPath}`);
+                    }
+                }
 
                 handleRespond(jsonContent, fileContent);
             }
