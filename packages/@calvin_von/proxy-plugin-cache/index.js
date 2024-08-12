@@ -1,5 +1,5 @@
 const path = require('path');
-const querystring = require('querystring');
+const querystring = require('query-string');
 const chalk = require('chalk');
 const concat = require('concat-stream');
 const mime = require('mime-types');
@@ -60,22 +60,21 @@ module.exports = {
     },
 
     async beforeProxy(context, next) {
-        const { response, request } = context;
+        const { response, request, data } = context;
         const { method, url } = request;
         const logger = context.config.logger;
         const enableCORS = this.config.mock.cors;
 
         const userConfigHeaders = context.config.headers;
+        const cacheConfig = this.config.cache;
         const {
             maxAge: cacheMaxAge,
             contentType: acceptedContentTypes,
-            filenameTpl,
-            queryFilter,
-        } = this.config.cache;
+        } = cacheConfig;
 
         // Try to read cache
         try {
-            const { fullPath } = urlMapFS(url, method, '', filenameTpl, queryFilter);
+            const { fullPath } = urlMapFS(url, method, '', cacheConfig);
             const resolveExtnames = ['', '.js', '.json'];
             if (acceptedContentTypes.some(it => /\*\/\*|text\/html/.test(it))) {
                 resolveExtnames.push('.html', '/index.html');
@@ -133,6 +132,20 @@ module.exports = {
 
             const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
+            // filtered api request by extname
+            // if no extname given, try load as json format
+            if (!extname) {
+                try {
+                    if (acceptedContentTypes.some(it => /\*\/\*|application\/js/.test(it))) {
+                        const jsonContent = require(fullPath);
+                        const fileContent = JSON.stringify(jsonContent, null, 2);
+                        isInJsonFormat = true;
+                    }
+                } catch (error) {
+
+                }
+            }
+
             // return data in JSON format
             // file maybe in json or js format
             if (isInJsonFormat) {
@@ -142,17 +155,10 @@ module.exports = {
                 handleRespond(jsonContent, fileContent);
             }
 
-            // filtered api request by extname
             // judge whether js file exports functions or object
-            else if (isInJsFormat && !extname) {
-                let exportsContent;
-                try {
-                    if (acceptedContentTypes.some(it => /\*\/\*|application\/js/.test(it))) {
-                        exportsContent = require(fullPath);
-                    }
-                } catch (error) {
+            else if (isInJsFormat) {
+                const exportsContent = require(fullPath);
 
-                }
                 if (exportsContent) {
                     // handle plain object
                     if (Utils.getType(exportsContent, 'Object')) {
@@ -444,13 +450,12 @@ module.exports = {
     async afterProxy(context) {
         setAsOriginalUser();
         const logger = context.config.logger;
+        const cacheConfig = this.config.cache;
         const {
             dirname: cacheDirname,
             contentType: cacheContentType,
             filters,
-            filenameTpl,
-            queryFilter
-        } = this.config.cache;
+        } = cacheConfig;
         const { method, url } = context.request;
         const { response, error } = context.proxy;
 
@@ -564,7 +569,7 @@ module.exports = {
                     }, {});
                     resJson[HEADERS_FIELD_TEXT] = headersWithoutCORS;
 
-                    const { fullPath } = urlMapFS(url, method, 'application/json', filenameTpl, queryFilter);
+                    const { fullPath } = urlMapFS(url, method, 'application/json', cacheConfig);
                     const cacheFilePath = path.resolve(process.cwd(), `./${cacheDirname}/${fullPath}`);
                     await checkAndCreateFolder(path.dirname(cacheFilePath));
                     await fs.promises.writeFile(
@@ -584,7 +589,7 @@ module.exports = {
                  */
                 async function cacheFileInOrignal(contentType) {
 
-                    const { fullPath } = urlMapFS(url, method, contentType, filenameTpl, queryFilter);
+                    const { fullPath } = urlMapFS(url, method, contentType, cacheConfig);
                     const cacheFilePath = path.resolve(process.cwd(), `./${cacheDirname}/${fullPath}`);
                     await checkAndCreateFolder(path.dirname(cacheFilePath));
 

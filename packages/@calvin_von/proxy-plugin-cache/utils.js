@@ -80,9 +80,9 @@ function tryResolveFiles(pathObjects) {
  * @param {string} searchString starts with '?'
  * @param {null|Record<string, boolean>} queryFilter
  */
-function filterQuery(searchString, queryFilter) {
-    const keys = Object.keys(queryFilter);
-    if (queryFilter && keys.length) {
+function filterParams(searchString, queryFilter) {
+    let keys;
+    if (queryFilter && (keys = Object.keys(queryFilter)) && keys.length) {
         const query = queryString.parse(searchString);
         const whitelist = keys.filter(k => queryFilter[k]);
         let resultString;
@@ -107,7 +107,8 @@ function filterQuery(searchString, queryFilter) {
 
 // transfer url to (cache) filename
 // @default '{method}_{basename}{jsonExt}{htmlAppend}{query}'
-function urlMapFS(url, method, contentType, tpl, queryFilter) {
+function urlMapFS(url, method, contentType, cacheConfig) {
+    const { tpl, queryFilter } = cacheConfig;
     const { pathname, search } = parse(url || '/');
     const dirname = path.dirname(pathname);
     const basename = path.basename(pathname);
@@ -115,7 +116,7 @@ function urlMapFS(url, method, contentType, tpl, queryFilter) {
     const filename = (tpl || defaultFilenameTpl)
         .replace(/\{method\}/g, method.toUpperCase())
         .replace(/\{basename\}/g, basename)
-        .replace(/\{query\}/g, filterQuery(search, queryFilter) || '')
+        .replace(/\{query\}/g, filterParams(search, queryFilter) || '')
         .replace(/\{jsonExt\}/g, mime.extension(contentType) === 'json' ? '.json' : '')
         .replace(/\{htmlAppend\}/g, mime.extension(contentType) === 'html' ? '/index.html' : '')
         .replace(/\/$/, '');

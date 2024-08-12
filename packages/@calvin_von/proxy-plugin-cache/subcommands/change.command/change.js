@@ -124,7 +124,7 @@ module.exports = function changeMockFile(file, options, config, parentName) {
             if (url) {
                 parseResult.url = (prefix ? prefix : '') + url;
             }
-            newFilename = urlMapFS(parseResult.url, parseResult.method, mimeTypes.lookup(extension), filenameTpl, queryFilter);
+            newFilename = urlMapFS(parseResult.url, parseResult.method, mimeTypes.lookup(extension), config.cache);
         }
 
         newFilename = newFilename.replace(new RegExp(path.extname(newFilename) + '$'), extension);

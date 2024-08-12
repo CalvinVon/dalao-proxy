@@ -149,8 +149,7 @@ async function generateFile(method, url, options, config) {
             mockUrl,
             method,
             '',
-            config.cache.filenameTpl,
-            config.cache.queryFilter,
+            config.cache,
         ).fullPath
         }`) + (isInJsFile ? '.js' : '.json');
     const json = {
