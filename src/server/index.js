@@ -45,11 +45,12 @@ function attachServerListener(program, server, config) {
         server.close();
         if (/listen EACCES/.test(err.message)) {
             console.error(chalk.red(`  Try listening port ${port} failed with code ${err.code}, please change anther port`));
-            console.error(err);
+            // console.error(err);
         }
         else if (/EADDRINUSE/i.test(err.message)) {
-            console.log(chalk.grey(`  Port ${port} is in use, dalao is trying to change port to ${++port}`));
-            server.listen(port, host);
+            console.error(chalk.red(`  Port ${port} is in use, please change anther port`));
+            // console.log(chalk.grey(`  Port ${port} is in use, dalao is trying to change port to ${++port}`));
+            // server.listen(port, host);
         }
         else {
             console.error(err);
