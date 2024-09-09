@@ -43,7 +43,8 @@
     },
     "devDependencies": {
         "@calvin_von/proxy-plugin-cache": "^1.2.0-beta.18",
-        "@types/node": "^16.11.7"
+        "@types/node": "^16.11.7",
+        "sass": "^1.77.8"
     },
     "optionalDependencies": {
         "bufferutil": "^4.0.8"
