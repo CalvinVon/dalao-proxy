@@ -17,15 +17,11 @@ async function checkAndCreateFolder(dirname) {
     }
 }
 
-/**
- * @param {string[]} paths
- * @param {string[]} [extnames]
- * @returns {{ path: string; isMockFile: boolean; }[]}
- */
-function resolveSearchPaths(searchPath, config, extnames = ['']) {
+
+function resolveSearchPaths(searchPath, queryString, config, extnames = ['']) {
     const {
         cache: { dirname: cacheDirname },
-        mock: { enable: mockEnable, dirname: mockDirname }
+        mock: { enable: mockEnable, dirname: mockDirname, ignoreQuery }
     } = config;
 
     const resolvedPaths = [];
@@ -37,10 +33,16 @@ function resolveSearchPaths(searchPath, config, extnames = ['']) {
     baseDirs.forEach(dir => {
         extnames.forEach(extname => {
             const pwd = process.cwd();
-            const base = path.join(pwd, dir, searchPath + extname);
+            let base = path.join(pwd, dir, searchPath + extname);
+            const isMockFile = dir === mockDirname;
+
+            if (isMockFile && ignoreQuery) {
+                base = base.replace(queryString, '');
+            }
+
             resolvedPaths.push({
                 path: base,
-                isMockFile: dir === mockDirname
+                isMockFile
             });
         })
     });
@@ -113,10 +115,12 @@ function urlMapFS(url, method, contentType, cacheConfig) {
     const dirname = path.dirname(pathname);
     const basename = path.basename(pathname);
 
+    const queryString = filterParams(search, queryFilter) || '';
+
     const filename = (filenameTpl || defaultFilenameTpl)
         .replace(/\{method\}/g, method.toUpperCase())
         .replace(/\{basename\}/g, basename)
-        .replace(/\{query\}/g, filterParams(search, queryFilter) || '')
+        .replace(/\{query\}/g, queryString)
         .replace(/\{jsonExt\}/g, mime.extension(contentType) === 'json' ? '.json' : '')
         .replace(/\{htmlAppend\}/g, mime.extension(contentType) === 'html' ? '/index.html' : '')
         .replace(/\/$/, '');
@@ -124,6 +128,7 @@ function urlMapFS(url, method, contentType, cacheConfig) {
     const fullPath = path.join(dirname, filename);
     return {
         fullPath,
+        queryString,
         dirname,
         filename,
     }

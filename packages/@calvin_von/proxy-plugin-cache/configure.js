@@ -59,10 +59,11 @@ const cacheDefaults = {
 };
 
 const mockDefaults = {
+    "enable": true,
     "dirname": "mocks",
     "prefix": "",
     "cors": true,
-    "enable": true
+    "ignoreQuery": false
 };
 
 const cacheUiDefaults = {
@@ -99,6 +100,8 @@ function cacheParser(cacheOptions) {
 function mockParser(mockOptions) {
     if (mockOptions) {
         return {
+            ...mockDefaults,
+            ...mockOptions,
             prefix: parsePrefix(mockOptions.prefix),
             dirname: parseMockDirname(mockOptions.dirname),
             enable: typeof mockOptions.enable === 'undefined' ? mockDefaults.enable : mockOptions.enable,

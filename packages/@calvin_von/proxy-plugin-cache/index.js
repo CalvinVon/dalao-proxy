@@ -63,7 +63,7 @@ module.exports = {
         const { response, request, data } = context;
         const { method, url } = request;
         const logger = context.config.logger;
-        const enableCORS = this.config.mock.cors;
+        const { cors: enableCORS } = this.config.mock;
 
         const userConfigHeaders = context.config.headers;
         const cacheConfig = this.config.cache;
@@ -74,12 +74,12 @@ module.exports = {
 
         // Try to read cache
         try {
-            const { fullPath } = urlMapFS(url, method, '', cacheConfig);
+            const { fullPath, queryString } = urlMapFS(url, method, '', cacheConfig);
             const resolveExtnames = ['', '.js', '.json'];
             if (acceptedContentTypes.some(it => /\*\/\*|text\/html/.test(it))) {
                 resolveExtnames.push('.html', '/index.html');
             }
-            const resolvePathObjs = resolveSearchPaths(fullPath, this.config, resolveExtnames);
+            const resolvePathObjs = resolveSearchPaths(fullPath, queryString, this.config, resolveExtnames);
             const results = await tryResolveFiles(resolvePathObjs);
             const result = results.find(it => it.found);
 
