@@ -48,6 +48,8 @@ function splitTargetAndPath(url) {
 
 
 function shouldExclude(url) {
+    if (url.startsWith('blob:')) return true;
+    
     if (Array.isArray(excludes)) {
         return excludes.some(it => new RegExp(it).test(url));
     }
