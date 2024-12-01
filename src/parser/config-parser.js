@@ -343,6 +343,10 @@ exports.parse = function parse(command) {
     runtimeConfig = _.assignWith({}, fileConfig, argsConfig, custom_assign);
     mergePluginsConfig(runtimeConfig, command.context.plugins);
 
+    register._trigger('config:process', runtimeConfig, value => {
+        runtimeConfig = value;
+    });
+
     const output = {
         routeTable: parseRouter(runtimeConfig)
     };
