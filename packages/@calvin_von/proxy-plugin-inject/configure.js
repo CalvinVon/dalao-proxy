@@ -2,7 +2,7 @@
 const fs = require('fs');
 // presets
 const PresetConsole = require('./presets/mobile-console');
-const RemoteDebug = require('./presets/remote-console');
+const CdpDebugger = require('./presets/cdp-debugger');
 
 /**
  * Config field
@@ -15,6 +15,14 @@ const RemoteDebug = require('./presets/remote-console');
  *                  'inject-file.js': './libs/injected-file.js',
  *                  'inject-style.css': './libs/inject-style.css'
  *              },
+ *              proxy: {
+ *                  '/rule': {
+ *                      'target': 'http://some-address/path',
+ *                      'pathRewrite': {
+                            '/rule': ''
+ *                      }
+ *                  }
+ *              },
  *              template: '<script>alert('something')</script>',
  *              templateSrc: './inject-script-to-html.js',
  *              insert: 'body'
@@ -22,7 +30,7 @@ const RemoteDebug = require('./presets/remote-console');
  *      ],
  *      presets: {
  *          mobileConsole: false,
- *          remoteConsole: false,
+ *          cdp: false,
  *      }
  *  }
  */
@@ -30,7 +38,7 @@ const defaultOptions = {
     rules: [],
     presets: {
         mobileConsole: false,
-        remoteConsole: false
+        cdp: false
     }
 };
 
@@ -73,11 +81,11 @@ function parseRules(rawRules, presets) {
         }
         rules.push(PresetConsole.rules);
     }
-    if (presets.remoteConsole) {
-        if (typeof(presets.remoteConsole) === 'object') {
-            Object.assign(PresetConsole.rules, presets.remoteConsole);
+    if (presets.cdpDebugger) {
+        if (typeof(presets.cdpDebugger) === 'object') {
+            Object.assign(CdpDebugger.rules, presets.cdpDebugger);
         }
-        rules.push(RemoteDebug.rules);
+        rules.push(CdpDebugger.rules);
     }
 
     rules.push(

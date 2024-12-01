@@ -1,27 +1,17 @@
+const { URL_PREFIX } = require('./consts');
 const mime = require('mime');
 const fs = require('fs');
-const { attachWsServer, executeScript } = require('./presets/remote-console/server');
+const shell = require('./presets/cdp-debugger/shell');
 
 
 // consts
-const URL_PREFIX = '/__plugin_inject__/';
-const onServerListener = server => {
-    attachWsServer(server);
-};
-const onInputListener = data => {
-    executeScript(data);
-};
 
 module.exports = {
 
     beforeCreate() {
         const { presets } = this.config;
-        if (presets.remoteConsole) {
-            this.register.removeListener('context:server', onServerListener);
-            this.register.once('context:server', onServerListener);
-
-            this.register.removeListener('input', onInputListener);
-            this.register.on('input', onInputListener);
+        if (presets.cdpDebugger) {
+            shell.start()
         }
     },
 
