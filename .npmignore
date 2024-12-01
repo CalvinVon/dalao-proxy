@@ -7,3 +7,6 @@ test/
 dalao.config.js
 dalao.config.json
 dalao.config.example.json
+
+.editorconfig
+pnpm-workspace.yaml
