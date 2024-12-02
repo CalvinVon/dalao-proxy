@@ -3,7 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const chiiPath = path.join(__dirname, '..', '..', 'node_modules', 'chii', 'bin', 'chii.js');
 
-/** @type {import('child_process').ChildProcess} */
+/** @type {import('child_process').ChildProcess | undefined} */
 let chiiProcess;
 module.exports = {
     start() {
@@ -23,6 +23,8 @@ module.exports = {
 }
 
 process.on('exit', () => {
-    chiiProcess.kill();
-    console.log('[CDP Debugger] cdp debugger server exited');
+    if (chiiProcess) {
+        chiiProcess.kill();
+        console.log('[CDP Debugger] cdp debugger server exited');
+    }
 })

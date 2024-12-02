@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/proxy-plugin-inject",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A dalao-proxy plugin for inject scripts into html",
   "main": "index.js",
   "keywords": [
