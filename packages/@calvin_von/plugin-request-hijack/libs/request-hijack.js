@@ -49,7 +49,7 @@ function splitTargetAndPath(url) {
 
 function shouldExclude(url) {
     if (url.startsWith('blob:')) return true;
-    
+
     if (Array.isArray(excludes)) {
         return excludes.some(it => new RegExp(it).test(url));
     }
@@ -73,13 +73,15 @@ function rewriteUrl(url, isWS) {
         });
     }
 
-    if (!matched) {
-        newUrl = splitTargetAndPath(newUrl).path;
-    }
+    if (!isWS) {
+        if (!matched) {
+            newUrl = splitTargetAndPath(newUrl).path;
+        }
 
 
-    if (prefix && !HTTP_PROTOCOL_REG.test(newUrl) && !isWS) {
-        newUrl = prefix + newUrl;
+        if (prefix && !HTTP_PROTOCOL_REG.test(newUrl)) {
+            newUrl = prefix + newUrl;
+        }
     }
 
     return newUrl.replace(/^\/\//, '/');
@@ -155,7 +157,7 @@ function hijackWebSocket() {
                 url = rewriteUrl(url, true);
 
                 if (logger) {
-                    log(`WebSocket connection to [${args[0]}] has been rewritten`);
+                    log(`WebSocket connection to [${args[0]}] has been rewritten to ${url}`);
                 }
                 args[0] = url;
             }
