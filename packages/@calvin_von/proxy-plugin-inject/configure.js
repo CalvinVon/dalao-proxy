@@ -38,7 +38,7 @@ const defaultOptions = {
     rules: [],
     presets: {
         mobileConsole: false,
-        cdp: false
+        cdpDebugger: false
     }
 };
 
