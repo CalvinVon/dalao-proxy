@@ -52,7 +52,7 @@ Cookie.watch = (callback) => {
   fs.ensureFile(Cookie.filePath, (err) => {
     if (err) return;
 
-    fs.unwatchFile(Cookie.filePath, callback);
+    fs.unwatchFile(Cookie.filePath);
     fs.watchFile(Cookie.filePath, callback);
   });
 }

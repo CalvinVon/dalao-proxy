@@ -15,6 +15,7 @@ function beforeCreate() {
     pluginConfig = this.config;
     cookie = Util.Cookie.get(pluginConfig.platform);
     Util.Cookie.watch(() => {
+        console.log();
         Util.log('cookie file changes detected');
         cookie = Util.Cookie.get(pluginConfig.platform);
     });
