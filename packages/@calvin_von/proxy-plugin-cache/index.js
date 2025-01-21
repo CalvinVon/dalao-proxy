@@ -133,8 +133,8 @@ module.exports = {
             const [cacheDigit = 0, cacheUnit = 'second'] = cacheMaxAge;
 
 
-            let fileContent;
-            let jsonContent;
+            let fileContent = '';
+            let jsonContent = {};
             // filtered api request by extname
             // if no extname given, try load as json format
             if (!extname) {
@@ -157,7 +157,8 @@ module.exports = {
                         jsonContent = require(fullPath);
                         fileContent = JSON.stringify(jsonContent, null, 2);
                     } catch (error) {
-                        console.error(`Error when loading cache file of ${fullPath}`);
+                        console.error(`Error when loading cache file of ${fullPath}`, error);
+                        jsonContent = {};
                     }
                 }
 
