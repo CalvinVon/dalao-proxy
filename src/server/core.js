@@ -408,8 +408,10 @@ function proxyRequestWrapper(config, corePlugins) {
                         // 检查并处理 br 编码
                         if (response.headers['content-encoding'] === 'br') {
                             baseResStream = baseResStream.pipe(zlib.createBrotliDecompress());
-                            delete response.headers['content-encoding'];
+                            // delete response.headers['content-encoding'];
                         }
+
+                        context.proxy.parsedResponseStream = baseResStream;
                         
                         // 现在构建最终的响应流
                         let xResStream = baseResStream.pipe(through(
@@ -465,10 +467,14 @@ function proxyRequestWrapper(config, corePlugins) {
                          */
                         context.proxy.response = response;
                         context.proxy.responseStream = xResStream;
+                        const resHeaders = { ...response.headers };
                         if (hasGziped) {
-                            response.headers['content-encoding'] = 'gzip';
+                            resHeaders['content-encoding'] = 'gzip';
                         }
-                        setResponseHeaders(response.headers, matchedRoute);
+                        else {
+                            delete resHeaders['content-encoding'];
+                        }
+                        setResponseHeaders(resHeaders, matchedRoute);
                         
                         res.writeHead(response.statusCode, response.statusMessage);
                         
@@ -476,7 +482,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         // collect proxy request data
                         if (program._collectingProxyData) {
                             waitingList.push(
-                                collectResponseData(context.proxy.originResponseStream, context.proxy.response)
+                                collectResponseData(context.proxy.parsedResponseStream, context.proxy.response)
                                     .then(data => {
                                         context.proxy.data.response = data;
                                         Middleware_onProxyDataRespond(context);
@@ -790,7 +796,7 @@ function proxyRequestWrapper(config, corePlugins) {
 
             const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList, {
                 // 'content-encoding': null,
-                'content-length': null, // 只移除 content-length，保留 content-encoding
+                'content-length': null,
             });
 
             setHeadersFor(res, formattedHeaders);
