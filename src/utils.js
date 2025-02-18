@@ -247,7 +247,10 @@ function formatHeaders(headers) {
     const formattedHeaders = {};
     Object.keys(headers).forEach(key => {
         const header = key.toLowerCase();
-        formattedHeaders[header] = headers[key];
+        const value = headers[key];
+        if (value) {
+            formattedHeaders[header] = value;
+        }
     });
     return formattedHeaders;
 }

@@ -482,7 +482,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         // collect proxy request data
                         if (program._collectingProxyData) {
                             waitingList.push(
-                                collectResponseData(context.proxy.parsedResponseStream, context.proxy.response)
+                                collectResponseData(context.proxy.parsedResponseStream, response.headers)
                                     .then(data => {
                                         context.proxy.data.response = data;
                                         Middleware_onProxyDataRespond(context);
@@ -494,7 +494,7 @@ function proxyRequestWrapper(config, corePlugins) {
                         // collect request data
                         if (program._collectingData) {
                             waitingList.push(
-                                collectResponseData(context.proxy.responseStream, response, true)
+                                collectResponseData(context.proxy.responseStream, res.getHeaders(), true)
                                     .then(data => {
                                         context.data.response = data;
                                     })
@@ -720,7 +720,7 @@ function proxyRequestWrapper(config, corePlugins) {
          * @param {boolean} isClient is the response to client
          * @returns 
          */
-        function collectResponseData(source, response, isClient) {
+        function collectResponseData(source, headers, isClient) {
             return new Promise(resolve => {
                 source.pipe(concat(buffer => {
                     const data = {
@@ -732,9 +732,9 @@ function proxyRequestWrapper(config, corePlugins) {
                     };
 
                     try {
-                        const headers = formatHeaders(response.headers);
-                        const contentType = data.type = headers['content-type'];
-                        const gziped = headers['content-encoding'] === 'gzip';
+                        const _headers = formatHeaders(headers);
+                        const contentType = data.type = _headers['content-type'];
+                        const gziped = _headers['content-encoding'] === 'gzip';
 
                         if (/json/.test(contentType) && (isClient ? !gziped : true)) {
                             data.data = JSON.parse(fixJson(data.rawData));
