@@ -10,6 +10,7 @@ module.exports = function (program, register, config) {
     cacheCommand.call(this, program, register, config);
 
     program.enableCollectData();
+    program.enableCollectProxyData();
 
     register.addLineCommand('cache:clr', 'cache:clean');
     register.addLineCommand('cache:store', 'cache:restore', 'cache:list');

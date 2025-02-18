@@ -1,6 +1,6 @@
 {
   "name": "@calvin_von/proxy-plugin-cache",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "A dalao-proxy plugin for cache response",
   "main": "index.js",
   "keywords": [
@@ -24,5 +24,8 @@
   },
   "engines": {
     "node": ">=8"
+  },
+  "devDependencies": {
+    "@calvin_von/proxy-plugin-inject": "^2.0.2"
   }
 }

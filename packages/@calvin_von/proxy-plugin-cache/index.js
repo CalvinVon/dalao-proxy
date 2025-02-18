@@ -311,6 +311,7 @@ module.exports = {
 
                     if (noCollectRequestData) {
                         jsonContent.REAL_REQUEST_DATA = context.data.request;
+                        jsonContent.PROXY_REQUEST_DATA = context.proxy.data.request;
                         const fileContent = JSON.stringify(jsonContent, null, 2);
                         response.write(fileContent);
                         response.end();
@@ -355,6 +356,7 @@ module.exports = {
 
                         if (noCollectRequestData) {
                             jsonContent.REAL_REQUEST_DATA = context.data.request;
+                            jsonContent.PROXY_REQUEST_DATA = context.proxy.data.request;
                             const fileContent = JSON.stringify(jsonContent, null, 2);
                             response.write(fileContent);
                             response.end();
@@ -514,6 +516,14 @@ module.exports = {
                 function isMeetFiltering() {
                     if (!cacheFilters.length) return true;
 
+                    const filterContext = {
+                        query: context.proxy.data.request.query,
+                        body: context.proxy.data.request.body,
+                        data: context.proxy.data.response.data,
+                        header: {},
+                        status: response.statusCode
+                    };
+
                     let isMeetList = [];
                     for (const filter of cacheFilters) {
                         let isMeet;
@@ -521,13 +531,6 @@ module.exports = {
                             isMeet = filter.custom.call(null, context);
                         }
                         else {
-                            const filterContext = {
-                                query: context.data.request.query,
-                                body: context.data.request.body,
-                                data: context.data.response.data,
-                                header: {},
-                                status: response.statusCode
-                            };
                             const headers = context.proxy[filter.when].headers;
                             Object.keys(headers).forEach(header => {
                                 const _header = formatHeader(header);
@@ -559,7 +562,7 @@ module.exports = {
                  * Cache file in JSON format
                  */
                 async function cacheFileInJSON() {
-                    const resJson = Object.assign({}, context.data.response.data);
+                    const resJson = Object.assign({}, context.proxy.data.response.data);
 
                     resJson.CACHE_INFO = 'Cached from Dalao Proxy';
                     resJson.CACHE_TIME = Date.now();
@@ -567,7 +570,7 @@ module.exports = {
                     resJson.CACHE_REQUEST_DATA = {
                         url,
                         method,
-                        ...context.data.request
+                        ...context.proxy.data.request
                     };
                     delete resJson.CACHE_REQUEST_DATA.rawBuffer;
                     resJson[MOCK_FIELD_TEXT] = false;
@@ -604,7 +607,7 @@ module.exports = {
                     await checkAndCreateFolder(path.dirname(cacheFilePath));
 
                     try {
-                        const rawBuffer = context.data.response.rawBuffer;
+                        const rawBuffer = context.proxy.data.response.rawBuffer;
                         await fs.promises.writeFile(
                             cacheFilePath,
                             rawBuffer.length ? rawBuffer : Buffer.from('')
