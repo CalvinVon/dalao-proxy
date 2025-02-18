@@ -41,7 +41,7 @@ export default {
     },
     computed: {
         spittedHTML() {
-            return this.parsedHTML.substr(0, this.maxLength);
+            return this.parsedHTML.substring(0, this.maxLength);
         }
     },
     watch: {

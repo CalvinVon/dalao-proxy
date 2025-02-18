@@ -138,7 +138,7 @@ const Monitor = module.exports = function (app, config) {
             const id = ctx.monitor.id =
                 ctx.request.url + '__'
                 + Date.now() + '-'
-                + Math.random().toString(16).substr(2);
+                + Math.random().toString(16).substring(2);
             const nameRes = ctx.request.url.match(/\/(?:\S+)?$/)[0];
             const data = {
                 id,
@@ -259,7 +259,7 @@ const Monitor = module.exports = function (app, config) {
     });
 
     app.on('proxy:afterProxy', function (ctx) {
-
+        const gziped = ctx.config.gzip;
         try {
             const headers = ctx.response.getHeaders();
             const data = {
@@ -267,18 +267,18 @@ const Monitor = module.exports = function (app, config) {
                 type: 'afterProxy',
                 data: {
                     request: {
-                        ...ctx.data.request
+                        ...ctx.proxy.data.request
                     },
                     response: {
-                        ...ctx.data.response
+                        ...(gziped ? ctx.proxy.data.response : ctx.data.response)
                     }
                 },
                 'General': {
-                    'Status Code': `${ctx.response.statusCode} ${ctx.response.statusMessage}`,
+                    'Status Code': `${ctx.proxy.response.statusCode} ${ctx.proxy.response.statusMessage}`,
                 },
                 status: {
-                    code: ctx.response.statusCode,
-                    message: ctx.response.statusMessage
+                    code: ctx.proxy.response.statusCode,
+                    message: ctx.proxy.response.statusMessage
                 },
                 'Proxy Response': {
                     ...ctx.proxy.data.response,
