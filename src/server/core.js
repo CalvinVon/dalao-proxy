@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const request = require('request');
 const through = require('through2');
 const concat = require('concat-stream');
+const zlib = require('zlib');
 
 const URL = require('url').URL;
 const querystring = require('querystring');
@@ -15,10 +16,7 @@ const {
     getType,
     fixJson,
 
-    joinUrl,
     addHttpProtocol,
-    splitTargetAndPath,
-    transformPath,
     locationMatch,
 
     formatHeaders,
@@ -223,7 +221,6 @@ function interrupter(context, resolve, reject) {
  */
 function proxyRequestWrapper(config, corePlugins) {
     plugins = corePlugins;
-
     function proxyRequest(req, res) {
         const {
             logger,
@@ -231,6 +228,7 @@ function proxyRequestWrapper(config, corePlugins) {
             port,
             headers: userHeaders,
             proxyTable,
+            gzip
         } = config;
 
         const serverHost = host === '0.0.0.0' ? 'localhost' : host;
@@ -405,7 +403,57 @@ function proxyRequestWrapper(config, corePlugins) {
                 return new Promise(resolve => {
                     const waitingList = [];
 
+                    let baseResStream;
                     x.on('response', response => {
+                        // 检查并处理 br 编码
+                        if (response.headers['content-encoding'] === 'br') {
+                            baseResStream = baseResStream.pipe(zlib.createBrotliDecompress());
+                            delete response.headers['content-encoding'];
+                        }
+                        
+                        // 现在构建最终的响应流
+                        let xResStream = baseResStream.pipe(through(
+                            function (chunk, encode, callback) {
+                                if (delayResponsePipeHandler) {
+                                    delayResponsePipeHandler(callback);
+                                } else {
+                                    callback();
+                                }
+
+                                delayResponsePipeHandler = ((ctx, chk, enc) => {
+                                    return (cb, isLastChunk) => {
+                                        ctx.isLastChunk = isLastChunk;
+                                        _invokePipeAllPlugin('onPipeResponse', ctx, chk, enc, this, (err, value) => {
+                                            this.push(err ? chk : value);
+                                            cb();
+                                        });
+                                    }
+                                }).call(null, context, chunk, encode);
+                            },
+                            function (callback) {
+                                if (delayResponsePipeHandler) {
+                                    setImmediate(() => {
+                                        delayResponsePipeHandler(callback, true);
+                                        delayResponsePipeHandler = null;
+                                    });
+                                } else {
+                                    callback();
+                                }
+                            }
+                        ));
+
+                        // 添加 gzip 压缩
+                        let hasGziped;
+                        const acceptEncoding = req.headers['accept-encoding'];
+                        if (gzip && acceptEncoding && acceptEncoding.includes('gzip')) {
+                            xResStream = xResStream.pipe(zlib.createGzip());
+                            hasGziped = true;
+                        }
+
+                        // 建立最终的输出管道
+                        xResStream.pipe(res);
+
+
                         /**
                          * Real proxy request
                          * Instance of http.ClientRequest
@@ -416,29 +464,35 @@ function proxyRequestWrapper(config, corePlugins) {
                          * Instance of http.IncomingMessage
                          */
                         context.proxy.response = response;
-                        setResponseHeaders(response.headers, matchedRoute);
-                        res.writeHead(response.statusCode, response.statusMessage);
-
-                        // collect request data
-                        if (program._collectingData) {
-                            waitingList.push(
-                                collectResponseData(context, context.proxy.responseStream)
-                                    .then(data => {
-                                        context.data.response = data;
-                                    })
-                                    .catch(err => context.proxy.data.error = err)
-                            );
+                        context.proxy.responseStream = xResStream;
+                        if (hasGziped) {
+                            response.headers['content-encoding'] = 'gzip';
                         }
+                        setResponseHeaders(response.headers, matchedRoute);
+                        
+                        res.writeHead(response.statusCode, response.statusMessage);
+                        
 
                         // collect proxy request data
                         if (program._collectingProxyData) {
                             waitingList.push(
-                                collectResponseData(context, context.proxy.originResponseStream)
+                                collectResponseData(context.proxy.originResponseStream, context.proxy.response)
                                     .then(data => {
                                         context.proxy.data.response = data;
                                         Middleware_onProxyDataRespond(context);
                                     })
                                     .catch(err => context.data.error = err)
+                            );
+                        }
+
+                        // collect request data
+                        if (program._collectingData) {
+                            waitingList.push(
+                                collectResponseData(context.proxy.responseStream, response, true)
+                                    .then(data => {
+                                        context.data.response = data;
+                                    })
+                                    .catch(err => context.proxy.data.error = err)
                             );
                         }
 
@@ -528,60 +582,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     const xResOriginStream = xReqStream
                         .pipe(x);
 
-
-
-                    const xResStream = xResOriginStream
-                        .pipe(through(
-                            function (chunk, encode, callback) {
-                                if (delayResponsePipeHandler) {
-                                    delayResponsePipeHandler(callback);
-                                }
-                                else {
-                                    callback();
-                                }
-
-                                delayResponsePipeHandler = ((ctx, chk, enc) => {
-                                    return (cb, isLastChunk) => {
-                                        ctx.isLastChunk = isLastChunk;
-                                        /**
-                                        * Middleware: on proxy response pipe response
-                                        * @lifecycle onPipeResponse
-                                        * @param {Object} ctx
-                                        * @param {Buffer} chunk
-                                        * @param {String} enc
-                                        * @param {TransformStream} transform
-                                        * @param {Function} next
-                                        */
-                                        _invokePipeAllPlugin('onPipeResponse', ctx, chk, enc, this, (err, value) => {
-                                            this.push(err ? chk : value);
-                                            cb();
-                                        });
-                                    }
-                                }).call(null, context, chunk, encode);
-
-                            },
-                            function (callback) {
-                                if (delayResponsePipeHandler) {
-                                    /**
-                                     * Help!
-                                     * Looking for a more elegant solution!
-                                     * 
-                                     * If using synchronize call may cause the last chunk not in the right order,
-                                     * except the plugins implement the pipe API using async `next` calling.
-                                     * Still not very clear with the reason.
-                                     */
-                                    setImmediate(() => {
-                                        delayResponsePipeHandler(callback, true);
-                                        delayResponsePipeHandler = null;
-                                    });
-                                }
-                                else {
-                                    callback();
-                                }
-                            }
-                        ));
-
-                    xResStream.pipe(res);
+                    baseResStream = xResOriginStream;
 
                     logger && console.log(chalk.green(`> Proxy [${matchedPath}]`) + `   ${method.toUpperCase()}   ${redirectMeta.matched ? chalk.yellow(url) : url}  ${chalk.green('>>>>')}  ${proxyUrl}`);
 
@@ -596,7 +597,7 @@ function proxyRequestWrapper(config, corePlugins) {
                     /**
                      * Proxy response stream after transformed
                      */
-                    context.proxy.responseStream = xResStream;
+                    context.proxy.responseStream = null;
                     /**
                      * Original response stream
                      */
@@ -657,7 +658,9 @@ function proxyRequestWrapper(config, corePlugins) {
              * @param {Object} context
              * @returns {Object} context
              */
-            .then(([...args]) => Middleware_afterProxy(args.pop()))
+            .then(([...args]) => {
+                Middleware_afterProxy(args.pop())
+            })
             .catch(error => {
                 if (!error instanceof PluginInterrupt || config.debug) {
                     console.error(error);
@@ -704,9 +707,14 @@ function proxyRequestWrapper(config, corePlugins) {
         }
 
         // Collect response data
-        function collectResponseData(context, source) {
-            const { response: proxyResponse } = context.proxy;
-
+        /**
+         * 
+         * @param {Stream} source
+         * @param {Stream} response 
+         * @param {boolean} isClient is the response to client
+         * @returns 
+         */
+        function collectResponseData(source, response, isClient) {
             return new Promise(resolve => {
                 source.pipe(concat(buffer => {
                     const data = {
@@ -718,8 +726,11 @@ function proxyRequestWrapper(config, corePlugins) {
                     };
 
                     try {
-                        const contentType = data.type = formatHeaders(proxyResponse.headers)['content-type'];
-                        if (/json/.test(contentType)) {
+                        const headers = formatHeaders(response.headers);
+                        const contentType = data.type = headers['content-type'];
+                        const gziped = headers['content-encoding'] === 'gzip';
+
+                        if (/json/.test(contentType) && (isClient ? !gziped : true)) {
                             data.data = JSON.parse(fixJson(data.rawData));
                         }
                     } catch (error) {
@@ -778,8 +789,8 @@ function proxyRequestWrapper(config, corePlugins) {
             mergeList.push(formatHeaders(parseHeaders(routeHeaders, 'response')));
 
             const formattedHeaders = Object.assign({}, proxyResponseHeaders, ...mergeList, {
-                'content-encoding': null,
-                'content-length': null,
+                // 'content-encoding': null,
+                'content-length': null, // 只移除 content-length，保留 content-encoding
             });
 
             setHeadersFor(res, formattedHeaders);
