@@ -1,8 +1,9 @@
 const { hijack, version } = window.__hijackConfig || {};
 
 const { rewrite, smartInfer, prefix, excludes, logger } = hijack;
+
 const hmrRewrite = [
-    { from: '(manifest.*hot-update\.json)', to: location.host + '/$1' },
+    { from: '(^manifest.*hot-update\.json)', to: location.host + '/$1' },
 ]
 
 
@@ -11,7 +12,6 @@ const WS_PROTOCOL_REG = new RegExp(/^(wss?:)?\/\//);
 
 const isSecure = location.protocol === 'https:';
 
-// 修复 addHttpProtocol 和 addWsProtocol 对相对路径的处理
 function addHttpProtocol(urlFragment) {
     if (HTTP_PROTOCOL_REG.test(urlFragment)) {
         return urlFragment.startsWith('//') ? location.protocol + urlFragment : urlFragment;
@@ -55,8 +55,7 @@ function shouldExclude(url) {
 }
 
 function rewriteUrl(url, isWS = false) {
-    // 确保 URL 是完整的，补全协议
-    let newUrl = isWS ? addWsProtocol(url) : addHttpProtocol(url);
+    let newUrl = url;
     let matched = false;
 
     const rules = hmrRewrite;
@@ -72,24 +71,24 @@ function rewriteUrl(url, isWS = false) {
         }
     });
 
-    // 如果没有匹配 rewrite 规则，则保留路径部分
+    newUrl = isWS ? addWsProtocol(newUrl) : addHttpProtocol(newUrl);
+    
     if (!matched) {
         const parsedUrl = new URL(newUrl, location.origin); // 使用 location.origin 作为基础
         newUrl = parsedUrl.pathname + parsedUrl.search;
-    }
 
-    // 添加前缀（如果需要）
-    if (prefix) {
-        const hasProtocol = isWS
-            ? WS_PROTOCOL_REG.test(newUrl)
-            : HTTP_PROTOCOL_REG.test(newUrl);
+        if (prefix) {
+            const hasProtocol = isWS
+                ? WS_PROTOCOL_REG.test(newUrl)
+                : HTTP_PROTOCOL_REG.test(newUrl);
 
-        if (!hasProtocol) {
-            newUrl = prefix + (newUrl.startsWith('/') ? '' : '/') + newUrl;
+            if (!hasProtocol) {
+                newUrl = prefix + (newUrl.startsWith('/') ? '' : '/') + newUrl;
+            }
         }
     }
 
-    // 确保 URL 不以双斜杠开头
+
     return newUrl.replace(/^\/\//, '/');
 }
 
