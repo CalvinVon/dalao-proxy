@@ -58,6 +58,11 @@
                                 </a-button>
                             </template>
 
+                            <template v-else-if="key === 'cURL'">
+                                <a-button
+                                    v-clipboard:copy="targetValue[key]">Copy Proxy cURL</a-button>
+                            </template>
+
                             <template v-else>
                                 <code class="pair-value">
                                     <template v-if="isCached && key.match(/^(x-cache-)?file$/)">

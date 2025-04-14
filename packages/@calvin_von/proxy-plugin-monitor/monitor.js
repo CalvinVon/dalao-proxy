@@ -140,6 +140,7 @@ const Monitor = module.exports = function (app, config) {
                 + Date.now() + '-'
                 + Math.random().toString(16).substring(2);
             const nameRes = ctx.request.url.match(/\/(?:\S+)?$/)[0];
+            
             const data = {
                 id,
                 url: ctx.request.url,
@@ -161,7 +162,7 @@ const Monitor = module.exports = function (app, config) {
                     'Proxy URI': ctx.proxy.uri,
                     'Matched Path': ctx.matched.path,
                     'Matched Target': ctx.matched.route.target,
-                    'Change Origin': ctx.matched.route.changeOrigin
+                    'Change Origin': ctx.matched.route.changeOrigin,
                 },
                 'Proxy Request Headers': null,
                 'Proxy Response Headers': null,
@@ -215,6 +216,11 @@ const Monitor = module.exports = function (app, config) {
         data['Proxy Response Headers'] = proxyResponse.headers;
         data['Timing'] = times.proxy_end - times.request_start;
         data['Proxy']['Timing'] = times.proxy_end - times.proxy_start;
+
+        const cUrlString = requestToCurl(proxyRequest, data.data.request);
+        // console.log("🚀 ~ cUrlString:", cUrlString)
+
+        data['General']['cURL'] = cUrlString;
 
         // send request data
         if (ctx.data.request && ctx.data.request.body) {
@@ -380,4 +386,53 @@ function transformRawFormData(contentType, rawBody, body) {
         content += fieldValue;
     });
     return content + boundary + '--';
+}
+
+/**
+ * 将 Node.js HTTP 请求参数转换为 cURL 命令字符串
+ */
+function requestToCurl(req, body) {
+    const method = req.method ?? 'GET';
+
+    // 尝试从 req.socket 和 req.path 组合 URL
+    const protocol = (req.protocol ?? (req.agent && req.agent.protocol)) ?? 'http:';
+    const socket = req.socket;
+    const host = req.getHeader('host') || socket?.remoteAddress || 'localhost';
+    const path = req.path || req.getHeader(':path') || '/';
+    const url = `${protocol}//${host}${path}`;
+
+    // 构建 curl 命令
+    let curlCommand = `curl`;
+    
+    // 添加请求方法（如果不是 GET）
+    if (method !== 'GET') {
+        curlCommand += ` -X ${method}`;
+    }
+    
+    curlCommand += ` '${url}'`;
+
+    // 添加 headers
+    const headers = req.getHeaders ? req.getHeaders() : {};
+    Object.entries(headers)
+        .filter(([_, value]) => value != null)
+        .forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value.forEach(v => {
+                    curlCommand += ` \\\n  -H '${key}: ${v}'`;
+                });
+            } else {
+                curlCommand += ` \\\n  -H '${key}: ${value}'`;
+            }
+        });
+
+    // 添加 body 数据
+    if (body) {
+        const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+        curlCommand += ` \\\n  --data '${bodyStr}'`;
+    }
+
+    // 添加常用选项
+    curlCommand += ` \\\n  --compressed \\\n  --insecure`;
+
+    return curlCommand;
 }
